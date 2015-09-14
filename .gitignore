@@ -6,6 +6,8 @@
 MANIFEST
 dist/
 build/
+venv/
+pyfr.egg-info/
 
 # Documentation
 doc/build/
