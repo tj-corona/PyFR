@@ -5,11 +5,11 @@
 extern "C"
 {
 #endif
-  void CatalystInitialize(int numScripts, char* scripts[]);
+  void* CatalystInitialize(char* outputfile, void* p);
 
-  void CatalystFinalize();
+  void CatalystFinalize(void* p);
 
-  void CatalystCoProcess(double time, unsigned int timeStep, void* data);
+  void CatalystCoProcess(double time, unsigned int timeStep, void* p);
 #ifdef __cplusplus
 }
 #endif

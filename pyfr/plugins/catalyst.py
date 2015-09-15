@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ctypes import *
+import numpy as np
 from pyfr.plugins.base import BasePlugin
 from pyfr.ctypesutil import load_library
 from pyfr.shapes import BaseShape
@@ -34,14 +35,9 @@ class CatalystPlugin(BasePlugin):
         super().__init__(intg, *args, **kwargs)
 
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
-        script_dir = self.cfg.get(self.cfgsect, 'script-dir')
-        scripts = self.cfg.get(self.cfgsect, 'scripts').split(',')
-        scripts = [os.path.abspath(os.path.join(script_dir,s)) for s in scripts]
-        c_scripts = [
-            create_string_buffer(bytes(s, encoding='utf_8')) for s in scripts]
-        c_scripts_p = (c_char_p*len(c_scripts))(*map(addressof, c_scripts))
+        outputfile = self.cfg.get(self.cfgsect, 'outputfile')
+        c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
         self.catalyst = load_library('pyfr-catalyst')
-        self.catalyst.CatalystInitialize(len(c_scripts),c_scripts_p);
 
         ###################
 
@@ -49,7 +45,7 @@ class CatalystPlugin(BasePlugin):
         self.mesh = intg.system.mesh
 
         # Amount of subdivision to perform
-        self.divisor = self.cfg.getint(cfgsect, 'divisor', 3)
+        self.divisor = self.cfg.getint(self.cfgsect, 'divisor', 3)
 
         # Allocate a queue on the backend
         self._queue = backend.queue()
@@ -85,6 +81,9 @@ class CatalystPlugin(BasePlugin):
 
         # Wrap the kernels in a proxy list
         self._interpolate_upts = proxylist(kerns)
+
+        # Finally, initialize Catalyst
+        self._data = self.catalyst.CatalystInitialize(c_outputfile);
 
     def _prepare_vtu(self, etype, part):
         from pyfr.writers.paraview import BaseShapeSubDiv
@@ -160,11 +159,7 @@ class CatalystPlugin(BasePlugin):
         # Interpolate to the vis points
         self._queue % self._interpolate_upts()
 
-        # Convert from conservative to primitive variables
-#        vsol = np.array(self.elementscls.conv_to_pri(vsol, self.cfg))
-
-#        self.catalyst.CatalystCoProcess(#DATA!!!)
+        self.catalyst.CatalystCoProcess(c_double(intg.tcurr),intg.nacptsteps,self._data)
 
     def __exit__(self, *args):
-        pass
-#        self.catalyst.CatalystFinalize()
+        self.catalyst.CatalystFinalize(self._data)

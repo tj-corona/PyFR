@@ -24,6 +24,7 @@ def load_library(name):
     except OSError:
         for sd in sdirs:
             try:
+                print(os.path.abspath(os.path.join(sd, lname)))
                 return ctypes.CDLL(os.path.abspath(os.path.join(sd, lname)))
             except OSError:
                 pass
