@@ -22,19 +22,19 @@ endif()
 include("${PARAVIEW_USE_FILE}")
 
 find_package(VTKm REQUIRED)
-include_directories(${VTKm_INCLUDE_DIRS})
+include(VTKmMacros)
+vtkm_configure_device(Serial REQUIRED)
+vtkm_configure_device(Cuda REQUIRED)
 
 find_package(BoostHeaders ${VTKm_REQUIRED_BOOST_VERSION} REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-find_package(CUDA REQUIRED)
-include_directories(${CUDA_INCLUDE_DIRS})
-
 set(Adaptor_SRCS
-  vtkCPVTKPipeline.cxx
-  FieldData.cxx
-  PyFRAdaptor.cxx
+  vtkCPVTKmPipeline.cu
+  PyFRData.cu
+  PyFRAdaptor.cu
   )
-add_library(pyfr-catalyst SHARED ${Adaptor_SRCS})
+
+cuda_add_library(pyfr-catalyst SHARED ${Adaptor_SRCS})
 target_link_libraries(pyfr-catalyst vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${CUDA_LIBRARIES})
 install(TARGETS pyfr-catalyst DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

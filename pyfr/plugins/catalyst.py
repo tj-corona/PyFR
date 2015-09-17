@@ -83,7 +83,7 @@ class CatalystPlugin(BasePlugin):
         self._interpolate_upts = proxylist(kerns)
 
         # Finally, initialize Catalyst
-        self._data = self.catalyst.CatalystInitialize(c_outputfile);
+        self._data = self.catalyst.CatalystInitialize(c_outputfile,self._pieces);
 
     def _prepare_vtu(self, etype, part):
         from pyfr.writers.paraview import BaseShapeSubDiv
