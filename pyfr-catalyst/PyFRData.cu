@@ -43,6 +43,39 @@ void PyFRData::Init(void* fld)
   const size_t typ_len = this->field->nb*8;
   const float* vbuf = static_cast<const float*>(field->verts);
 
+  std::cout<<"are there "<<xyz_len<<" or "<<con_len<<" points?"<<std::endl;
+
+    {
+    size_t counter = 0;
+    float xyz[this->field->na][3][this->field->nb];
+    for (size_t i=0;i<this->field->na;i++)
+      {
+      for (size_t j=0;j<3;j++)
+        {
+        for (size_t k=0;k<this->field->nb;k++)
+          {
+          xyz[i][j][k] = vbuf[counter++];
+          }
+        }
+      }
+
+    counter = 0;
+
+    for (size_t i=0;i<this->field->na;i++)
+      {
+      for (size_t k=0;k<this->field->nb;k++)
+        {
+        std::cout<<"point "<<counter++<<": [ ";
+        for (size_t j=0;j<3;j++)
+          {
+          std::cout<<xyz[i][j][k]<<" ";
+          }
+        std::cout<<" ]"<<std::endl;
+        }
+      }
+    }
+
+
   vtkm::cont::ArrayHandle<float> vert =
     vtkm::cont::make_ArrayHandle(vbuf, xyz_len);
   vtkm::cont::ArrayHandle<int32_t> connectivity =

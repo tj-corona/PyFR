@@ -17,26 +17,18 @@ namespace
 
 void* CatalystInitialize(char* outputfile, void* p)
 {
-  printf("In CatalystInitialize\n");
-
-  printf("Creating PyFRData object from data pointer...\n");
   PyFRData* data = PyFRData::New();
   data->Init(p);
-  printf("Done!\n");
 
   if(Processor == NULL)
     {
-    printf("Creating a new processor\n");
     Processor = vtkCPProcessor::New();
-    printf("Initializing new processor...\n");
     Processor->Initialize();
-    printf("Done!\n");
     }
   vtkNew<vtkCPVTKmPipeline> pipeline;
   pipeline->Initialize(outputfile);
   Processor->AddPipeline(pipeline.GetPointer());
 
-  printf("Exiting CatalystInitialize()\n");
   return data;
 }
 
@@ -56,10 +48,8 @@ void CatalystFinalize(void* p)
 
 void CatalystCoProcess(double time,unsigned int timeStep, void* p)
 {
-  printf("Calling data->Update()\n");
   PyFRData* data = static_cast<PyFRData*>(p);
   data->Update();
-  printf("Done!\n");
   vtkNew<vtkCPDataDescription> dataDescription;
   dataDescription->AddInput("input");
   dataDescription->SetTimeData(time, timeStep);

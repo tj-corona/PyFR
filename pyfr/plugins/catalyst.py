@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ctypes import *
+from mpi4py import MPI
 import numpy as np
 from pyfr.plugins.base import BasePlugin
 from pyfr.ctypesutil import load_library
@@ -45,7 +46,8 @@ class CatalystPlugin(BasePlugin):
         self.mesh = intg.system.mesh
 
         # Amount of subdivision to perform
-        self.divisor = self.cfg.getint(self.cfgsect, 'divisor', 3)
+        comm = MPI.COMM_WORLD
+        self.divisor = comm.Get_size()
 
         # Allocate a queue on the backend
         self._queue = backend.queue()
@@ -95,6 +97,8 @@ class CatalystPlugin(BasePlugin):
         subdvcls = subclass_where(BaseShapeSubDiv, name=etype)
 
         # Dimensions
+        # tjc: nspts: number of points in the element type
+        # tjc: neles: number of elements of this type
         nspts, neles = mesh.shape[:2]
 
         # Sub divison points inside of a standard element
@@ -117,7 +121,7 @@ class CatalystPlugin(BasePlugin):
             vpts = np.pad(vpts, [(0, 0), (0, 0), (0, 1)], 'constant')
 
         # Reorder and cast
-        vpts = vpts.swapaxes(1, 2).astype(self.backend.fpdtype)
+        vpts = vpts.swapaxes(0, 1).astype(self.backend.fpdtype)
 
         # Perform the sub division
         nodes = subdvcls.subnodes(self.divisor)
@@ -125,16 +129,18 @@ class CatalystPlugin(BasePlugin):
         # Prepare vtu cell arrays
         vtu_con = np.tile(nodes, (neles, 1))
         vtu_con += (np.arange(neles)*nsvpts)[:, None]
-        vtu_con = vtu_con.astype(np.int32)
+        vtu_con = vtu_con.astype(np.int32, order='C')
 
         # Generate offset into the connectivity array
         vtu_off = np.tile(subdvcls.subcelloffs(self.divisor), (neles, 1))
         vtu_off += (np.arange(neles)*len(nodes))[:, None]
-        vtu_off = vtu_off.astype(np.int32)
+        vtu_off = vtu_off.astype(np.int32, order='C')
 
         # Tile vtu cell type numbers
         vtu_typ = np.tile(subdvcls.subcelltypes(self.divisor), neles)
-        vtu_typ = vtu_typ.astype(np.uint8)
+        vtu_typ = vtu_typ.astype(np.uint8, order='C')
+
+        print("vpts: ", vpts)
 
         # Construct the piece
         piece = Piece(na=nsvpts, nb=neles, verts=vpts.ctypes.data,
