@@ -11,7 +11,7 @@
 #define BOOST_SP_DISABLE_THREADS
 
 #include <vtkm/cont/DataSet.h>
-#include "Field.h"
+#include "CatalystData.h"
 
 /*
  * A VTK-digestable representation of PyFR output data.
@@ -25,7 +25,7 @@ public:
   static PyFRData* New();
   vtkTypeMacro(PyFRData, vtkDataObject)
 
-  void Init(void* field);
+  void Init(vtkIdType datasettypeid, void* field);
 
   vtkm::cont::DataSet& GetDataSet() { return dataSet; }
 
@@ -36,8 +36,8 @@ protected:
   virtual ~PyFRData();
 
 private:
-  struct Field* field;
-  int32_t* typesArray;
+  struct CatalystData* catalystData;
+  vtkIdType dataSetTypeId;
   vtkm::cont::DataSet dataSet;
 };
 #endif

@@ -36,7 +36,16 @@ public:
 
   StorageType& Storage()
   {
-    return this->Internals->ControlArray;
+    this->SyncControlArray();
+    if (this->Internals->ControlArrayValid)
+      {
+      return this->Internals->ControlArray;
+      }
+    else
+      {
+      throw vtkm::cont::ErrorControlInternal(
+        "ArrayHandle::SyncControlArray did not make control array valid.");
+      }
   }
 };
 

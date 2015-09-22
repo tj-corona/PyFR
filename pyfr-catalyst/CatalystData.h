@@ -1,14 +1,10 @@
-#ifndef PYFR_FIELD_H
-#define PYFR_FIELD_H
+#ifndef PYFR_CATALYSTDATA_H
+#define PYFR_CATALYSTDATA_H
 
 #include <inttypes.h>
 #include <cuda_runtime.h>
 
 /*
- * An unstructured VTK piece as per:
- *
- *   http://www.vtk.org/wp-content/uploads/2015/04/file-formats.pdf
- *
  * The vertex and solution arrays are three dimensional having a
  * format of [nb][X][na] where X = 3 for the vertex array (x, y, z)
  * and X = 5 for the solution array (rho, rhou, rhov, rhow, E).  The
@@ -27,16 +23,28 @@
  * must be taken when looking up this node in vert/soln due to their
  * three dimensional structure.
  */
-struct Field {
-	int na;
-	int nb;
-	void* verts;
-	int ldim;
-	int lsdim;
-        void* solution; /* "soln" in PyFR parlance. */
-	int nel; /* number of elements in con, off, type */
-	int32_t* con;
-	int32_t* off; /* offset of connectivity information in con[] */
-	uint8_t* type;
+struct MeshDataForCellType
+{
+  int nVerticesPerCell;
+  int nCells;
+  double* vertices;
+  int nSubdividedCells; /* number of elements in con, off, type */
+  int32_t* con;
+  int32_t* off; /* offset of connectivity information in con[] */
+  uint8_t* type;
+};
+
+struct SolutionDataForCellType
+{
+  int ldim;
+  int lsdim;
+  void* solution; /* "soln" in PyFR parlance. */
+};
+
+struct CatalystData
+{
+  int nCellTypes;
+  MeshDataForCellType* meshData;
+  SolutionDataForCellType* solutionData;
 };
 #endif

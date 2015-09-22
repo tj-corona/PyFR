@@ -9,22 +9,33 @@ from pyfr.shapes import BaseShape
 from pyfr.util import proxylist, subclass_where
 import os
 
-class Piece(Structure):
+# Contains relevant data pertaining to all instances of a single cell type
+class MeshDataForCellType(Structure):
     _fields_ = [
-        ('na', c_int),
-        ('nb', c_int),
+        ('nVerticesPerCell', c_int),
+        ('nCells', c_int),
 
-        ('verts', c_void_p),
+        ('vertices', POINTER(c_float)),
 
-        ('ldim', c_int),
-        ('lsdim', c_int),
-        ('soln', c_void_p),
-
-        ('nel', c_int),
+        ('nSubdividedCells', c_int),
 
         ('con', c_void_p),
         ('off', c_void_p),
         ('type', c_void_p)
+    ]
+
+class SolutionDataForCellType(Structure):
+    _fields_ = [
+        ('ldim', c_int),
+        ('lsdim', c_int),
+        ('soln', c_void_p)
+    ]
+
+class CatalystData(Structure):
+    _fields_ = [
+        ('nCellTypes', c_int),
+        ('meshData', POINTER(MeshDataForCellType)),
+        ('solutionData', POINTER(SolutionDataForCellType))
     ]
 
 
@@ -38,6 +49,8 @@ class CatalystPlugin(BasePlugin):
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
         outputfile = self.cfg.get(self.cfgsect, 'outputfile')
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
+        datasetformat = self.cfg.get(self.cfgsect, 'dataset-format')
+        c_datasetformat = create_string_buffer(bytes(datasetformat, encoding='utf_8'))
         self.catalyst = load_library('pyfr-catalyst')
 
         ###################
@@ -55,37 +68,45 @@ class CatalystPlugin(BasePlugin):
         # Solution arrays
         self.eles_scal_upts_inb = inb = intg.system.eles_scal_upts_inb
 
-        # Prepare the VTU pieces and interpolation kernels
-        pieces, kerns = [], []
+        # Prepare the mesh data and solution data
+        meshData, solnData, kerns = [], [], []
         for etype, solnmat in zip(intg.system.ele_types, inb):
             p, solnop = self._prepare_vtu(etype, intg.rallocs.prank)
 
             # Allocate on the backend
-            vismat = backend.matrix((p.na, self.nvars, p.nb),
+            vismat = backend.matrix((p.nVerticesPerCell, self.nvars, p.nCells),
                                     tags={'align'})
             solnop = backend.const_matrix(solnop)
             backend.commit()
 
             # Populate the soln field and dimension info
-            p.soln = vismat.data
-            p.ldim = vismat.leaddim
-            p.lsdim = vismat.leadsubdim
+            s = SolutionDataForCellType(ldim = vismat.leaddim,
+                                        lsdim = vismat.leadsubdim,
+                                        soln = vismat.data)
 
             # Prepare the matrix multiplication kernel
             k = backend.kernel('mul', solnop, solnmat, out=vismat)
 
             # Append
-            pieces.append(p)
+            meshData.append(p)
+            solnData.append(s)
             kerns.append(k)
 
         # Save the pieces
-        self._pieces = (Piece*len(pieces))(*pieces)
+        catalystData = []
+        catalystData.append(
+            CatalystData(nCellTypes = len(meshData),
+             meshData = (MeshDataForCellType*len(meshData))(*meshData),
+             solutionData = (SolutionDataForCellType*len(solnData))(*solnData)))
+        self._catalystData = (CatalystData*len(catalystData))(*catalystData)
 
         # Wrap the kernels in a proxy list
         self._interpolate_upts = proxylist(kerns)
 
         # Finally, initialize Catalyst
-        self._data = self.catalyst.CatalystInitialize(c_outputfile,self._pieces);
+        self._data = self.catalyst.CatalystInitialize(c_outputfile,
+                                                      c_datasetformat,
+                                                      self._catalystData)
 
     def _prepare_vtu(self, etype, part):
         from pyfr.writers.paraview import BaseShapeSubDiv
@@ -140,20 +161,23 @@ class CatalystPlugin(BasePlugin):
         vtu_typ = np.tile(subdvcls.subcelltypes(self.divisor), neles)
         vtu_typ = vtu_typ.astype(np.uint8, order='C')
 
-        print("vpts: ", vpts)
-
-        # Construct the piece
-        piece = Piece(na=nsvpts, nb=neles, verts=vpts.ctypes.data,
-                      nel=len(vtu_typ), con=vtu_con.ctypes.data,
-                      off=vtu_off.ctypes.data, type=vtu_typ.ctypes.data)
+        # Construct the meshDataForCellType
+        meshDataForCellType = \
+        MeshDataForCellType(nVerticesPerCell=nsvpts,
+                            nCells=neles,
+                            vertices=vpts.ctypes.data_as(POINTER(c_float)),
+                            nSubdividedCells=len(vtu_typ),
+                            con=vtu_con.ctypes.data,
+                            off=vtu_off.ctypes.data,
+                            type=vtu_typ.ctypes.data)
 
         # Retain the underlying NumPy objects
-        piece._vpts = vpts
-        piece._vtu_con = vtu_con
-        piece._vtu_off = vtu_off
-        piece._vtu_typ = vtu_typ
+        meshDataForCellType._vpts = vpts
+        meshDataForCellType._vtu_con = vtu_con
+        meshDataForCellType._vtu_off = vtu_off
+        meshDataForCellType._vtu_typ = vtu_typ
 
-        return piece, soln_vtu_op
+        return meshDataForCellType, soln_vtu_op
 
     def __call__(self, intg):
         if intg.nacptsteps % self.nsteps:
