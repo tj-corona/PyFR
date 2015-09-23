@@ -1,5 +1,6 @@
 #include "vtkCPVTKmPipeline.h"
 
+#include <cmath>
 #include <string>
 #include <sstream>
 
@@ -16,6 +17,7 @@
 #include <vtkIdTypeArray.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
@@ -30,11 +32,10 @@
 
 #include "ArrayHandleVTK.h"
 
-// #include <vtkm/worklet/DispatcherMapField.h>
-// #include "TransferData.h"
-// #include <vtkm/worklet/WorkletMapField.h>
+#include <vtkm/worklet/IsosurfaceUniformGrid.h>
 
 vtkStandardNewMacro(vtkCPVTKmPipeline);
+
 
 //----------------------------------------------------------------------------
 vtkCPVTKmPipeline::vtkCPVTKmPipeline()
@@ -96,170 +97,138 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 
   vtkm::cont::DataSet& dataSet = pyfrData->GetDataSet();
 
-  // currently, we have a cell set for each cell type
-  for (size_t cellType=0;cellType<dataSet.GetNumberOfCellSets();cellType++)
+  namespace vtkmc = vtkm::cont;
+  typedef vtkmc::ArrayHandleVTK<vtkIdType> IdArrayHandleVTK;
+  typedef vtkmc::ArrayHandleVTK<double> DoubleArrayHandleVTK;
+  typedef vtkmc::ArrayHandleVTK<vtkm::Vec<double,3> > Double3ArrayHandleVTK;
+  typedef vtkmc::ArrayHandleCast<vtkm::Id,IdArrayHandleVTK > IdArrayHandleCast;
+  typedef vtkmc::cuda::ArrayHandleCuda<double>::type CudaDoubleArrayHandle;
+
+  Double3ArrayHandleVTK verts_out;
+  Double3ArrayHandleVTK normals_out;
+  DoubleArrayHandleVTK scalars_out;
+
+  vtkmc::Field rho = dataSet.GetField("rho");
+  CudaDoubleArrayHandle solution =
+    rho.GetData().CastToArrayHandle(CudaDoubleArrayHandle::ValueType(),
+                                    CudaDoubleArrayHandle::StorageTag());
+
+  double isosurfaceValue = 1.;
+
+  //   {
+  //   DoubleArrayHandleVTK tmp;
+  //   vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+  //     Copy(solution,tmp);
+
+  //   double mean = 0.;
+  //   for (size_t i=0;i<tmp.GetNumberOfValues();i++)
+  //     {
+  //     std::cout<<i<<": "<<tmp.GetPortalConstControl().Get(i)<<std::endl;
+  // mean += tmp.GetPortalConstControl().Get(i);
+  //     }
+  //   mean/=tmp.GetNumberOfValues();
+  //   isosurfaceValue = mean;
+  //   }
+
+  // std::cout<<"Isosurface contour value = "<<isosurfaceValue<<std::endl;
+
+
+  vtkm::Id3 dims;
+  for (int i=0;i<3;i++)
+    dims[i] = pyfrData->GetCellDimension()[i];
+  vtkm::worklet::IsosurfaceFilterUniformGrid<double, VTKM_DEFAULT_DEVICE_ADAPTER_TAG>* isosurfaceFilter = new vtkm::worklet::IsosurfaceFilterUniformGrid<double,VTKM_DEFAULT_DEVICE_ADAPTER_TAG>(dataSet);
+
+  isosurfaceFilter->Run(isosurfaceValue,
+                        solution,
+                        verts_out,
+                        normals_out,
+                        scalars_out);
+
+  bool printData = false;
+
+  if (printData)
     {
-      std::stringstream name; name << "xyz_" << cellType;
-      vtkm::cont::Field xyz = dataSet.GetField(name.str());
-      typedef vtkm::cont::ArrayHandle<double> DoubleArrayHandle;
-      DoubleArrayHandle verts =
-        xyz.GetData().CastToArrayHandle(DoubleArrayHandle::ValueType(),
-                                        DoubleArrayHandle::StorageTag());
+    Double3ArrayHandleVTK::PortalConstControl vertsPortal =
+      verts_out.GetPortalConstControl();
 
-      name.clear();
-      name.str("");
-      name << "cells_" << cellType;
-      vtkm::cont::CellSetExplicit<>& cset =
-        dataSet.GetCellSet(name.str()).CastTo<vtkm::cont::CellSetExplicit<> >();
-      typedef vtkm::cont::ArrayHandle<vtkm::Id> IdArrayHandle;
-      IdArrayHandle shapes = cset.GetShapesArray(
-        vtkm::TopologyElementTagPoint(),vtkm::TopologyElementTagCell());
-      IdArrayHandle nindices = cset.GetNumIndicesArray(
-        vtkm::TopologyElementTagPoint(),vtkm::TopologyElementTagCell());
-      IdArrayHandle conn = cset.GetConnectivityArray(
-        vtkm::TopologyElementTagPoint(),vtkm::TopologyElementTagCell());
-      typedef vtkm::cont::ArrayHandleVTK<vtkm::Id> IdArrayHandleVTK;
-      typedef vtkm::cont::ArrayHandleVTK<double> FloatArrayHandleVTK;
-      FloatArrayHandleVTK verts_out;
-      vtkm::cont::ArrayHandleVTK<vtkIdType> shapes_out;
-      vtkm::cont::ArrayHandleCast<vtkm::Id,vtkm::cont::ArrayHandleVTK<vtkIdType> > shapes_out_cast(shapes_out);
+    std::cout<<"# of vertex values: "<<verts_out.GetNumberOfValues()<<std::endl;
+    std::cout<<"Verts: [ ";
+    for (size_t i=0;i<verts_out.GetNumberOfValues();i++)
+      std::cout<<vertsPortal.Get(i)<<" ";
+    std::cout<<"]"<<std::endl;
+    std::cout<<""<<std::endl;
+    }
 
-      vtkm::cont::ArrayHandleVTK<vtkIdType> nindices_out;
-      vtkm::cont::ArrayHandleCast<vtkm::Id,vtkm::cont::ArrayHandleVTK<vtkIdType> > nindices_out_cast(nindices_out);
+  if (printData)
+    {
+    Double3ArrayHandleVTK::PortalConstControl normalsPortal =
+      normals_out.GetPortalConstControl();
 
-      vtkm::cont::ArrayHandleVTK<vtkIdType> conn_out;
-      vtkm::cont::ArrayHandleCast<vtkm::Id,vtkm::cont::ArrayHandleVTK<vtkIdType> > conn_out_cast(conn_out);
+    std::cout<<"# of vertex values: "<<normals_out.GetNumberOfValues()<<std::endl;
+    std::cout<<"Normals: [ ";
+    for (size_t i=0;i<normals_out.GetNumberOfValues();i++)
+      std::cout<<normalsPortal.Get(i)<<" ";
+    std::cout<<"]"<<std::endl;
+    std::cout<<""<<std::endl;
+    }
 
-      name.clear();
-      name.str("");
-      name << "rho_" << cellType;
-      vtkm::cont::Field rho = dataSet.GetField(name.str());
-      typedef vtkm::cont::cuda::ArrayHandleCuda<double>::type CudaDoubleArrayHandle;
-      CudaDoubleArrayHandle solution =
-        rho.GetData().CastToArrayHandle(CudaDoubleArrayHandle::ValueType(),
-                                        CudaDoubleArrayHandle::StorageTag());
-      vtkm::cont::ArrayHandle<double> solution_out;
+  if (printData)
+    {
+    DoubleArrayHandleVTK::PortalConstControl scalarsPortal =
+      scalars_out.GetPortalConstControl();
 
-      // vtkm::worklet::TransferData<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().run(
-      //   shapes, nindices, conn, shapes_out, nindices_out, conn_out);
+    std::cout<<"# of scalars values: "<<scalars_out.GetNumberOfValues()<<std::endl;
+    std::cout<<"Scalars: [ ";
+    for (size_t i=0;i<scalars_out.GetNumberOfValues();i++)
+      std::cout<<scalarsPortal.Get(i)<<" ";
+    std::cout<<"]"<<std::endl;
+    std::cout<<""<<std::endl;
+    }
 
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(verts,verts_out);
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(shapes,shapes_out_cast);
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(nindices,nindices_out_cast);
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(conn,conn_out_cast);
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(solution,solution_out);
+  vtkSmartPointer<vtkDoubleArray> pointData =
+    vtkSmartPointer<vtkDoubleArray>::New();
 
-      vtkm::cont::DataSet outDataSet;
-      for(size_t i=0; i < (size_t)dataSet.GetNumberOfCoordinateSystems(); i++)
-        {
-        outDataSet.AddCoordinateSystem(dataSet.GetCoordinateSystem(i));
-        }
+  vtkIdType nVerts = verts_out.GetNumberOfValues();
+  double* vertsArray = reinterpret_cast<double*>(verts_out.Storage().StealArray());
+  pointData->SetArray(vertsArray, nVerts,
+                      0, // give VTK control of the data
+                      0);// delete using "free"
+  pointData->SetNumberOfComponents(3);
 
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  points->SetData(pointData);
 
-  // std::cout << shapes.GetNumberOfValues() << " input elements, "
-  //           << shapes_out.GetNumberOfValues() << " output elements.\n";
+  vtkSmartPointer<vtkDoubleArray> rhoData =
+    vtkSmartPointer<vtkDoubleArray>::New();
+  vtkIdType nRho = scalars_out.GetNumberOfValues();
+  double* rhoArray = scalars_out.Storage().StealArray();
+  rhoData->SetArray(rhoArray, nRho,
+                      0, // give VTK control of the data
+                      0);// delete using "free"
+  rhoData->SetNumberOfComponents(1);
 
-      {
-      vtkm::cont::ArrayHandle<double>::PortalConstControl vertsPortal =
-        verts_out.GetPortalConstControl();
-
-      std::cout<<"# of vertex values: "<<verts_out.GetNumberOfValues()<<std::endl;
-      std::cout<<"Verts: [ ";
-      for (size_t i=0;i<verts_out.GetNumberOfValues();i++)
-        std::cout<<vertsPortal.Get(i)<<" ";
-      std::cout<<"]"<<std::endl;
-      std::cout<<""<<std::endl;
-      }
-
-      {
-      vtkm::cont::ArrayHandle<vtkIdType>::PortalConstControl shapesPortal =
-        shapes_out.GetPortalConstControl();
-
-      std::cout<<"# of shapes values: "<<shapes_out.GetNumberOfValues()<<std::endl;
-      std::cout<<"shapes: [ ";
-      for (size_t i=0;i<shapes_out.GetNumberOfValues();i++)
-        std::cout<<shapesPortal.Get(i)<<" ";
-      std::cout<<"]"<<std::endl;
-      std::cout<<""<<std::endl;
-      }
-
-      {
-      vtkm::cont::ArrayHandle<vtkIdType>::PortalConstControl nindicesPortal =
-        nindices_out.GetPortalConstControl();
-
-      std::cout<<"# of nindices values: "<<nindices_out.GetNumberOfValues()<<std::endl;
-      std::cout<<"nindices: [ ";
-      for (size_t i=0;i<nindices_out.GetNumberOfValues();i++)
-        std::cout<<nindicesPortal.Get(i)<<" ";
-      std::cout<<"]"<<std::endl;
-      std::cout<<""<<std::endl;
-      }
-
-      {
-      vtkm::cont::ArrayHandle<vtkIdType>::PortalConstControl connPortal =
-        conn_out.GetPortalConstControl();
-
-      std::cout<<"# of conn values: "<<conn_out.GetNumberOfValues()<<std::endl;
-      std::cout<<"conn: [ ";
-      for (size_t i=0;i<conn_out.GetNumberOfValues();i++)
-        std::cout<<connPortal.Get(i)<<" ";
-      std::cout<<"]"<<std::endl;
-      std::cout<<""<<std::endl;
-      }
-
-      {
-      vtkm::cont::ArrayHandle<double>::PortalConstControl solutionPortal =
-        solution_out.GetPortalConstControl();
-
-      std::cout<<"# of solution values: "<<solution_out.GetNumberOfValues()<<std::endl;
-      std::cout<<"Solution: [ ";
-      for (size_t i=0;i<solution_out.GetNumberOfValues();i++)
-        std::cout<<solutionPortal.Get(i)<<" ";
-      std::cout<<"]"<<std::endl;
-      std::cout<<""<<std::endl;
-      }
-
-      vtkSmartPointer<vtkDoubleArray> pointData =
-        vtkSmartPointer<vtkDoubleArray>::New();
-
-      vtkIdType nVerts = verts_out.GetNumberOfValues();
-      double* vertsArray = verts_out.Storage().StealArray();
-      pointData->SetArray(vertsArray, nVerts,
-                          0, // give VTK control of the data
-                          0);// delete using "free"
-      pointData->SetNumberOfComponents(3);
-
-      vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-      points->SetData(pointData);
-
-      vtkSmartPointer<vtkIdTypeArray> cellData =
-        vtkSmartPointer<vtkIdTypeArray>::New();
-      vtkIdType nConn = conn_out.GetNumberOfValues();
-      vtkIdType* connArray = conn_out.Storage().StealArray();
-      cellData->SetArray(connArray,nConn,
-                         0, // give VTK control of the data
-                         0);
-
-      vtkSmartPointer<vtkCellArray> polys =
+  vtkSmartPointer<vtkCellArray> polys =
         vtkSmartPointer<vtkCellArray>::New();
-      polys->SetCells(shapes_out.GetNumberOfValues(),cellData);
+      vtkIdType indices[3];
+      for (vtkIdType i=0;i<nVerts;i+=3)
+        {
+        for (vtkIdType j=0;j<3;j++)
+          indices[j] = i+j;
+        polys->InsertNextCell(3,indices);
+        }
 
       // Create a polydata object and add the points to it.
       vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
       polydata->SetPoints(points);
-      // polydata->SetPolys(polys);
+      polydata->SetPolys(polys);
+      polydata->GetPointData()->AddArray(rhoData);
 
       // Write the file
       vtkSmartPointer<vtkXMLPolyDataWriter> writer =
         vtkSmartPointer<vtkXMLPolyDataWriter>::New();
       std::stringstream s;
       s << fileName.substr(0,fileName.find_last_of("."));
-      s << "_" << cellType << "_" << dataDescription->GetTimeStep();
+      s << "_" << dataDescription->GetTimeStep();
       s << fileName.substr(fileName.find_last_of("."), std::string::npos);
       writer->SetFileName(s.str().c_str());
 #if VTK_MAJOR_VERSION <= 5
@@ -273,10 +242,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   //writer->SetDataModeToAscii();
 
   writer->Write();
-
-      // vtkSmartPointer<vtkUnstructuredGrid> grid =
-      //   vtkSmartPointer<vtkUnstructuredGrid>::New();
-    }
 
 
 
