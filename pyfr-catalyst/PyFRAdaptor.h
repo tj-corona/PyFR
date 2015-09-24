@@ -5,7 +5,7 @@
 extern "C"
 {
 #endif
-  void* CatalystInitialize(char* outputfile, char* datasetformat, void* p);
+  void* CatalystInitialize(char* outputfile, void* p);
 
   void CatalystFinalize(void* p);
 

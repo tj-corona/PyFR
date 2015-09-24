@@ -22,22 +22,6 @@
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
 
-namespace
-{
-  typedef vtkm::Id Id;
-  typedef vtkm::Id3 Id3;
-  typedef vtkm::Vec<double,3> Double3;
-  typedef vtkm::cont::ArrayHandle<Double3> Double3ArrayHandle;
-  struct GridData
-  {
-    Id3 Dimension;
-    Double3 Origin;
-    Double3 Spacing;
-  };
-
-  GridData ComputeGridDimensions(Double3ArrayHandle&);
-};
-
 //------------------------------------------------------------------------------
 vtkStandardNewMacro(PyFRData);
 
@@ -53,33 +37,64 @@ PyFRData::~PyFRData()
 }
 
 //------------------------------------------------------------------------------
-void PyFRData::Init(vtkIdType datasettypeid, void* data)
+void PyFRData::Init(void* data)
 {
-  this->dataSetTypeId = datasettypeid;
-  assert(this->dataSetTypeId = vtkDataObjectTypes::GetTypeIdFromClassName("vtkStructuredGrid"));
-
   this->catalystData = static_cast<struct CatalystData*>(data);
 
+  // we only take data from the first stored cell type (i.e. hexahedra)
   MeshDataForCellType* meshData = &(this->catalystData->meshData[0]);
-  SolutionDataForCellType* solutionData= &(this->catalystData->solutionData[0]);
+  SolutionDataForCellType* solutionData =
+    &(this->catalystData->solutionData[0]);
 
+  const size_t nFieldsPerVertex = 3;
   const size_t xyz_len = (meshData->nCells*
+                          meshData->nVerticesPerCell*
+                          nFieldsPerVertex);
+  const size_t con_len = (meshData->nCells*
                           meshData->nVerticesPerCell);
+  const size_t off_len = meshData->nCells;
+  const size_t typ_len = meshData->nCells;
   const double* vbuf = meshData->vertices;
 
-  vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > vertices =
-    vtkm::cont::ArrayHandle<vtkm::Vec<double,3>,vtkm::cont::StorageTagBasic>(vtkm::cont::internal::Storage<vtkm::Vec<double,3>,vtkm::cont::StorageTagBasic>(reinterpret_cast<const vtkm::Vec<double,3>*>(vbuf),xyz_len));
-  GridData gridData = ComputeGridDimensions(vertices);
-  // std::cout<<"Grid data:"<<std::endl;
-  // std::cout<<"  dimension: "<<gridData.Dimension<<std::endl;
-  // std::cout<<"  origin:    "<<gridData.Origin<<std::endl;
-  // std::cout<<"  spacing:   "<<gridData.Spacing<<std::endl;
+  vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > vertices;
+    {
+    vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > tmp = vtkm::cont::ArrayHandle<vtkm::Vec<double,3>,vtkm::cont::StorageTagBasic>(vtkm::cont::internal::Storage<vtkm::Vec<double,3>,vtkm::cont::StorageTagBasic>(reinterpret_cast<const vtkm::Vec<double,3>*>(vbuf),xyz_len));
+    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+      Copy(tmp, vertices);
+    }
 
-  for (int i=0;i<3;i++)
-    this->cellDimension[i] = gridData.Dimension[i] - 1;
+  vtkm::cont::ArrayHandle<vtkm::Id> connectivity;
+    {
+    vtkm::cont::ArrayHandle<int32_t> tmp =
+      vtkm::cont::make_ArrayHandle(meshData->con, con_len);
+    vtkm::cont::ArrayHandleCast<vtkm::Id,
+      vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
+    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+      Copy(cast, connectivity);
+    }
 
-  vtkm::cont::CellSetStructured<3> cset("cells");
-  cset.SetPointDimensions(gridData.Dimension);
+  vtkm::cont::ArrayHandle<vtkm::Id> offsets;
+    {
+    vtkm::cont::ArrayHandle<int32_t> tmp =
+      vtkm::cont::make_ArrayHandle(meshData->off, off_len);
+    vtkm::cont::ArrayHandleCast<vtkm::Id,
+      vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
+    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+      Copy(cast, offsets);
+    }
+
+  vtkm::cont::ArrayHandle<vtkm::Id> types;
+    {
+    vtkm::cont::ArrayHandle<uint8_t> tmp =
+      vtkm::cont::make_ArrayHandle(meshData->type, typ_len);
+    vtkm::cont::ArrayHandleCast<vtkm::Id,
+      vtkm::cont::ArrayHandle<uint8_t> > cast(tmp);
+    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+      Copy(cast, types);
+    }
+
+  vtkm::cont::CellSetExplicit<> cset(meshData->nSubdividedCells,"cells",3);
+  cset.Fill(types, offsets, connectivity);
 
   vtkm::cont::cuda::ArrayHandleCuda<double>::type densityArray =
     vtkm::cont::cuda::make_ArrayHandle(
@@ -104,7 +119,7 @@ void PyFRData::Init(vtkIdType datasettypeid, void* data)
                            3*meshData->nCells*meshData->nVerticesPerCell),
       meshData->nCells*meshData->nVerticesPerCell);
 
-    vtkm::cont::cuda::ArrayHandleCuda<double>::type pressureArray =
+  vtkm::cont::cuda::ArrayHandleCuda<double>::type pressureArray =
     vtkm::cont::cuda::make_ArrayHandle(
       static_cast<double*>(solutionData->solution +
                            4*meshData->nCells*meshData->nVerticesPerCell),
@@ -117,12 +132,8 @@ void PyFRData::Init(vtkIdType datasettypeid, void* data)
   vtkm::cont::Field velocity_w("velocity_w",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_wArray);
   vtkm::cont::Field pressure("pressure",LINEAR,vtkm::cont::Field::ASSOC_POINTS,pressureArray);
 
-  this->dataSet.AddCoordinateSystem(
-    vtkm::cont::CoordinateSystem("coordinates",
-                                 1,
-                                 gridData.Dimension,
-                                 gridData.Origin,
-                                 gridData.Spacing));
+  this->dataSet.AddCoordinateSystem(vtkm::cont::CoordinateSystem("coordinates",
+                                                                 1,vertices));
   this->dataSet.AddField(density);
   this->dataSet.AddField(velocity_u);
   this->dataSet.AddField(velocity_v);
@@ -134,108 +145,4 @@ void PyFRData::Init(vtkIdType datasettypeid, void* data)
 //------------------------------------------------------------------------------
 void PyFRData::Update()
 {
-}
-
-//----------------------------------------------------------------------------
-namespace
-{
-GridData ComputeGridDimensions(Double3ArrayHandle& ptsArray)
-{
-  const double epsilon = 1.e-6;
-
-  Double3ArrayHandle::PortalConstControl points =
-    ptsArray.GetPortalConstControl();
-
-  Id3 xyz;
-  xyz[0] = xyz[1] = xyz[2] = 0;
-  Double3 sentinel = points.Get(0);
-  Double3 spacing;
-  for (Id i=0;i<3;i++) spacing[i] = std::numeric_limits<double>::max();
-  Double3 point;
-  Id counter = 0;
-  Id increment = 1;
-  Id3 indexing;
-  indexing[0] = indexing[1] = indexing[2] = -1;
-  // for (Id i = 0; i < ptsArray.GetNumberOfValues(); i++)
-  //   {
-  //   point = points.Get(i);
-  //   std::cout<<i<<": "<<point<<std::endl;
-  //   }
-
-  while (counter < ptsArray.GetNumberOfValues())
-    {
-    counter += increment;
-    point = points.Get(counter);
-
-    for (Id i=0;i<3;i++)
-      {
-      if (fabs(point[i]-sentinel[i]) > epsilon &&
-          fabs(point[i]-sentinel[i]) < spacing[i])
-        spacing[i] = fabs(point[i]-sentinel[i]);
-      }
-
-    if (indexing[0] == -1)
-      {
-      for (Id i=0;i<3;i++)
-        {
-        if (fabs(point[i]-sentinel[i]) > epsilon)
-          {
-          for (Id j=0;j<3;j++)
-            indexing[j] = (i+j)%3;
-          }
-        }
-      }
-
-    if (xyz[indexing[0]] == 0)
-      {
-      if (fabs(point[indexing[0]]-sentinel[indexing[0]]) < epsilon)
-        {
-        xyz[indexing[0]] = increment = counter;
-        point = points.Get(counter+increment);
-        for (Id i=0;i<3;i++)
-          {
-          if (i == indexing[0])
-            continue;
-          if (fabs(point[i]-sentinel[i])>epsilon)
-            {
-            indexing[1] = i;
-            for (Id j=0;j<3;j++)
-              {
-              if (j != indexing[0] && j != indexing[1])
-                indexing[2] = j;
-              }
-            }
-          }
-        point = points.Get(counter);
-        }
-      }
-
-    if (xyz[indexing[0]] != 0 && xyz[indexing[1]] == 0)
-      {
-      if (fabs(point[indexing[1]]-sentinel[indexing[1]]) < epsilon)
-        {
-        xyz[indexing[1]] = counter/xyz[indexing[0]];
-        increment = counter;
-        }
-      }
-
-    if (xyz[indexing[1]] != 0 && xyz[indexing[2]] == 0)
-      {
-      if (fabs(point[indexing[2]]-sentinel[indexing[2]]) < epsilon)
-        {
-        xyz[indexing[2]] = counter/xyz[indexing[0]]/xyz[indexing[1]];
-        break;
-        }
-      }
-    }
-  if (xyz[indexing[2]] == 0)
-    xyz[indexing[2]] = ptsArray.GetNumberOfValues()/xyz[indexing[0]]/xyz[indexing[1]];
-
-  GridData gridData;
-  gridData.Dimension = xyz;
-  gridData.Origin = points.Get(xyz[0]*xyz[1]*xyz[2]*3); // ???
-  gridData.Spacing = spacing;
-
-  return gridData;
-}
 }

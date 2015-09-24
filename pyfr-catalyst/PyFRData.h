@@ -25,11 +25,9 @@ public:
   static PyFRData* New();
   vtkTypeMacro(PyFRData, vtkDataObject)
 
-  void Init(vtkIdType datasettypeid, void* field);
+  void Init(void* field);
 
   vtkm::cont::DataSet& GetDataSet() { return dataSet; }
-
-  const unsigned* GetCellDimension() const { return cellDimension; }
 
   void Update();
 
@@ -39,8 +37,6 @@ protected:
 
 private:
   struct CatalystData* catalystData;
-  vtkIdType dataSetTypeId;
-  unsigned cellDimension[3];
   vtkm::cont::DataSet dataSet;
 };
 #endif

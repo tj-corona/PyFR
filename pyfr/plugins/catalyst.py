@@ -49,8 +49,6 @@ class CatalystPlugin(BasePlugin):
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
         outputfile = self.cfg.get(self.cfgsect, 'outputfile')
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
-        datasetformat = self.cfg.get(self.cfgsect, 'dataset-format')
-        c_datasetformat = create_string_buffer(bytes(datasetformat, encoding='utf_8'))
         self.catalyst = load_library('pyfr-catalyst')
 
         ###################
@@ -105,7 +103,6 @@ class CatalystPlugin(BasePlugin):
 
         # Finally, initialize Catalyst
         self._data = self.catalyst.CatalystInitialize(c_outputfile,
-                                                      c_datasetformat,
                                                       self._catalystData)
 
     def _prepare_vtu(self, etype, part):

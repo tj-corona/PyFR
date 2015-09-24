@@ -6,7 +6,6 @@
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
-#include <vtkDataObjectTypes.h>
 #include <vtkNew.h>
 
 #include "PyFRData.h"
@@ -16,10 +15,10 @@ namespace
   vtkCPProcessor* Processor = NULL;
 }
 
-void* CatalystInitialize(char* outputfile, char* datasetformat, void* p)
+void* CatalystInitialize(char* outputfile, void* p)
 {
   PyFRData* data = PyFRData::New();
-  data->Init(vtkDataObjectTypes::GetTypeIdFromClassName(datasetformat),p);
+  data->Init(p);
 
   if(Processor == NULL)
     {

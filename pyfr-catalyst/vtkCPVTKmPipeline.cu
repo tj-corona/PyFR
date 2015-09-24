@@ -112,23 +112,18 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   Double3ArrayHandleVTK normals_out;
   DoubleArrayHandleVTK scalars_out;
 
-
   vtkmc::Field scalars = dataSet.GetField(isosurfaceField);
   CudaDoubleArrayHandle scalarsArray =
     scalars.GetData().CastToArrayHandle(CudaDoubleArrayHandle::ValueType(),
                                         CudaDoubleArrayHandle::StorageTag());
 
+  // vtkm::worklet::IsosurfaceFilterUniformGrid<double, VTKM_DEFAULT_DEVICE_ADAPTER_TAG>* isosurfaceFilter = new vtkm::worklet::IsosurfaceFilterUniformGrid<double,VTKM_DEFAULT_DEVICE_ADAPTER_TAG>(dataSet);
 
-  vtkm::Id3 dims;
-  for (int i=0;i<3;i++)
-    dims[i] = pyfrData->GetCellDimension()[i];
-  vtkm::worklet::IsosurfaceFilterUniformGrid<double, VTKM_DEFAULT_DEVICE_ADAPTER_TAG>* isosurfaceFilter = new vtkm::worklet::IsosurfaceFilterUniformGrid<double,VTKM_DEFAULT_DEVICE_ADAPTER_TAG>(dataSet);
-
-  isosurfaceFilter->Run(isosurfaceValue,
-                        scalarsArray,
-                        verts_out,
-                        normals_out,
-                        scalars_out);
+  // isosurfaceFilter->Run(isosurfaceValue,
+  //                       scalarsArray,
+  //                       verts_out,
+  //                       normals_out,
+  //                       scalars_out);
 
   bool printData = false;
 
@@ -241,67 +236,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 
   writer->Write();
 
-
-
-
-
-
-
-
-
-
-  // vtkUnstructuredGrid* grid = vtkUnstructuredGrid::SafeDownCast(
-  //   dataDescription->GetInputDescriptionByName("input")->GetGrid());
-  // if(grid == NULL)
-  //   {
-  //   vtkWarningMacro("DataDescription is missing input unstructured grid.");
-  //   return 0;
-  //   }
-  // if(this->RequestDataDescription(dataDescription) == 0)
-  //   {
-  //   return 1;
-  //   }
-
-/*
-  vtkNew<vtkPVTrivialProducer> producer;
-  producer->SetOutput(grid);
-
-  vtkNew<vtkPVArrayCalculator> calculator;
-  calculator->SetInputConnection(producer->GetOutputPort());
-  calculator->SetAttributeMode(1);
-  calculator->SetResultArrayName("velocity magnitude");
-  calculator->SetFunction("mag(velocity)");
-
-  // update now so that we can get the global data bounds of
-  // the velocity magnitude for thresholding
-  calculator->Update();
-  double range[2];
-  vtkUnstructuredGrid::SafeDownCast(calculator->GetOutput())->GetPointData()
-    ->GetArray("velocity magnitude")->GetRange(range, 0);
-  double globalRange[2];
-  vtkMultiProcessController::GetGlobalController()->AllReduce(
-    range+1, globalRange+1, 1, vtkCommunicator::MAX_OP);
-
-  vtkNew<vtkThreshold> threshold;
-  threshold->SetInputConnection(calculator->GetOutputPort());
-  threshold->SetInputArrayToProcess(
-    0, 0, 0, "vtkDataObject::FIELD_ASSOCIATION_POINTS", "velocity magnitude");
-  threshold->ThresholdBetween(0.9*globalRange[1], globalRange[1]);
-
-  // If process 0 doesn't have any points or cells, the writer may
-  // have problems in parallel so we use completeArrays to fill in
-  // the missing information.
-  vtkNew<vtkCompleteArrays> completeArrays;
-  completeArrays->SetInputConnection(threshold->GetOutputPort());
-
-  vtkNew<vtkXMLPUnstructuredGridWriter> writer;
-  writer->SetInputConnection(completeArrays->GetOutputPort());
-  std::ostringstream o;
-  o << dataDescription->GetTimeStep();
-  std::string name = this->fileName + o.str() + ".pvtu";
-  writer->SetfileName(name.c_str());
-  writer->Update();
-*/
   return 1;
 }
 
