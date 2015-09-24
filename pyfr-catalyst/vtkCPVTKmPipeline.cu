@@ -1,6 +1,7 @@
 #include "vtkCPVTKmPipeline.h"
 
 #include <cmath>
+#include <iomanip>
 #include <string>
 #include <sstream>
 
@@ -95,6 +96,9 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     return 1;
     }
 
+  std::string isosurfaceField = "density"; // density, velocity_u/v/w, pressure
+  double isosurfaceValue = 1.0045;
+
   vtkm::cont::DataSet& dataSet = pyfrData->GetDataSet();
 
   namespace vtkmc = vtkm::cont;
@@ -108,29 +112,11 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   Double3ArrayHandleVTK normals_out;
   DoubleArrayHandleVTK scalars_out;
 
-  vtkmc::Field rho = dataSet.GetField("rho");
-  CudaDoubleArrayHandle solution =
-    rho.GetData().CastToArrayHandle(CudaDoubleArrayHandle::ValueType(),
-                                    CudaDoubleArrayHandle::StorageTag());
 
-  double isosurfaceValue = 1.;
-
-  //   {
-  //   DoubleArrayHandleVTK tmp;
-  //   vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-  //     Copy(solution,tmp);
-
-  //   double mean = 0.;
-  //   for (size_t i=0;i<tmp.GetNumberOfValues();i++)
-  //     {
-  //     std::cout<<i<<": "<<tmp.GetPortalConstControl().Get(i)<<std::endl;
-  // mean += tmp.GetPortalConstControl().Get(i);
-  //     }
-  //   mean/=tmp.GetNumberOfValues();
-  //   isosurfaceValue = mean;
-  //   }
-
-  // std::cout<<"Isosurface contour value = "<<isosurfaceValue<<std::endl;
+  vtkmc::Field scalars = dataSet.GetField(isosurfaceField);
+  CudaDoubleArrayHandle scalarsArray =
+    scalars.GetData().CastToArrayHandle(CudaDoubleArrayHandle::ValueType(),
+                                        CudaDoubleArrayHandle::StorageTag());
 
 
   vtkm::Id3 dims;
@@ -139,7 +125,7 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   vtkm::worklet::IsosurfaceFilterUniformGrid<double, VTKM_DEFAULT_DEVICE_ADAPTER_TAG>* isosurfaceFilter = new vtkm::worklet::IsosurfaceFilterUniformGrid<double,VTKM_DEFAULT_DEVICE_ADAPTER_TAG>(dataSet);
 
   isosurfaceFilter->Run(isosurfaceValue,
-                        solution,
+                        scalarsArray,
                         verts_out,
                         normals_out,
                         scalars_out);
@@ -198,51 +184,62 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   points->SetData(pointData);
 
-  vtkSmartPointer<vtkDoubleArray> rhoData =
+  vtkSmartPointer<vtkDoubleArray> normalsData =
     vtkSmartPointer<vtkDoubleArray>::New();
-  vtkIdType nRho = scalars_out.GetNumberOfValues();
-  double* rhoArray = scalars_out.Storage().StealArray();
-  rhoData->SetArray(rhoArray, nRho,
-                      0, // give VTK control of the data
-                      0);// delete using "free"
-  rhoData->SetNumberOfComponents(1);
+
+  vtkIdType nNormals = normals_out.GetNumberOfValues();
+  double* normalsArray = reinterpret_cast<double*>(normals_out.Storage().StealArray());
+  normalsData->SetArray(normalsArray, nVerts,
+                        0, // give VTK control of the data
+                        0);// delete using "free"
+  normalsData->SetNumberOfComponents(3);
+
+  vtkSmartPointer<vtkDoubleArray> solutionData =
+    vtkSmartPointer<vtkDoubleArray>::New();
+  vtkIdType nSolution = scalars_out.GetNumberOfValues();
+  double* solutionArray = scalars_out.Storage().StealArray();
+  solutionData->SetArray(solutionArray, nSolution,
+                         0, // give VTK control of the data
+                         0);// delete using "free"
+  solutionData->SetNumberOfComponents(1);
+  solutionData->SetName(isosurfaceField.c_str());
 
   vtkSmartPointer<vtkCellArray> polys =
         vtkSmartPointer<vtkCellArray>::New();
-      vtkIdType indices[3];
-      for (vtkIdType i=0;i<nVerts;i+=3)
-        {
-        for (vtkIdType j=0;j<3;j++)
-          indices[j] = i+j;
-        polys->InsertNextCell(3,indices);
-        }
+  vtkIdType indices[3];
+  for (vtkIdType i=0;i<points->GetNumberOfPoints();i+=3)
+    {
+    for (vtkIdType j=0;j<3;j++)
+      indices[j] = i+j;
+    polys->InsertNextCell(3,indices);
+    }
 
-      // Create a polydata object and add the points to it.
-      vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-      polydata->SetPoints(points);
-      polydata->SetPolys(polys);
-      polydata->GetPointData()->AddArray(rhoData);
+  // Create a polydata object and add the points to it.
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints(points);
+  polydata->SetPolys(polys);
+  polydata->GetPointData()->SetNormals(normalsData);
+  polydata->GetPointData()->AddArray(solutionData);
 
-      // Write the file
-      vtkSmartPointer<vtkXMLPolyDataWriter> writer =
-        vtkSmartPointer<vtkXMLPolyDataWriter>::New();
-      std::stringstream s;
-      s << fileName.substr(0,fileName.find_last_of("."));
-      s << "_" << dataDescription->GetTimeStep();
-      s << fileName.substr(fileName.find_last_of("."), std::string::npos);
-      writer->SetFileName(s.str().c_str());
+  // Write the file
+  vtkSmartPointer<vtkXMLPolyDataWriter> writer =
+    vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+  std::stringstream s;
+  s << fileName.substr(0,fileName.find_last_of("."));
+  s << "_" << std::fixed << std::setprecision(3) << dataDescription->GetTime();
+  s << fileName.substr(fileName.find_last_of("."), std::string::npos);
+  writer->SetFileName(s.str().c_str());
 #if VTK_MAJOR_VERSION <= 5
-      writer->SetInput(polydata);
+  writer->SetInput(polydata);
 #else
-      writer->SetInputData(polydata);
+  writer->SetInputData(polydata);
 #endif
 
   // Optional - set the mode. The default is binary.
   //writer->SetDataModeToBinary();
-  //writer->SetDataModeToAscii();
+  writer->SetDataModeToAscii();
 
   writer->Write();
-
 
 
 

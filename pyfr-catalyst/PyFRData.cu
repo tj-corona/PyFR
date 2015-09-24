@@ -81,13 +81,41 @@ void PyFRData::Init(vtkIdType datasettypeid, void* data)
   vtkm::cont::CellSetStructured<3> cset("cells");
   cset.SetPointDimensions(gridData.Dimension);
 
-  vtkm::cont::cuda::ArrayHandleCuda<double>::type solution =
+  vtkm::cont::cuda::ArrayHandleCuda<double>::type densityArray =
     vtkm::cont::cuda::make_ArrayHandle(
       static_cast<double*>(solutionData->solution),
       meshData->nCells*meshData->nVerticesPerCell);
 
+  vtkm::cont::cuda::ArrayHandleCuda<double>::type velocity_uArray =
+    vtkm::cont::cuda::make_ArrayHandle(
+      static_cast<double*>(solutionData->solution +
+                           1*meshData->nCells*meshData->nVerticesPerCell),
+      meshData->nCells*meshData->nVerticesPerCell);
+
+  vtkm::cont::cuda::ArrayHandleCuda<double>::type velocity_vArray =
+    vtkm::cont::cuda::make_ArrayHandle(
+      static_cast<double*>(solutionData->solution +
+                           2*meshData->nCells*meshData->nVerticesPerCell),
+      meshData->nCells*meshData->nVerticesPerCell);
+
+  vtkm::cont::cuda::ArrayHandleCuda<double>::type velocity_wArray =
+    vtkm::cont::cuda::make_ArrayHandle(
+      static_cast<double*>(solutionData->solution +
+                           3*meshData->nCells*meshData->nVerticesPerCell),
+      meshData->nCells*meshData->nVerticesPerCell);
+
+    vtkm::cont::cuda::ArrayHandleCuda<double>::type pressureArray =
+    vtkm::cont::cuda::make_ArrayHandle(
+      static_cast<double*>(solutionData->solution +
+                           4*meshData->nCells*meshData->nVerticesPerCell),
+      meshData->nCells*meshData->nVerticesPerCell);
+
   enum ElemType { CONSTANT=0, LINEAR=1, QUADRATIC=2 };
-  vtkm::cont::Field rho("rho",LINEAR,vtkm::cont::Field::ASSOC_POINTS,solution);
+  vtkm::cont::Field density("density",LINEAR,vtkm::cont::Field::ASSOC_POINTS,densityArray);
+  vtkm::cont::Field velocity_u("velocity_u",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_uArray);
+  vtkm::cont::Field velocity_v("velocity_v",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_vArray);
+  vtkm::cont::Field velocity_w("velocity_w",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_wArray);
+  vtkm::cont::Field pressure("pressure",LINEAR,vtkm::cont::Field::ASSOC_POINTS,pressureArray);
 
   this->dataSet.AddCoordinateSystem(
     vtkm::cont::CoordinateSystem("coordinates",
@@ -95,7 +123,11 @@ void PyFRData::Init(vtkIdType datasettypeid, void* data)
                                  gridData.Dimension,
                                  gridData.Origin,
                                  gridData.Spacing));
-  this->dataSet.AddField(rho);
+  this->dataSet.AddField(density);
+  this->dataSet.AddField(velocity_u);
+  this->dataSet.AddField(velocity_v);
+  this->dataSet.AddField(velocity_w);
+  this->dataSet.AddField(pressure);
   this->dataSet.AddCellSet(cset);
 }
 
@@ -124,6 +156,11 @@ GridData ComputeGridDimensions(Double3ArrayHandle& ptsArray)
   Id increment = 1;
   Id3 indexing;
   indexing[0] = indexing[1] = indexing[2] = -1;
+  // for (Id i = 0; i < ptsArray.GetNumberOfValues(); i++)
+  //   {
+  //   point = points.Get(i);
+  //   std::cout<<i<<": "<<point<<std::endl;
+  //   }
 
   while (counter < ptsArray.GetNumberOfValues())
     {
