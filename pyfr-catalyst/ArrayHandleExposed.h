@@ -19,8 +19,8 @@
 //  this software.
 //
 //=============================================================================
-#ifndef vtk_m_ArrayHandleVTK_h
-#define vtk_m_ArrayHandleVTK_h
+#ifndef vtk_m_ArrayHandleExposed_h
+#define vtk_m_ArrayHandleExposed_h
 
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/Storage.h>
@@ -29,7 +29,7 @@ namespace vtkm {
 namespace cont {
 
 template<typename T, typename StorageTag_ = VTKM_DEFAULT_STORAGE_TAG>
-class ArrayHandleVTK : public ArrayHandle<T,StorageTag_>
+class ArrayHandleExposed : public ArrayHandle<T,StorageTag_>
 {
 public:
   typedef vtkm::cont::internal::Storage<T,StorageTag_> StorageType;
@@ -52,4 +52,4 @@ public:
 } //namespace cont
 } //namespace vtkm
 
-#endif //vtk_m_ArrayHandleVTK_h
+#endif //vtk_m_ArrayHandleExposed_h

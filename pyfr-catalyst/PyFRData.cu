@@ -11,9 +11,11 @@
 #include <vtkDataObjectTypes.h>
 #include <vtkObjectFactory.h>
 
+#include <vtkm/CellShape.h>
 #include <vtkm/TopologyElementTag.h>
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/ArrayHandleCast.h>
+#include <vtkm/cont/CellSetSingleType.h>
 #include <vtkm/cont/CoordinateSystem.h>
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/DataSet.h>
@@ -73,28 +75,29 @@ void PyFRData::Init(void* data)
       Copy(cast, connectivity);
     }
 
-  vtkm::cont::ArrayHandle<vtkm::Id> offsets;
+  vtkm::cont::ArrayHandle<vtkm::UInt8> types;
     {
-    vtkm::cont::ArrayHandle<int32_t> tmp =
-      vtkm::cont::make_ArrayHandle(meshData->off, off_len);
-    vtkm::cont::ArrayHandleCast<vtkm::Id,
-      vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
-    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-      Copy(cast, offsets);
+      std::vector<vtkm::UInt8> tmp(meshData->nCells,vtkm::CELL_SHAPE_HEXAHEDRON);
+      vtkm::cont::ArrayHandle<vtkm::UInt8> tmp2 =
+        vtkm::cont::make_ArrayHandle(tmp);
+      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+        Copy(tmp2, types);
     }
 
-  vtkm::cont::ArrayHandle<vtkm::Id> types;
+  vtkm::cont::ArrayHandle<vtkm::Int32> nVertices;
     {
-    vtkm::cont::ArrayHandle<uint8_t> tmp =
-      vtkm::cont::make_ArrayHandle(meshData->type, typ_len);
-    vtkm::cont::ArrayHandleCast<vtkm::Id,
-      vtkm::cont::ArrayHandle<uint8_t> > cast(tmp);
-    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-      Copy(cast, types);
+      std::vector<vtkm::Int32> tmp(meshData->nCells,8);
+      vtkm::cont::ArrayHandle<vtkm::Int32> tmp2 =
+        vtkm::cont::make_ArrayHandle(tmp);
+      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+        Copy(tmp2, nVertices);
     }
 
-  vtkm::cont::CellSetExplicit<> cset(meshData->nSubdividedCells,"cells",3);
-  cset.Fill(types, offsets, connectivity);
+  vtkm::cont::CellSetExplicit<> cset(meshData->nCells, "cells", 3);
+  cset.Fill(types, nVertices, connectivity);
+
+  // vtkm::cont::CellSetSingleType<> cset(vtkm::CellShapeTagHexahedron(),"cells");
+  // cset.Fill(connectivity);
 
   vtkm::cont::cuda::ArrayHandleCuda<double>::type densityArray =
     vtkm::cont::cuda::make_ArrayHandle(

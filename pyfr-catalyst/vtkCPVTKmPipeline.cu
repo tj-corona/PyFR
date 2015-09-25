@@ -28,12 +28,14 @@
 #include <vtkm/cont/ArrayHandleCast.h>
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/DeviceAdapterAlgorithm.h>
+#include <vtkm/cont/DeviceAdapterSerial.h>
+#include <vtkm/cont/DynamicArrayHandle.h>
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
 
-#include "ArrayHandleVTK.h"
+#include "ArrayHandleExposed.h"
 
-#include <vtkm/worklet/IsosurfaceUniformGrid.h>
+#include <vtkm/worklet/IsosurfaceHexahedra.h>
 
 vtkStandardNewMacro(vtkCPVTKmPipeline);
 
@@ -102,34 +104,42 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   vtkm::cont::DataSet& dataSet = pyfrData->GetDataSet();
 
   namespace vtkmc = vtkm::cont;
-  typedef vtkmc::ArrayHandleVTK<vtkIdType> IdArrayHandleVTK;
-  typedef vtkmc::ArrayHandleVTK<double> DoubleArrayHandleVTK;
-  typedef vtkmc::ArrayHandleVTK<vtkm::Vec<double,3> > Double3ArrayHandleVTK;
-  typedef vtkmc::ArrayHandleCast<vtkm::Id,IdArrayHandleVTK > IdArrayHandleCast;
+  typedef vtkmc::ArrayHandleExposed<vtkIdType> IdArrayHandleExposed;
+  typedef vtkmc::ArrayHandleExposed<double> DoubleArrayHandleExposed;
+  typedef vtkmc::ArrayHandleExposed<vtkm::Vec<double,3> > Double3ArrayHandleExposed;
+  typedef vtkmc::ArrayHandleCast<vtkm::Id,IdArrayHandleExposed > IdArrayHandleCast;
   typedef vtkmc::cuda::ArrayHandleCuda<double>::type CudaDoubleArrayHandle;
+  typedef vtkm::worklet::IsosurfaceFilterHexahedra<double,
+    VTKM_DEFAULT_DEVICE_ADAPTER_TAG> IsosurfaceFilter;
+    // vtkm::cont::DeviceAdapterTagSerial> IsosurfaceFilter;
 
-  Double3ArrayHandleVTK verts_out;
-  Double3ArrayHandleVTK normals_out;
-  DoubleArrayHandleVTK scalars_out;
+  Double3ArrayHandleExposed verts_out;
+  Double3ArrayHandleExposed normals_out;
+  DoubleArrayHandleExposed scalars_out;
 
   vtkmc::Field scalars = dataSet.GetField(isosurfaceField);
   CudaDoubleArrayHandle scalarsArray =
     scalars.GetData().CastToArrayHandle(CudaDoubleArrayHandle::ValueType(),
                                         CudaDoubleArrayHandle::StorageTag());
 
-  // vtkm::worklet::IsosurfaceFilterUniformGrid<double, VTKM_DEFAULT_DEVICE_ADAPTER_TAG>* isosurfaceFilter = new vtkm::worklet::IsosurfaceFilterUniformGrid<double,VTKM_DEFAULT_DEVICE_ADAPTER_TAG>(dataSet);
+  // DoubleArrayHandleExposed scalarsArrayHost;
+  // vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+  //   Copy(scalarsArray, scalarsArrayHost);
 
-  // isosurfaceFilter->Run(isosurfaceValue,
-  //                       scalarsArray,
-  //                       verts_out,
-  //                       normals_out,
-  //                       scalars_out);
+  IsosurfaceFilter* isosurfaceFilter = new IsosurfaceFilter(dataSet);
 
-  bool printData = false;
+  isosurfaceFilter->Run(isosurfaceValue,
+                        scalarsArray,
+                        // scalarsArrayHost,
+                        verts_out,
+                        normals_out,
+                        scalars_out);
+
+  bool printData = true;
 
   if (printData)
     {
-    Double3ArrayHandleVTK::PortalConstControl vertsPortal =
+    Double3ArrayHandleExposed::PortalConstControl vertsPortal =
       verts_out.GetPortalConstControl();
 
     std::cout<<"# of vertex values: "<<verts_out.GetNumberOfValues()<<std::endl;
@@ -142,7 +152,7 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 
   if (printData)
     {
-    Double3ArrayHandleVTK::PortalConstControl normalsPortal =
+    Double3ArrayHandleExposed::PortalConstControl normalsPortal =
       normals_out.GetPortalConstControl();
 
     std::cout<<"# of vertex values: "<<normals_out.GetNumberOfValues()<<std::endl;
@@ -155,7 +165,7 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 
   if (printData)
     {
-    DoubleArrayHandleVTK::PortalConstControl scalarsPortal =
+    DoubleArrayHandleExposed::PortalConstControl scalarsPortal =
       scalars_out.GetPortalConstControl();
 
     std::cout<<"# of scalars values: "<<scalars_out.GetNumberOfValues()<<std::endl;
