@@ -15,6 +15,7 @@
 #include <vtkm/TopologyElementTag.h>
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/ArrayHandleCast.h>
+#include <vtkm/cont/ArrayHandlePermutation.h>
 #include <vtkm/cont/CellSetSingleType.h>
 #include <vtkm/cont/CoordinateSystem.h>
 #include <vtkm/cont/DeviceAdapter.h>
@@ -23,6 +24,24 @@
 #include <vtkm/cont/internal/DeviceAdapterTag.h>
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
+
+#include "ArrayHandleExposed.h"
+
+//------------------------------------------------------------------------------
+struct PermutedVertexIndexFunctor
+{
+  static const vtkm::Id nVerticesPerCell = 8;
+  static const vtkm::Id nFieldsPerVertex = 3;
+
+  VTKM_EXEC_CONT_EXPORT
+  vtkm::Id operator()(vtkm::Id index) const
+  {
+    vtkm::Id i = index/nVerticesPerCell/nFieldsPerVertex;
+    vtkm::Id k = (index%(nVerticesPerCell*nFieldsPerVertex))/nFieldsPerVertex;
+    vtkm::Id j = index%nFieldsPerVertex;
+    return i*nFieldsPerVertex + k*nVerticesPerCell + j;
+  }
+};
 
 //------------------------------------------------------------------------------
 vtkStandardNewMacro(PyFRData);
@@ -48,19 +67,17 @@ void PyFRData::Init(void* data)
   SolutionDataForCellType* solutionData =
     &(this->catalystData->solutionData[0]);
 
-  const size_t nFieldsPerVertex = 3;
-  const size_t xyz_len = (meshData->nCells*
-                          meshData->nVerticesPerCell*
-                          nFieldsPerVertex);
-  const size_t con_len = (meshData->nCells*
-                          meshData->nVerticesPerCell);
-  const size_t off_len = meshData->nCells;
-  const size_t typ_len = meshData->nCells;
-  const double* vbuf = meshData->vertices;
+  typedef vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > Vec3ArrayHandle;
 
-  vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > vertices;
+  Vec3ArrayHandle vertices;
     {
-    vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > tmp = vtkm::cont::ArrayHandle<vtkm::Vec<double,3>,vtkm::cont::StorageTagBasic>(vtkm::cont::internal::Storage<vtkm::Vec<double,3>,vtkm::cont::StorageTagBasic>(reinterpret_cast<const vtkm::Vec<double,3>*>(vbuf),xyz_len));
+    const vtkm::Vec<double,3> *vecData =
+      reinterpret_cast<const vtkm::Vec<double,3>*>(meshData->vertices);
+    typedef vtkm::cont::internal::Storage<vtkm::Vec<double,3>,
+                                       vtkm::cont::StorageTagBasic> Vec3Storage;
+    Vec3ArrayHandle tmp =
+      Vec3ArrayHandle(Vec3Storage(vecData,
+                                  meshData->nCells*meshData->nVerticesPerCell));
     vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
       Copy(tmp, vertices);
     }
@@ -68,7 +85,8 @@ void PyFRData::Init(void* data)
   vtkm::cont::ArrayHandle<vtkm::Id> connectivity;
     {
     vtkm::cont::ArrayHandle<int32_t> tmp =
-      vtkm::cont::make_ArrayHandle(meshData->con, con_len);
+      vtkm::cont::make_ArrayHandle(meshData->con,(meshData->nCells*
+                                                  meshData->nVerticesPerCell));
     vtkm::cont::ArrayHandleCast<vtkm::Id,
       vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
     vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
@@ -95,9 +113,6 @@ void PyFRData::Init(void* data)
 
   vtkm::cont::CellSetExplicit<> cset(meshData->nCells, "cells", 3);
   cset.Fill(types, nVertices, connectivity);
-
-  // vtkm::cont::CellSetSingleType<> cset(vtkm::CellShapeTagHexahedron(),"cells");
-  // cset.Fill(connectivity);
 
   vtkm::cont::cuda::ArrayHandleCuda<double>::type densityArray =
     vtkm::cont::cuda::make_ArrayHandle(

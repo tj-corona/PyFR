@@ -139,7 +139,7 @@ class CatalystPlugin(BasePlugin):
             vpts = np.pad(vpts, [(0, 0), (0, 0), (0, 1)], 'constant')
 
         # Reorder and cast
-        vpts = vpts.swapaxes(0, 1).astype(self.backend.fpdtype)
+        vpts = vpts.swapaxes(0, 1).astype(self.backend.fpdtype, order='C')
 
         # Perform the sub division
         nodes = subdvcls.subnodes(self.divisor)
