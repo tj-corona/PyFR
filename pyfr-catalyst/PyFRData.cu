@@ -13,35 +13,15 @@
 
 #include <vtkm/CellShape.h>
 #include <vtkm/TopologyElementTag.h>
-#include <vtkm/cont/ArrayHandle.h>
-#include <vtkm/cont/ArrayHandleCast.h>
-#include <vtkm/cont/ArrayHandlePermutation.h>
 #include <vtkm/cont/CellSetSingleType.h>
 #include <vtkm/cont/CoordinateSystem.h>
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/Field.h>
 #include <vtkm/cont/internal/DeviceAdapterTag.h>
-#include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
 
 #include "ArrayHandleExposed.h"
-
-//------------------------------------------------------------------------------
-struct PermutedVertexIndexFunctor
-{
-  static const vtkm::Id nVerticesPerCell = 8;
-  static const vtkm::Id nFieldsPerVertex = 3;
-
-  VTKM_EXEC_CONT_EXPORT
-  vtkm::Id operator()(vtkm::Id index) const
-  {
-    vtkm::Id i = index/nVerticesPerCell/nFieldsPerVertex;
-    vtkm::Id k = (index%(nVerticesPerCell*nFieldsPerVertex))/nFieldsPerVertex;
-    vtkm::Id j = index%nFieldsPerVertex;
-    return i*nFieldsPerVertex + k*nVerticesPerCell + j;
-  }
-};
 
 //------------------------------------------------------------------------------
 vtkStandardNewMacro(PyFRData);
@@ -66,8 +46,6 @@ void PyFRData::Init(void* data)
   MeshDataForCellType* meshData = &(this->catalystData->meshData[0]);
   SolutionDataForCellType* solutionData =
     &(this->catalystData->solutionData[0]);
-
-  typedef vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > Vec3ArrayHandle;
 
   Vec3ArrayHandle vertices;
     {
@@ -114,41 +92,48 @@ void PyFRData::Init(void* data)
   vtkm::cont::CellSetExplicit<> cset(meshData->nCells, "cells", 3);
   cset.Fill(types, nVertices, connectivity);
 
-  vtkm::cont::cuda::ArrayHandleCuda<double>::type densityArray =
-    vtkm::cont::cuda::make_ArrayHandle(
-      static_cast<double*>(solutionData->solution),
-      meshData->nCells*meshData->nVerticesPerCell);
+  StridedDataFunctor stridedDataFunctor[5];
+  for (unsigned i=0;i<5;i++)
+    {
+    stridedDataFunctor[i].NumberOfCells = meshData->nCells;
+    stridedDataFunctor[i].NVerticesPerCell = meshData->nVerticesPerCell;
+    stridedDataFunctor[i].NSolutionTypes = 5;
+    stridedDataFunctor[i].SolutionType = i;
+    stridedDataFunctor[i].CellStride = solutionData->lsdim;
+    stridedDataFunctor[i].VertexStride = solutionData->ldim;
+}
 
-  vtkm::cont::cuda::ArrayHandleCuda<double>::type velocity_uArray =
-    vtkm::cont::cuda::make_ArrayHandle(
-      static_cast<double*>(solutionData->solution +
-                           1*meshData->nCells*meshData->nVerticesPerCell),
-      meshData->nCells*meshData->nVerticesPerCell);
+  RawDataArrayType rawSolutionArray = vtkm::cont::cuda::make_ArrayHandle(
+    static_cast<double*>(solutionData->solution),
+    solutionData->ldim*meshData->nVerticesPerCell);
 
-  vtkm::cont::cuda::ArrayHandleCuda<double>::type velocity_vArray =
-    vtkm::cont::cuda::make_ArrayHandle(
-      static_cast<double*>(solutionData->solution +
-                           2*meshData->nCells*meshData->nVerticesPerCell),
-      meshData->nCells*meshData->nVerticesPerCell);
+  DataIndexArrayType densityIndexArray(stridedDataFunctor[0],
+                                   meshData->nCells*meshData->nVerticesPerCell);
+  DataArrayType densityArray(densityIndexArray, rawSolutionArray);
 
-  vtkm::cont::cuda::ArrayHandleCuda<double>::type velocity_wArray =
-    vtkm::cont::cuda::make_ArrayHandle(
-      static_cast<double*>(solutionData->solution +
-                           3*meshData->nCells*meshData->nVerticesPerCell),
-      meshData->nCells*meshData->nVerticesPerCell);
+  DataIndexArrayType velocity_uIndexArray(stridedDataFunctor[1],
+                                   meshData->nCells*meshData->nVerticesPerCell);
+  DataArrayType velocity_uArray(velocity_uIndexArray, rawSolutionArray);
 
-  vtkm::cont::cuda::ArrayHandleCuda<double>::type pressureArray =
-    vtkm::cont::cuda::make_ArrayHandle(
-      static_cast<double*>(solutionData->solution +
-                           4*meshData->nCells*meshData->nVerticesPerCell),
-      meshData->nCells*meshData->nVerticesPerCell);
+  DataIndexArrayType velocity_vIndexArray(stridedDataFunctor[2],
+                                   meshData->nCells*meshData->nVerticesPerCell);
+  DataArrayType velocity_vArray(velocity_vIndexArray, rawSolutionArray);
+
+  DataIndexArrayType velocity_wIndexArray(stridedDataFunctor[3],
+                                   meshData->nCells*meshData->nVerticesPerCell);
+  DataArrayType velocity_wArray(velocity_wIndexArray, rawSolutionArray);
+
+  DataIndexArrayType pressureIndexArray(stridedDataFunctor[4],
+                                   meshData->nCells*meshData->nVerticesPerCell);
+  DataArrayType pressureArray(pressureIndexArray, rawSolutionArray);
 
   enum ElemType { CONSTANT=0, LINEAR=1, QUADRATIC=2 };
-  vtkm::cont::Field density("density",LINEAR,vtkm::cont::Field::ASSOC_POINTS,densityArray);
-  vtkm::cont::Field velocity_u("velocity_u",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_uArray);
-  vtkm::cont::Field velocity_v("velocity_v",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_vArray);
-  vtkm::cont::Field velocity_w("velocity_w",LINEAR,vtkm::cont::Field::ASSOC_POINTS,velocity_wArray);
-  vtkm::cont::Field pressure("pressure",LINEAR,vtkm::cont::Field::ASSOC_POINTS,pressureArray);
+  vtkm::cont::Field density("density",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(densityArray));
+  vtkm::cont::Field velocity_u("velocity_u",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(velocity_uArray));
+  vtkm::cont::Field velocity_v("velocity_v",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(velocity_vArray));
+  vtkm::cont::Field velocity_w("velocity_w",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(velocity_wArray));
+  vtkm::cont::Field pressure("pressure",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(pressureArray));
+  vtkm::cont::Field raw_solution("raw_solution",LINEAR,vtkm::cont::Field::ASSOC_POINTS,rawSolutionArray);
 
   this->dataSet.AddCoordinateSystem(vtkm::cont::CoordinateSystem("coordinates",
                                                                  1,vertices));
@@ -157,6 +142,7 @@ void PyFRData::Init(void* data)
   this->dataSet.AddField(velocity_v);
   this->dataSet.AddField(velocity_w);
   this->dataSet.AddField(pressure);
+  this->dataSet.AddField(raw_solution);
   this->dataSet.AddCellSet(cset);
 }
 
