@@ -101,7 +101,7 @@ void PyFRData::Init(void* data)
     stridedDataFunctor[i].SolutionType = i;
     stridedDataFunctor[i].CellStride = solutionData->lsdim;
     stridedDataFunctor[i].VertexStride = solutionData->ldim;
-}
+    }
 
   RawDataArrayType rawSolutionArray = vtkm::cont::cuda::make_ArrayHandle(
     static_cast<double*>(solutionData->solution),

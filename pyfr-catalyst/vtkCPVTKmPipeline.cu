@@ -112,16 +112,13 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   typedef vtkmc::ArrayHandleCast<vtkm::Id,IdArrayHandleExposed > IdArrayHandleCast;
   typedef vtkmc::cuda::ArrayHandleCuda<double>::type CudaDoubleArrayHandle;
   typedef vtkm::worklet::IsosurfaceFilterHexahedra<double,
-    // VTKM_DEFAULT_DEVICE_ADAPTER_TAG> IsosurfaceFilter;
-    vtkm::cont::DeviceAdapterTagSerial> IsosurfaceFilter;
+    VTKM_DEFAULT_DEVICE_ADAPTER_TAG> IsosurfaceFilter;
 
   Double3ArrayHandleExposed verts_out;
   Double3ArrayHandleExposed normals_out;
   DoubleArrayHandleExposed scalars_out;
 
   {
-  std::cout<<"Entering pre-filter write"<<std::endl;
-
   typedef vtkmc::ArrayHandle<vtkm::Vec<double,3> > Double3ArrayHandle;
   Double3ArrayHandleExposed vertices;
     {
@@ -131,8 +128,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
       Copy(tmp,vertices);
     }
-
-  std::cout<<__LINE__<<std::endl;
 
   vtkSmartPointer<vtkDoubleArray> pointData =
     vtkSmartPointer<vtkDoubleArray>::New();
@@ -147,8 +142,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   points->SetData(pointData);
 
-  std::cout<<__LINE__<<std::endl;
-
   vtkmc::Field solution = dataSet.GetField(isosurfaceField);
   PyFRData::DataArrayType solutionArray =
     solution.GetData().CastToArrayHandle(PyFRData::DataArrayType::ValueType(),
@@ -156,8 +149,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   DoubleArrayHandleExposed solutionArrayHost;
   vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
     Copy(solutionArray, solutionArrayHost);
-
-  std::cout<<__LINE__<<std::endl;
 
   vtkSmartPointer<vtkDoubleArray> solutionData =
     vtkSmartPointer<vtkDoubleArray>::New();
@@ -169,8 +160,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   solutionData->SetNumberOfComponents(1);
   solutionData->SetName(isosurfaceField.c_str());
 
-  std::cout<<__LINE__<<std::endl;
-
   vtkm::cont::CellSetExplicit<> cellSet = dataSet.GetCellSet(0)
     .template CastTo<vtkm::cont::CellSetExplicit<> >();
 
@@ -179,8 +168,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
                                  vtkm::TopologyElementTagCell());
   vtkm::cont::ArrayHandle<vtkm::Id>::PortalConstControl portal =
     connectivity.GetPortalConstControl();
-
-  std::cout<<__LINE__<<std::endl;
 
   vtkSmartPointer<vtkUnstructuredGrid> grid =
         vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -196,8 +183,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
       hex->GetPointIds()->SetId(j,portal.Get(counter++));
     grid->InsertNextCell(hex->GetCellType(),hex->GetPointIds());
     }
-
-  std::cout<<__LINE__<<std::endl;
 
   // Write the file
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer =
@@ -218,7 +203,6 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   writer->SetDataModeToAscii();
 
   writer->Write();
-  std::cout<<"exiting pre-filter write"<<std::endl;
   }
 
 
@@ -227,9 +211,9 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     scalars.GetData().CastToArrayHandle(PyFRData::DataArrayType::ValueType(),
                                         PyFRData::DataArrayType::StorageTag());
 
-  DoubleArrayHandleExposed scalarsArrayHost;
-  vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-    Copy(scalarsArray, scalarsArrayHost);
+  // DoubleArrayHandleExposed scalarsArrayHost;
+  // vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+  //   Copy(scalarsArray, scalarsArrayHost);
 
   // for (vtkm::Id i=0;i<scalarsArrayHost.GetNumberOfValues();i++)
   //   std::cout<<i<<": "<<scalarsArrayHost.GetPortalConstControl().Get(i)<<std::endl;
@@ -237,8 +221,8 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   IsosurfaceFilter* isosurfaceFilter = new IsosurfaceFilter(dataSet);
 
   isosurfaceFilter->Run(isosurfaceValue,
-                        // scalarsArray,
-                        scalarsArrayHost,
+                        scalarsArray,
+                        // scalarsArrayHost,
                         verts_out,
                         normals_out,
                         scalars_out);
@@ -289,7 +273,7 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 
   vtkIdType nVerts = verts_out.GetNumberOfValues();
   double* vertsArray = reinterpret_cast<double*>(verts_out.Storage().StealArray());
-  pointData->SetArray(vertsArray, nVerts,
+  pointData->SetArray(vertsArray, nVerts*3,
                       0, // give VTK control of the data
                       0);// delete using "free"
   pointData->SetNumberOfComponents(3);
@@ -302,7 +286,7 @@ int vtkCPVTKmPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 
   vtkIdType nNormals = normals_out.GetNumberOfValues();
   double* normalsArray = reinterpret_cast<double*>(normals_out.Storage().StealArray());
-  normalsData->SetArray(normalsArray, nNormals,
+  normalsData->SetArray(normalsArray, nNormals*3,
                         0, // give VTK control of the data
                         0);// delete using "free"
   normalsData->SetNumberOfComponents(3);
