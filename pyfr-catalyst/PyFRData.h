@@ -12,6 +12,7 @@
 
 #include <vtkm/cont/ArrayHandle.h>
 #include <vtkm/cont/ArrayHandleCast.h>
+#include <vtkm/cont/ArrayHandleCompositeVector.h>
 #include <vtkm/cont/ArrayHandleImplicit.h>
 #include <vtkm/cont/ArrayHandlePermutation.h>
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
@@ -50,23 +51,19 @@ public:
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > Vec3ArrayHandle;
 
   typedef vtkm::cont::ArrayHandleImplicit<vtkm::Id, StridedDataFunctor>
-  DataIndexArrayType;
+  DataIndexArrayHandle;
 
-  typedef vtkm::cont::cuda::ArrayHandleCuda<double>::type RawDataArrayType;
+  typedef vtkm::cont::cuda::ArrayHandleCuda<double>::type RawDataArrayHandle;
 
-  typedef vtkm::cont::ArrayHandlePermutation<DataIndexArrayType,
-    RawDataArrayType> DataArrayType;
-
-  typedef vtkm::cont::ArrayHandle<
-    typename RawDataArrayType::ValueType,
-    vtkm::cont::internal::StorageTagPermutation<DataIndexArrayType, RawDataArrayType> > DataArrayParentType;
+  typedef vtkm::cont::ArrayHandlePermutation<DataIndexArrayHandle,
+    RawDataArrayHandle> ScalarDataArrayHandle;
 
   static PyFRData* New();
   vtkTypeMacro(PyFRData, vtkDataObject)
 
   void Init(void* field);
 
-  vtkm::cont::DataSet& GetDataSet() { return dataSet; }
+  const vtkm::cont::DataSet& GetDataSet() const { return dataSet; }
 
   void Update();
 
@@ -78,4 +75,7 @@ private:
   struct CatalystData* catalystData;
   vtkm::cont::DataSet dataSet;
 };
+
+vtkObject* NewPyFRData();
+
 #endif

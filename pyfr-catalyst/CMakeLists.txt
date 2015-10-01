@@ -30,7 +30,13 @@ find_package(BoostHeaders ${VTKm_REQUIRED_BOOST_VERSION} REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 set(Adaptor_SRCS
+  vtkPyFRContourDataAlgorithm.cu
+  vtkPyFRDataAlgorithm.cu
+  vtkXMLPyFRContourDataWriter.cu
+  vtkXMLPyFRDataWriter.cu
   vtkCPVTKmPipeline.cu
+  vtkPyFRDataContourFilter.cu
+  PyFRContourData.cu
   PyFRData.cu
   PyFRAdaptor.cu
   )

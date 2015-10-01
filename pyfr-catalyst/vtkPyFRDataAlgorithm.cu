@@ -12,19 +12,20 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-#include "vtkPolyDataAlgorithm.h"
+#include "vtkPyFRDataAlgorithm.h"
 
 #include "vtkCommand.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkObjectFactory.h"
-#include "vtkPolyData.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
-vtkStandardNewMacro(vtkPolyDataAlgorithm);
+#include "PyFRData.h"
+
+vtkStandardNewMacro(vtkPyFRDataAlgorithm);
 
 //----------------------------------------------------------------------------
-vtkPolyDataAlgorithm::vtkPolyDataAlgorithm()
+vtkPyFRDataAlgorithm::vtkPyFRDataAlgorithm()
 {
   // by default assume filters have one input and one output
   // subclasses that deviate should modify this setting
@@ -33,56 +34,50 @@ vtkPolyDataAlgorithm::vtkPolyDataAlgorithm()
 }
 
 //----------------------------------------------------------------------------
-vtkPolyDataAlgorithm::~vtkPolyDataAlgorithm()
+vtkPyFRDataAlgorithm::~vtkPyFRDataAlgorithm()
 {
 }
 
 //----------------------------------------------------------------------------
-void vtkPolyDataAlgorithm::PrintSelf(ostream& os, vtkIndent indent)
+void vtkPyFRDataAlgorithm::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }
 
 //----------------------------------------------------------------------------
-vtkPolyData* vtkPolyDataAlgorithm::GetOutput()
+PyFRData* vtkPyFRDataAlgorithm::GetOutput()
 {
   return this->GetOutput(0);
 }
 
 //----------------------------------------------------------------------------
-vtkPolyData* vtkPolyDataAlgorithm::GetOutput(int port)
+PyFRData* vtkPyFRDataAlgorithm::GetOutput(int port)
 {
-  return vtkPolyData::SafeDownCast(this->GetOutputDataObject(port));
+  return PyFRData::SafeDownCast(this->GetOutputDataObject(port));
 }
 
 //----------------------------------------------------------------------------
-void vtkPolyDataAlgorithm::SetOutput(vtkDataObject* d)
+void vtkPyFRDataAlgorithm::SetOutput(vtkDataObject* d)
 {
   this->GetExecutive()->SetOutputData(0, d);
 }
 
 //----------------------------------------------------------------------------
-vtkDataObject* vtkPolyDataAlgorithm::GetInput()
+vtkDataObject* vtkPyFRDataAlgorithm::GetInput()
 {
   return this->GetInput(0);
 }
 
 //----------------------------------------------------------------------------
-vtkDataObject* vtkPolyDataAlgorithm::GetInput(int port)
+vtkDataObject* vtkPyFRDataAlgorithm::GetInput(int port)
 {
   return this->GetExecutive()->GetInputData(port, 0);
 }
 
 //----------------------------------------------------------------------------
-vtkPolyData* vtkPolyDataAlgorithm::GetPolyDataInput(int port)
-{
-  return vtkPolyData::SafeDownCast(this->GetInput(port));
-}
-
-//----------------------------------------------------------------------------
-int vtkPolyDataAlgorithm::ProcessRequest(vtkInformation* request,
-                                         vtkInformationVector** inputVector,
-                                         vtkInformationVector* outputVector)
+int vtkPyFRDataAlgorithm::ProcessRequest(vtkInformation* request,
+                                     vtkInformationVector** inputVector,
+                                     vtkInformationVector* outputVector)
 {
   // generate the data
   if(request->Has(vtkDemandDrivenPipeline::REQUEST_DATA()))
@@ -105,24 +100,24 @@ int vtkPolyDataAlgorithm::ProcessRequest(vtkInformation* request,
 }
 
 //----------------------------------------------------------------------------
-int vtkPolyDataAlgorithm::FillOutputPortInformation(
+int vtkPyFRDataAlgorithm::FillOutputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
   // now add our info
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPolyData");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "PyFRData");
   return 1;
 }
 
 //----------------------------------------------------------------------------
-int vtkPolyDataAlgorithm::FillInputPortInformation(
+int vtkPyFRDataAlgorithm::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
-  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPolyData");
+  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "PyFRData");
   return 1;
 }
 
 //----------------------------------------------------------------------------
-int vtkPolyDataAlgorithm::RequestInformation(
+int vtkPyFRDataAlgorithm::RequestInformation(
   vtkInformation* vtkNotUsed(request),
   vtkInformationVector** vtkNotUsed(inputVector),
   vtkInformationVector* vtkNotUsed(outputVector))
@@ -132,7 +127,7 @@ int vtkPolyDataAlgorithm::RequestInformation(
 }
 
 //----------------------------------------------------------------------------
-int vtkPolyDataAlgorithm::RequestUpdateExtent(
+int vtkPyFRDataAlgorithm::RequestUpdateExtent(
   vtkInformation* vtkNotUsed(request),
   vtkInformationVector** inputVector,
   vtkInformationVector* vtkNotUsed(outputVector))
@@ -153,7 +148,7 @@ int vtkPolyDataAlgorithm::RequestUpdateExtent(
 //----------------------------------------------------------------------------
 // This is the superclasses style of Execute method.  Convert it into
 // an imaging style Execute method.
-int vtkPolyDataAlgorithm::RequestData(
+int vtkPyFRDataAlgorithm::RequestData(
   vtkInformation* vtkNotUsed( request ),
   vtkInformationVector** vtkNotUsed( inputVector ),
   vtkInformationVector* vtkNotUsed( outputVector ))
@@ -162,26 +157,38 @@ int vtkPolyDataAlgorithm::RequestData(
 }
 
 //----------------------------------------------------------------------------
-void vtkPolyDataAlgorithm::SetInputData(vtkDataObject* input)
+int vtkPyFRDataAlgorithm::RequestDataObject(
+  vtkInformation* vtkNotUsed(request),
+  vtkInformationVector** vtkNotUsed(inputVector),
+  vtkInformationVector* vtkNotUsed(outputVector))
+{
+  // do nothing let subclasses handle it
+  PyFRData *newobj = PyFRData::New();
+  this->GetExecutive()->SetOutputData(0, newobj);
+  newobj->Delete();
+  return 1;
+}
+
+//----------------------------------------------------------------------------
+void vtkPyFRDataAlgorithm::SetInputData(vtkDataObject* input)
 {
   this->SetInputData(0, input);
 }
 
 //----------------------------------------------------------------------------
-void vtkPolyDataAlgorithm::SetInputData(int index, vtkDataObject* input)
+void vtkPyFRDataAlgorithm::SetInputData(int index, vtkDataObject* input)
 {
   this->SetInputDataInternal(index, input);
 }
 
 //----------------------------------------------------------------------------
-void vtkPolyDataAlgorithm::AddInputData(vtkDataObject* input)
+void vtkPyFRDataAlgorithm::AddInputData(vtkDataObject* input)
 {
   this->AddInputData(0, input);
 }
 
 //----------------------------------------------------------------------------
-void vtkPolyDataAlgorithm::AddInputData(int index, vtkDataObject* input)
+void vtkPyFRDataAlgorithm::AddInputData(int index, vtkDataObject* input)
 {
   this->AddInputDataInternal(index, input);
 }
-

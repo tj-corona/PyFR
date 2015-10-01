@@ -103,29 +103,29 @@ void PyFRData::Init(void* data)
     stridedDataFunctor[i].VertexStride = solutionData->ldim;
     }
 
-  RawDataArrayType rawSolutionArray = vtkm::cont::cuda::make_ArrayHandle(
+  RawDataArrayHandle rawSolutionArray = vtkm::cont::cuda::make_ArrayHandle(
     static_cast<double*>(solutionData->solution),
     solutionData->ldim*meshData->nVerticesPerCell);
 
-  DataIndexArrayType densityIndexArray(stridedDataFunctor[0],
+  DataIndexArrayHandle densityIndexArray(stridedDataFunctor[0],
                                    meshData->nCells*meshData->nVerticesPerCell);
-  DataArrayType densityArray(densityIndexArray, rawSolutionArray);
+  ScalarDataArrayHandle densityArray(densityIndexArray, rawSolutionArray);
 
-  DataIndexArrayType velocity_uIndexArray(stridedDataFunctor[1],
+  DataIndexArrayHandle velocity_uIndexArray(stridedDataFunctor[1],
                                    meshData->nCells*meshData->nVerticesPerCell);
-  DataArrayType velocity_uArray(velocity_uIndexArray, rawSolutionArray);
+  ScalarDataArrayHandle velocity_uArray(velocity_uIndexArray, rawSolutionArray);
 
-  DataIndexArrayType velocity_vIndexArray(stridedDataFunctor[2],
+  DataIndexArrayHandle velocity_vIndexArray(stridedDataFunctor[2],
                                    meshData->nCells*meshData->nVerticesPerCell);
-  DataArrayType velocity_vArray(velocity_vIndexArray, rawSolutionArray);
+  ScalarDataArrayHandle velocity_vArray(velocity_vIndexArray, rawSolutionArray);
 
-  DataIndexArrayType velocity_wIndexArray(stridedDataFunctor[3],
+  DataIndexArrayHandle velocity_wIndexArray(stridedDataFunctor[3],
                                    meshData->nCells*meshData->nVerticesPerCell);
-  DataArrayType velocity_wArray(velocity_wIndexArray, rawSolutionArray);
+  ScalarDataArrayHandle velocity_wArray(velocity_wIndexArray, rawSolutionArray);
 
-  DataIndexArrayType pressureIndexArray(stridedDataFunctor[4],
+  DataIndexArrayHandle pressureIndexArray(stridedDataFunctor[4],
                                    meshData->nCells*meshData->nVerticesPerCell);
-  DataArrayType pressureArray(pressureIndexArray, rawSolutionArray);
+  ScalarDataArrayHandle pressureArray(pressureIndexArray, rawSolutionArray);
 
   enum ElemType { CONSTANT=0, LINEAR=1, QUADRATIC=2 };
   vtkm::cont::Field density("density",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(densityArray));
@@ -150,3 +150,9 @@ void PyFRData::Init(void* data)
 void PyFRData::Update()
 {
 }
+
+//------------------------------------------------------------------------------
+vtkObject* NewPyFRData()
+ {
+   return PyFRData::New();
+ }

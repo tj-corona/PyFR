@@ -12,43 +12,44 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkPyFRAlgorithm - Superclass for algorithms that produce only vtkPyFRData as output
+// .NAME vtkPyFRAlgorithm - Superclass for algorithms that produce only PyFRData as output
 // .SECTION Description
 
-#ifndef vtkPyFRAlgorithm_h
-#define vtkPyFRAlgorithm_h
+#ifndef vtkPyFRDataAlgorithm_h
+#define vtkPyFRDataAlgorithm_h
 
 #include "vtkCommonExecutionModelModule.h" // For export macro
 #include "vtkAlgorithm.h"
-#include "vtkPyFRData.h" // makes things a bit easier
+#include "vtkTypeTemplate.h" // For templated vtkObject API
+
+#include "PyFRData.h"
 
 class vtkDataSet;
-class vtkPyFRData;
+class PyFRData;
 
-class VTKCOMMONEXECUTIONMODEL_EXPORT vtkPyFRAlgorithm : public vtkAlgorithm
+class VTKCOMMONEXECUTIONMODEL_EXPORT vtkPyFRDataAlgorithm : public vtkAlgorithm
 {
 public:
-  static vtkPyFRAlgorithm *New();
-  vtkTypeMacro(vtkPyFRAlgorithm,vtkAlgorithm);
+  static vtkPyFRDataAlgorithm *New();
+  vtkTypeMacro(vtkPyFRDataAlgorithm,vtkAlgorithm);
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
-  // Get the output data object for a port on this algorithm.
-  vtkPyFRData* GetOutput();
-  vtkPyFRData* GetOutput(int);
-  virtual void SetOutput(vtkDataObject* d);
-
-  // Description:
-  // see vtkAlgorithm for details
+  // Interface the algorithm to the Pipeline's passes.
   virtual int ProcessRequest(vtkInformation*,
                              vtkInformationVector**,
                              vtkInformationVector*);
 
+  // Description:
+  // Get the output data object for a port on this algorithm.
+  PyFRData* GetOutput();
+  PyFRData* GetOutput(int);
+  virtual void SetOutput(vtkDataObject* d);
+
   // this method is not recommended for use, but lots of old style filters
   // use it
   vtkDataObject* GetInput();
-  vtkDataObject *GetInput(int port);
-  vtkPyFR *GetPyFRInput(int port);
+  vtkDataObject* GetInput(int port);
 
   // Description:
   // Assign a data object as input. Note that this method does not
@@ -65,8 +66,8 @@ public:
   void AddInputData(int, vtkDataObject*);
 
 protected:
-  vtkPyFRAlgorithm();
-  ~vtkPyFRAlgorithm();
+  vtkPyFRDataAlgorithm();
+  ~vtkPyFRDataAlgorithm();
 
   // convenience method
   virtual int RequestInformation(vtkInformation* request,
@@ -81,19 +82,25 @@ protected:
                           vtkInformationVector* outputVector);
 
   // Description:
+  // Produce empty output of the proper type for RequestData to fill in.
+  virtual int RequestDataObject(vtkInformation* request,
+                                vtkInformationVector** inputVector,
+                                vtkInformationVector* outputVector);
+
+  // Description:
   // This is called by the superclass.
   // This is the method you should override.
   virtual int RequestUpdateExtent(vtkInformation*,
                                   vtkInformationVector**,
                                   vtkInformationVector*);
 
-  // see algorithm for more info
+  // Overridden to say that we take in and produce PyFRData objects
   virtual int FillOutputPortInformation(int port, vtkInformation* info);
   virtual int FillInputPortInformation(int port, vtkInformation* info);
 
 private:
-  vtkPyFRAlgorithm(const vtkPyFRAlgorithm&);  // Not implemented.
-  void operator=(const vtkPyFRAlgorithm&);  // Not implemented.
+  vtkPyFRDataAlgorithm(const vtkPyFRDataAlgorithm&);  // Not implemented.
+  void operator=(const vtkPyFRDataAlgorithm&);  // Not implemented.
 };
 
 #endif

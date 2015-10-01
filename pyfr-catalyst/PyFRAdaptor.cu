@@ -6,9 +6,11 @@
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
+#include <vtkInstantiator.h>
 #include <vtkNew.h>
 
 #include "PyFRData.h"
+#include "PyFRContourData.h"
 
 namespace
 {
@@ -17,6 +19,9 @@ namespace
 
 void* CatalystInitialize(char* outputfile, void* p)
 {
+  vtkInstantiator::RegisterInstantiator("PyFRData",&NewPyFRData);
+  vtkInstantiator::RegisterInstantiator("PyFRContourData",&NewPyFRContourData);
+
   PyFRData* data = PyFRData::New();
   data->Init(p);
 
