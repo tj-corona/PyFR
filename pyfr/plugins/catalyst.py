@@ -15,7 +15,7 @@ class MeshDataForCellType(Structure):
         ('nVerticesPerCell', c_int),
         ('nCells', c_int),
 
-        ('vertices', POINTER(c_float)),
+        ('vertices', c_void_p),
 
         ('nSubdividedCells', c_int),
 
@@ -166,7 +166,7 @@ class CatalystPlugin(BasePlugin):
         meshDataForCellType = \
         MeshDataForCellType(nVerticesPerCell=nsvpts,
                             nCells=neles,
-                            vertices=vpts.ctypes.data_as(POINTER(c_float)),
+                            vertices=vpts.ctypes.data_as(c_void_p),
                             nSubdividedCells=len(vtu_typ),
                             con=vtu_con.ctypes.data,
                             off=vtu_off.ctypes.data,
