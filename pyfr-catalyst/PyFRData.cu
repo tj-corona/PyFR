@@ -49,9 +49,9 @@ void PyFRData::Init(void* data)
 
   Vec3ArrayHandle vertices;
     {
-    const vtkm::Vec<double,3> *vecData =
-      reinterpret_cast<const vtkm::Vec<double,3>*>(meshData->vertices);
-    typedef vtkm::cont::internal::Storage<vtkm::Vec<double,3>,
+    const vtkm::Vec<FPType,3> *vecData =
+      reinterpret_cast<const vtkm::Vec<FPType,3>*>(meshData->vertices);
+    typedef vtkm::cont::internal::Storage<vtkm::Vec<FPType,3>,
                                        vtkm::cont::StorageTagBasic> Vec3Storage;
     Vec3ArrayHandle tmp =
       Vec3ArrayHandle(Vec3Storage(vecData,
@@ -104,7 +104,7 @@ void PyFRData::Init(void* data)
     }
 
   RawDataArrayHandle rawSolutionArray = vtkm::cont::cuda::make_ArrayHandle(
-    static_cast<double*>(solutionData->solution),
+    static_cast<FPType*>(solutionData->solution),
     solutionData->ldim*meshData->nVerticesPerCell);
 
   DataIndexArrayHandle densityIndexArray(stridedDataFunctor[0],

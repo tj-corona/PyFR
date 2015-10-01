@@ -29,6 +29,19 @@ vtkm_configure_device(Cuda REQUIRED)
 find_package(BoostHeaders ${VTKm_REQUIRED_BOOST_VERSION} REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
+set(Adaptor_HDRS
+  ArrayHandleExposed.h
+  vtkPyFRContourDataAlgorithm.h
+  vtkPyFRDataAlgorithm.h
+  vtkXMLPyFRContourDataWriter.h
+  vtkXMLPyFRDataWriter.h
+  vtkCPVTKmPipeline.h
+  vtkPyFRDataContourFilter.h
+  PyFRContourData.h
+  PyFRData.h
+  PyFRAdaptor.h
+  )
+
 set(Adaptor_SRCS
   vtkPyFRContourDataAlgorithm.cu
   vtkPyFRDataAlgorithm.cu
@@ -41,6 +54,15 @@ set(Adaptor_SRCS
   PyFRAdaptor.cu
   )
 
-cuda_add_library(pyfr-catalyst SHARED ${Adaptor_SRCS})
-target_link_libraries(pyfr-catalyst vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${CUDA_LIBRARIES})
-install(TARGETS pyfr-catalyst DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+
+SET( CMAKE_CXX_FLAGS_ORIGINAL  "${CMAKE_CXX_FLAGS}" )
+
+SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_ORIGINAL} -DFPType=float" )
+cuda_add_library(pyfr-catalyst-fp32 SHARED ${Adaptor_SRCS})
+target_link_libraries(pyfr-catalyst-fp32 vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${CUDA_LIBRARIES})
+
+SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_ORIGINAL} -DFPType=double" )
+cuda_add_library(pyfr-catalyst-fp64 SHARED ${Adaptor_SRCS})
+target_link_libraries(pyfr-catalyst-fp64 vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${CUDA_LIBRARIES})
+
+install(TARGETS pyfr-catalyst-fp32 pyfr-catalyst-fp64 DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)

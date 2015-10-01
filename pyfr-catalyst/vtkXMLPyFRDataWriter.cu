@@ -37,6 +37,7 @@
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
 
+#include "ArrayChoice.h"
 #include "ArrayHandleExposed.h"
 #include "PyFRData.h"
 
@@ -93,24 +94,24 @@ void vtkXMLPyFRDataWriter::WriteData()
 
   namespace vtkmc = vtkm::cont;
   typedef vtkmc::ArrayHandleExposed<vtkIdType> IdArrayHandleExposed;
-  typedef vtkmc::ArrayHandleExposed<double> DoubleArrayHandleExposed;
-  typedef vtkmc::ArrayHandleExposed<vtkm::Vec<double,3> > Double3ArrayHandleExposed;
+  typedef vtkmc::ArrayHandleExposed<FPType> ScalarDataArrayHandleExposed;
+  typedef vtkmc::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandleExposed;
 
-  typedef vtkmc::ArrayHandle<vtkm::Vec<double,3> > Double3ArrayHandle;
-  Double3ArrayHandleExposed vertices;
+  typedef vtkmc::ArrayHandle<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
+  Vec3ArrayHandleExposed vertices;
     {
-    Double3ArrayHandle tmp = dataSet.GetCoordinateSystem().GetData()
-      .CastToArrayHandle(Double3ArrayHandle::ValueType(),
-                         Double3ArrayHandle::StorageTag());
+    Vec3ArrayHandle tmp = dataSet.GetCoordinateSystem().GetData()
+      .CastToArrayHandle(Vec3ArrayHandle::ValueType(),
+                         Vec3ArrayHandle::StorageTag());
     vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
       Copy(tmp,vertices);
     }
 
-  vtkSmartPointer<vtkDoubleArray> pointData =
-    vtkSmartPointer<vtkDoubleArray>::New();
+  vtkSmartPointer<ArrayChoice<FPType>::type> pointData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
 
   vtkIdType nVerts = vertices.GetNumberOfValues();
-  double* vertsArray = reinterpret_cast<double*>(vertices.Storage().StealArray());
+  FPType* vertsArray = reinterpret_cast<FPType*>(vertices.Storage().StealArray());
   pointData->SetArray(vertsArray, nVerts*3,
                       0, // give VTK control of the data
                       0);// delete using "free"
@@ -121,20 +122,20 @@ void vtkXMLPyFRDataWriter::WriteData()
 
   std::string fieldName[5] = {"density","velocity_u","velocity_v","velocity_w",
 "pressure"};
-  vtkSmartPointer<vtkDoubleArray> solutionData[5];
+  vtkSmartPointer<ArrayChoice<FPType>::type> solutionData[5];
   for (unsigned i=0;i<5;i++)
     {
     vtkmc::Field solution = dataSet.GetField(fieldName[i]);
     PyFRData::ScalarDataArrayHandle solutionArray = solution.GetData()
       .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                          PyFRData::ScalarDataArrayHandle::StorageTag());
-    DoubleArrayHandleExposed solutionArrayHost;
+    ScalarDataArrayHandleExposed solutionArrayHost;
     vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
       Copy(solutionArray, solutionArrayHost);
 
-    solutionData[i] = vtkSmartPointer<vtkDoubleArray>::New();
+    solutionData[i] = vtkSmartPointer<ArrayChoice<FPType>::type>::New();
     vtkIdType nSolution = solutionArrayHost.GetNumberOfValues();
-    double* solutionArr = solutionArrayHost.Storage().StealArray();
+    FPType* solutionArr = solutionArrayHost.Storage().StealArray();
     solutionData[i]->SetArray(solutionArr, nSolution,
                            0, // give VTK control of the data
                            0);// delete using "free"

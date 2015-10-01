@@ -48,12 +48,12 @@ struct StridedDataFunctor
 class PyFRData : public vtkDataObject
 {
 public:
-  typedef vtkm::cont::ArrayHandle<vtkm::Vec<double,3> > Vec3ArrayHandle;
+  typedef vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
 
   typedef vtkm::cont::ArrayHandleImplicit<vtkm::Id, StridedDataFunctor>
   DataIndexArrayHandle;
 
-  typedef vtkm::cont::cuda::ArrayHandleCuda<double>::type RawDataArrayHandle;
+  typedef vtkm::cont::cuda::ArrayHandleCuda<FPType>::type RawDataArrayHandle;
 
   typedef vtkm::cont::ArrayHandlePermutation<DataIndexArrayHandle,
     RawDataArrayHandle> ScalarDataArrayHandle;

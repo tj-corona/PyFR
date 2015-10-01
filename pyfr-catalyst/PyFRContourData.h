@@ -18,17 +18,17 @@ public:
   static PyFRContourData* New();
   vtkTypeMacro(PyFRContourData, vtkDataObject)
 
-  typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<double,3> >
-  Double3ArrayHandle;
-  typedef vtkm::cont::ArrayHandleExposed<double> DoubleArrayHandle;
+  typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<FPType,3> >
+  Vec3ArrayHandle;
+  typedef vtkm::cont::ArrayHandleExposed<FPType> ScalarDataArrayHandle;
 
-  Double3ArrayHandle Vertices;
-  Double3ArrayHandle Normals;
-  DoubleArrayHandle Density;
-  DoubleArrayHandle Velocity_u;
-  DoubleArrayHandle Velocity_v;
-  DoubleArrayHandle Velocity_w;
-  DoubleArrayHandle Pressure;
+  Vec3ArrayHandle Vertices;
+  Vec3ArrayHandle Normals;
+  ScalarDataArrayHandle Density;
+  ScalarDataArrayHandle Velocity_u;
+  ScalarDataArrayHandle Velocity_v;
+  ScalarDataArrayHandle Velocity_w;
+  ScalarDataArrayHandle Pressure;
 
 protected:
   PyFRContourData();

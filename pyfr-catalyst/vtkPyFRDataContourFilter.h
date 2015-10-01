@@ -26,7 +26,7 @@ public:
 
   int FillInputPortInformation(int,vtkInformation*);
 
-  void SetContourValue(double value) { this->ContourValue = value; }
+  void SetContourValue(FPType value) { this->ContourValue = value; }
 
   void SetContourFieldToDensity()    { this->ContourField = "density"; }
   void SetContourFieldToPressure()   { this->ContourField = "pressure"; }
@@ -38,7 +38,7 @@ protected:
   vtkPyFRDataContourFilter();
   virtual ~vtkPyFRDataContourFilter();
 
-  double ContourValue;
+  FPType ContourValue;
   std::string ContourField;
 
 private:

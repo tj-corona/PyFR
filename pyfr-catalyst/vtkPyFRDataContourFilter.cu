@@ -42,12 +42,12 @@ int vtkPyFRDataContourFilter::RequestData(
 
   const vtkm::cont::DataSet& dataSet = input->GetDataSet();
 
-  typedef vtkm::worklet::IsosurfaceFilterHexahedra<double,
+  typedef vtkm::worklet::IsosurfaceFilterHexahedra<FPType,
     VTKM_DEFAULT_DEVICE_ADAPTER_TAG> IsosurfaceFilter;
 
-  PyFRContourData::Double3ArrayHandle& verts_out = output->Vertices;
-  PyFRContourData::Double3ArrayHandle& normals_out = output->Normals;
-  PyFRContourData::DoubleArrayHandle& scalars_out = output->Density;
+  PyFRContourData::Vec3ArrayHandle& verts_out = output->Vertices;
+  PyFRContourData::Vec3ArrayHandle& normals_out = output->Normals;
+  PyFRContourData::ScalarDataArrayHandle& scalars_out = output->Density;
 
   vtkm::cont::Field scalars = dataSet.GetField(this->ContourField);
   PyFRData::ScalarDataArrayHandle scalarsArray = scalars.GetData()

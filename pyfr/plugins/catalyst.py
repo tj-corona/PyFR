@@ -49,7 +49,11 @@ class CatalystPlugin(BasePlugin):
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
         outputfile = self.cfg.get(self.cfgsect, 'outputfile')
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
-        self.catalyst = load_library('pyfr-catalyst')
+        prec = self.cfg.get('backend', 'precision', 'double')
+        if prec  == 'double':
+            self.catalyst = load_library('pyfr-catalyst-fp64')
+        else:
+            self.catalyst = load_library('pyfr-catalyst-fp32')
 
         ###################
 

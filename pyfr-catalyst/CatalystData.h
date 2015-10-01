@@ -27,7 +27,7 @@ struct MeshDataForCellType
 {
   int nVerticesPerCell;
   int nCells;
-  double* vertices;
+  void* vertices;
   int nSubdividedCells; /* number of elements in con, off, type */
   int32_t* con;
   int32_t* off; /* offset of connectivity information in con[] */

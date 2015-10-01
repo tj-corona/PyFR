@@ -37,6 +37,7 @@
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
 
+#include "ArrayChoice.h"
 #include "ArrayHandleExposed.h"
 #include "PyFRData.h"
 
@@ -92,13 +93,13 @@ void vtkXMLPyFRContourDataWriter::WriteData()
 
   PyFRContourData* contourData = const_cast<PyFRContourData*>(pyfrContourData);
 
-  PyFRContourData::Double3ArrayHandle& verts_out = contourData->Vertices;
+  PyFRContourData::Vec3ArrayHandle& verts_out = contourData->Vertices;
 
-  vtkSmartPointer<vtkDoubleArray> pointData =
-    vtkSmartPointer<vtkDoubleArray>::New();
+  vtkSmartPointer<ArrayChoice<FPType>::type> pointData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
 
   vtkIdType nVerts = verts_out.GetNumberOfValues();
-  double* vertsArray = reinterpret_cast<double*>(verts_out.Storage().StealArray());
+  FPType* vertsArray = reinterpret_cast<FPType*>(verts_out.Storage().StealArray());
   pointData->SetArray(vertsArray, nVerts*3,
                       0, // give VTK control of the data
                       0);// delete using "free"
@@ -107,24 +108,24 @@ void vtkXMLPyFRContourDataWriter::WriteData()
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   points->SetData(pointData);
 
-  PyFRContourData::Double3ArrayHandle& normals_out = contourData->Normals;
+  PyFRContourData::Vec3ArrayHandle& normals_out = contourData->Normals;
 
-  vtkSmartPointer<vtkDoubleArray> normalsData =
-    vtkSmartPointer<vtkDoubleArray>::New();
+  vtkSmartPointer<ArrayChoice<FPType>::type> normalsData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
 
   vtkIdType nNormals = normals_out.GetNumberOfValues();
-  double* normalsArray = reinterpret_cast<double*>(normals_out.Storage().StealArray());
+  FPType* normalsArray = reinterpret_cast<FPType*>(normals_out.Storage().StealArray());
   normalsData->SetArray(normalsArray, nNormals*3,
                         0, // give VTK control of the data
                         0);// delete using "free"
   normalsData->SetNumberOfComponents(3);
 
-  PyFRContourData::DoubleArrayHandle& scalars_out = contourData->Density;
+  PyFRContourData::ScalarDataArrayHandle& scalars_out = contourData->Density;
 
-  vtkSmartPointer<vtkDoubleArray> solutionData =
-    vtkSmartPointer<vtkDoubleArray>::New();
+  vtkSmartPointer<ArrayChoice<FPType>::type> solutionData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
   vtkIdType nSolution = scalars_out.GetNumberOfValues();
-  double* solutionArray = scalars_out.Storage().StealArray();
+  FPType* solutionArray = scalars_out.Storage().StealArray();
   solutionData->SetArray(solutionArray, nSolution,
                          0, // give VTK control of the data
                          0);// delete using "free"
