@@ -6,16 +6,16 @@
 #include <vtkInformationVector.h>
 #include <vtkObjectFactory.h>
 
-#include <vtkm/worklet/IsosurfaceHexahedra.h>
+#include "PyFRDataContourFilter.h"
 
-#include "PyFRData.h"
-#include "PyFRContourData.h"
+#include "vtkPyFRData.h"
+#include "vtkPyFRContourData.h"
 
 vtkStandardNewMacro(vtkPyFRDataContourFilter);
 
 //----------------------------------------------------------------------------
 vtkPyFRDataContourFilter::vtkPyFRDataContourFilter() : ContourValue(0.),
-                                           ContourField("density")
+                                                       ContourField(0)
 {
 }
 
@@ -35,34 +35,15 @@ int vtkPyFRDataContourFilter::RequestData(
   vtkInformation *outInfo = outputVector->GetInformationObject(0);
 
   // get the input and output
-  PyFRData *input = PyFRData::SafeDownCast(
+  vtkPyFRData *input = vtkPyFRData::SafeDownCast(
     inInfo->Get(vtkDataObject::DATA_OBJECT()));
-  PyFRContourData *output = PyFRContourData::SafeDownCast(
+  vtkPyFRContourData *output = vtkPyFRContourData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  const vtkm::cont::DataSet& dataSet = input->GetDataSet();
-
-  typedef vtkm::worklet::IsosurfaceFilterHexahedra<FPType,
-    VTKM_DEFAULT_DEVICE_ADAPTER_TAG> IsosurfaceFilter;
-
-  PyFRContourData::Vec3ArrayHandle& verts_out = output->Vertices;
-  PyFRContourData::Vec3ArrayHandle& normals_out = output->Normals;
-  PyFRContourData::ScalarDataArrayHandle& scalars_out = output->Density;
-
-  vtkm::cont::Field scalars = dataSet.GetField(this->ContourField);
-  PyFRData::ScalarDataArrayHandle scalarsArray = scalars.GetData()
-    .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
-                       PyFRData::ScalarDataArrayHandle::StorageTag());
-
-  IsosurfaceFilter* isosurfaceFilter = new IsosurfaceFilter(dataSet);
-
-  isosurfaceFilter->Run(this->ContourValue,
-                        scalarsArray,
-                        verts_out,
-                        normals_out);
-
-  isosurfaceFilter->MapFieldOntoIsosurface(scalarsArray,
-                                           scalars_out);
+  PyFRDataContourFilter filter;
+  filter.SetContourValue(this->ContourValue);
+  filter.SetContourField(this->ContourField);
+  filter(input->GetData(),output->GetData());
 
   return 1;
 }
@@ -71,7 +52,7 @@ int vtkPyFRDataContourFilter::RequestData(
 int vtkPyFRDataContourFilter::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
-  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "PyFRData");
+  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRData");
   return 1;
 }
 //----------------------------------------------------------------------------

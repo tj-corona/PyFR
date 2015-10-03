@@ -1,0 +1,50 @@
+<ServerManagerConfiguration>
+  <ProxyGroup name="filters">
+    <SourceProxy name="PyFRDataContourFilter" class="vtkPyFRDataContourFilter" label="ContourPyFRData">
+      <Documentation long_help="Generate isosurface from PyFR data."
+                     short_help="Generate isosurface.">
+	The ContourPyFRData filter computes isosurfaces using PyFR data. The
+        filter uses vtk-m to generate the isosurface entirely on the GPU,
+        eliminating the need for PyFR's field data to be transferred to the host.
+      </Documentation>
+      <InputProperty
+          name="Input"
+          command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="PyFRData"/>
+        </DataTypeDomain>
+      </InputProperty>
+      <DoubleVectorProperty animateable="1"
+                            command="SetContourValue"
+                            label="Isosurface"
+                            name="ContourValue"
+                            number_of_elements="1"
+			    default_values="1">
+        <Documentation>
+	  This property specifies the value at which to compute an isosurface.
+	</Documentation>
+      </DoubleVectorProperty>
+      <IntVectorProperty
+          name="ContourField"
+          command="SetContourField"
+          number_of_elements="1"
+          default_values="1">
+        <EnumerationDomain name="enum">
+          <Entry value="0" text="Density"/>
+          <Entry value="1" text="Pressure"/>
+          <Entry value="2" text="Velocity_u"/>
+          <Entry value="3" text="Velocity_v"/>
+          <Entry value="4" text="Velocity_w"/>
+        </EnumerationDomain>
+        <Documentation>
+          This property indicates which field will be used to generate
+	  the isosurface.
+        </Documentation>
+      </IntVectorProperty>
+    </SourceProxy>
+  </ProxyGroup>
+</ServerManagerConfiguration>

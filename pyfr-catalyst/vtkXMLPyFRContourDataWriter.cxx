@@ -37,15 +37,15 @@
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
 
-#include "ArrayChoice.h"
-#include "ArrayHandleExposed.h"
-#include "PyFRData.h"
+#include "vtkPyFRContourData.h"
+
+#include "PyFRDataWriter.h"
 
 vtkStandardNewMacro(vtkXMLPyFRContourDataWriter);
 
 //----------------------------------------------------------------------------
 vtkXMLPyFRContourDataWriter::vtkXMLPyFRContourDataWriter() : IsBinary(true),
-                                       FileName("output.vtu")
+                                                             FileName("output")
 {
 }
 
@@ -86,82 +86,19 @@ int vtkXMLPyFRContourDataWriter::Write()
 //----------------------------------------------------------------------------
 void vtkXMLPyFRContourDataWriter::WriteData()
 {
-  const PyFRContourData* pyfrContourData =
-    PyFRContourData::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
+  vtkPyFRContourData* pyfrContourData =
+    vtkPyFRContourData::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
   if(!pyfrContourData)
     throw std::runtime_error("PyFRContourData input required.");
 
-  PyFRContourData* contourData = const_cast<PyFRContourData*>(pyfrContourData);
-
-  PyFRContourData::Vec3ArrayHandle& verts_out = contourData->Vertices;
-
-  vtkSmartPointer<ArrayChoice<FPType>::type> pointData =
-    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
-
-  vtkIdType nVerts = verts_out.GetNumberOfValues();
-  FPType* vertsArray = reinterpret_cast<FPType*>(verts_out.Storage().StealArray());
-  pointData->SetArray(vertsArray, nVerts*3,
-                      0, // give VTK control of the data
-                      0);// delete using "free"
-  pointData->SetNumberOfComponents(3);
-
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-  points->SetData(pointData);
-
-  PyFRContourData::Vec3ArrayHandle& normals_out = contourData->Normals;
-
-  vtkSmartPointer<ArrayChoice<FPType>::type> normalsData =
-    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
-
-  vtkIdType nNormals = normals_out.GetNumberOfValues();
-  FPType* normalsArray = reinterpret_cast<FPType*>(normals_out.Storage().StealArray());
-  normalsData->SetArray(normalsArray, nNormals*3,
-                        0, // give VTK control of the data
-                        0);// delete using "free"
-  normalsData->SetNumberOfComponents(3);
-
-  PyFRContourData::ScalarDataArrayHandle& scalars_out = contourData->Density;
-
-  vtkSmartPointer<ArrayChoice<FPType>::type> solutionData =
-    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
-  vtkIdType nSolution = scalars_out.GetNumberOfValues();
-  FPType* solutionArray = scalars_out.Storage().StealArray();
-  solutionData->SetArray(solutionArray, nSolution,
-                         0, // give VTK control of the data
-                         0);// delete using "free"
-  solutionData->SetNumberOfComponents(1);
-  solutionData->SetName("output");
-
-  vtkSmartPointer<vtkCellArray> polys =
-        vtkSmartPointer<vtkCellArray>::New();
-  vtkIdType indices[3];
-  for (vtkIdType i=0;i<points->GetNumberOfPoints();i+=3)
-    {
-    for (vtkIdType j=0;j<3;j++)
-      indices[j] = i+j;
-    polys->InsertNextCell(3,indices);
-    }
-
-  // Create a polydata object and add the points to it.
-  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-  polydata->SetPoints(points);
-  polydata->SetPolys(polys);
-  polydata->GetPointData()->SetNormals(normalsData);
-  polydata->GetPointData()->AddArray(solutionData);
-
-  // Write the file
-  vtkSmartPointer<vtkXMLPolyDataWriter> writer =
-    vtkSmartPointer<vtkXMLPolyDataWriter>::New();
-  writer->SetFileName(FileName.c_str());
-  writer->SetInputData(polydata);
-
+  PyFRDataWriter writer;
+  writer.SetFileName(this->FileName);
   if (this->IsBinary)
-    writer->SetDataModeToBinary();
+    writer.SetDataModeToBinary();
   else
-    writer->SetDataModeToAscii();
+    writer.SetDataModeToAscii();
 
-  writer->Write();
-
+  writer(pyfrContourData->GetData());
 }
 
 //----------------------------------------------------------------------------

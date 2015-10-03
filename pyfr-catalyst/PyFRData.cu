@@ -18,15 +18,10 @@
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/Field.h>
-#include <vtkm/cont/internal/DeviceAdapterTag.h>
-#include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
+#include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
 #include "ArrayHandleExposed.h"
 
-//------------------------------------------------------------------------------
-vtkStandardNewMacro(PyFRData);
-
-//------------------------------------------------------------------------------
 PyFRData::PyFRData() : catalystData(NULL)
 {
 
@@ -47,6 +42,8 @@ void PyFRData::Init(void* data)
   SolutionDataForCellType* solutionData =
     &(this->catalystData->solutionData[0]);
 
+  typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
+
   Vec3ArrayHandle vertices;
     {
     const vtkm::Vec<FPType,3> *vecData =
@@ -56,7 +53,7 @@ void PyFRData::Init(void* data)
     Vec3ArrayHandle tmp =
       Vec3ArrayHandle(Vec3Storage(vecData,
                                   meshData->nCells*meshData->nVerticesPerCell));
-    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+    vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
       Copy(tmp, vertices);
     }
 
@@ -67,7 +64,7 @@ void PyFRData::Init(void* data)
                                                   meshData->nVerticesPerCell));
     vtkm::cont::ArrayHandleCast<vtkm::Id,
       vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
-    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+    vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
       Copy(cast, connectivity);
     }
 
@@ -150,9 +147,3 @@ void PyFRData::Init(void* data)
 void PyFRData::Update()
 {
 }
-
-//------------------------------------------------------------------------------
-vtkObject* NewPyFRData()
- {
-   return PyFRData::New();
- }

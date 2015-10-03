@@ -1,16 +1,16 @@
-#ifndef VTKCPVTKMPIPELINE_H
-#define VTKCPVTKMPIPELINE_H
+#ifndef VTKPYFRPIPELINE_H
+#define VTKPYFRPIPELINE_H
 
 #include <vtkCPPipeline.h>
 #include <string>
 
 class vtkCPDataDescription;
 
-class vtkCPVTKmPipeline : public vtkCPPipeline
+class vtkPyFRPipeline : public vtkCPPipeline
 {
 public:
-  static vtkCPVTKmPipeline* New();
-  vtkTypeMacro(vtkCPVTKmPipeline,vtkCPPipeline)
+  static vtkPyFRPipeline* New();
+  vtkTypeMacro(vtkPyFRPipeline,vtkCPPipeline)
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
   virtual void Initialize(char* fileName);
@@ -20,12 +20,12 @@ public:
   virtual int CoProcess(vtkCPDataDescription* dataDescription);
 
 protected:
-  vtkCPVTKmPipeline();
-  virtual ~vtkCPVTKmPipeline();
+  vtkPyFRPipeline();
+  virtual ~vtkPyFRPipeline();
 
 private:
-  vtkCPVTKmPipeline(const vtkCPVTKmPipeline&); // Not implemented
-  void operator=(const vtkCPVTKmPipeline&); // Not implemented
+  vtkPyFRPipeline(const vtkPyFRPipeline&); // Not implemented
+  void operator=(const vtkPyFRPipeline&); // Not implemented
 
   std::string fileName;
 };

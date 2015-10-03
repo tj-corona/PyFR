@@ -13,7 +13,7 @@
 
 =========================================================================*/
 // .NAME vtkPyFRAlgorithm - Superclass for algorithms that produce only
-// PyFRContourData as output
+// vtkPyFRContourData as output
 // .SECTION Description
 
 #ifndef vtkPyFRContourDataAlgorithm_h
@@ -23,12 +23,10 @@
 #include "vtkAlgorithm.h"
 #include "vtkTypeTemplate.h" // For templated vtkObject API
 
-#include "PyFRContourData.h"
-
 class vtkDataSet;
-class PyFRContourData;
+class vtkPyFRContourData;
 
-class VTKCOMMONEXECUTIONMODEL_EXPORT vtkPyFRContourDataAlgorithm : public vtkAlgorithm
+class VTK_EXPORT vtkPyFRContourDataAlgorithm : public vtkAlgorithm
 {
 public:
   static vtkPyFRContourDataAlgorithm *New();
@@ -43,8 +41,8 @@ public:
 
   // Description:
   // Get the output data object for a port on this algorithm.
-  PyFRContourData* GetOutput();
-  PyFRContourData* GetOutput(int);
+  vtkPyFRContourData* GetOutput();
+  vtkPyFRContourData* GetOutput(int);
   virtual void SetOutput(vtkDataObject* d);
 
   // this method is not recommended for use, but lots of old style filters
@@ -95,7 +93,7 @@ protected:
                                   vtkInformationVector**,
                                   vtkInformationVector*);
 
-  // Overridden to say that we take in and produce PyFRContourData objects
+  // Overridden to say that we take in and produce vtkPyFRContourData objects
   virtual int FillOutputPortInformation(int port, vtkInformation* info);
   virtual int FillInputPortInformation(int port, vtkInformation* info);
 

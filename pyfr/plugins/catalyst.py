@@ -51,9 +51,9 @@ class CatalystPlugin(BasePlugin):
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
         prec = self.cfg.get('backend', 'precision', 'double')
         if prec  == 'double':
-            self.catalyst = load_library('pyfr-catalyst-fp64')
+            self.catalyst = load_library('pyfr_catalyst_fp64')
         else:
-            self.catalyst = load_library('pyfr-catalyst-fp32')
+            self.catalyst = load_library('pyfr_catalyst_fp32')
 
         ###################
 

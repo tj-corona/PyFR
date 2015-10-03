@@ -20,7 +20,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
-#include "PyFRData.h"
+#include "vtkPyFRData.h"
 
 vtkStandardNewMacro(vtkPyFRDataAlgorithm);
 
@@ -45,15 +45,15 @@ void vtkPyFRDataAlgorithm::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-PyFRData* vtkPyFRDataAlgorithm::GetOutput()
+vtkPyFRData* vtkPyFRDataAlgorithm::GetOutput()
 {
   return this->GetOutput(0);
 }
 
 //----------------------------------------------------------------------------
-PyFRData* vtkPyFRDataAlgorithm::GetOutput(int port)
+vtkPyFRData* vtkPyFRDataAlgorithm::GetOutput(int port)
 {
-  return PyFRData::SafeDownCast(this->GetOutputDataObject(port));
+  return vtkPyFRData::SafeDownCast(this->GetOutputDataObject(port));
 }
 
 //----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ int vtkPyFRDataAlgorithm::FillOutputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
   // now add our info
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "PyFRData");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPyFRData");
   return 1;
 }
 
@@ -112,7 +112,7 @@ int vtkPyFRDataAlgorithm::FillOutputPortInformation(
 int vtkPyFRDataAlgorithm::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
-  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "PyFRData");
+  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRData");
   return 1;
 }
 
@@ -163,7 +163,7 @@ int vtkPyFRDataAlgorithm::RequestDataObject(
   vtkInformationVector* vtkNotUsed(outputVector))
 {
   // do nothing let subclasses handle it
-  PyFRData *newobj = PyFRData::New();
+  vtkPyFRData *newobj = vtkPyFRData::New();
   this->GetExecutive()->SetOutputData(0, newobj);
   newobj->Delete();
   return 1;

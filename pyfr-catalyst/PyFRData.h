@@ -5,7 +5,7 @@
 
 //State that the default backend for this code is CUDA
 //not serial
-#define VTKM_DEVICE_ADAPTER VTKM_DEVICE_ADAPTER_CUDA
+// #define VTKM_DEVICE_ADAPTER VTKM_DEVICE_ADAPTER_CUDA
 //Disable treading support in our array handle
 //needed for nvcc to stop complaining.
 #define BOOST_SP_DISABLE_THREADS
@@ -40,14 +40,15 @@ struct StridedDataFunctor
 };
 
 /*
- * A VTK-digestable representation of PyFR output data.
- *
  * This class was adapted from the Isosurface class from Tom Fogal's
  * visualization plugin.
  */
-class PyFRData : public vtkDataObject
+class PyFRData
 {
 public:
+  PyFRData();
+  virtual ~PyFRData();
+
   typedef vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
 
   typedef vtkm::cont::ArrayHandleImplicit<vtkm::Id, StridedDataFunctor>
@@ -58,24 +59,15 @@ public:
   typedef vtkm::cont::ArrayHandlePermutation<DataIndexArrayHandle,
     RawDataArrayHandle> ScalarDataArrayHandle;
 
-  static PyFRData* New();
-  vtkTypeMacro(PyFRData, vtkDataObject)
-
   void Init(void* field);
 
   const vtkm::cont::DataSet& GetDataSet() const { return dataSet; }
 
   void Update();
 
-protected:
-  PyFRData();
-  virtual ~PyFRData();
-
 private:
   struct CatalystData* catalystData;
   vtkm::cont::DataSet dataSet;
 };
-
-vtkObject* NewPyFRData();
 
 #endif

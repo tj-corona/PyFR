@@ -1,8 +1,7 @@
 #include <cstdio>
 #include <string>
-#include "PyFRAdaptor.h"
+#include "vtkPyFRAdaptor.h"
 
-#include "vtkCPVTKmPipeline.h"
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
@@ -10,7 +9,10 @@
 #include <vtkNew.h>
 
 #include "PyFRData.h"
-#include "PyFRContourData.h"
+
+#include "vtkPyFRPipeline.h"
+#include "vtkPyFRData.h"
+#include "vtkPyFRContourData.h"
 
 namespace
 {
@@ -19,18 +21,20 @@ namespace
 
 void* CatalystInitialize(char* outputfile, void* p)
 {
-  vtkInstantiator::RegisterInstantiator("PyFRData",&NewPyFRData);
-  vtkInstantiator::RegisterInstantiator("PyFRContourData",&NewPyFRContourData);
+  vtkInstantiator::RegisterInstantiator("vtkPyFRData",
+                                        &New_vtkPyFRData);
+  vtkInstantiator::RegisterInstantiator("vtkPyFRContourData",
+                                        &New_vtkPyFRContourData);
 
-  PyFRData* data = PyFRData::New();
-  data->Init(p);
+  vtkPyFRData* data = vtkPyFRData::New();
+  data->GetData()->Init(p);
 
   if(Processor == NULL)
     {
     Processor = vtkCPProcessor::New();
     Processor->Initialize();
     }
-  vtkNew<vtkCPVTKmPipeline> pipeline;
+  vtkNew<vtkPyFRPipeline> pipeline;
   pipeline->Initialize(outputfile);
   Processor->AddPipeline(pipeline.GetPointer());
 
@@ -39,7 +43,7 @@ void* CatalystInitialize(char* outputfile, void* p)
 
 void CatalystFinalize(void* p)
 {
-  PyFRData* data = static_cast<PyFRData*>(p);
+  vtkPyFRData* data = static_cast<vtkPyFRData*>(p);
   if(Processor)
     {
     Processor->Delete();
@@ -53,8 +57,8 @@ void CatalystFinalize(void* p)
 
 void CatalystCoProcess(double time,unsigned int timeStep, void* p)
 {
-  PyFRData* data = static_cast<PyFRData*>(p);
-  data->Update();
+  vtkPyFRData* data = static_cast<vtkPyFRData*>(p);
+  data->GetData()->Update();
   vtkNew<vtkCPDataDescription> dataDescription;
   dataDescription->AddInput("input");
   dataDescription->SetTimeData(time, timeStep);

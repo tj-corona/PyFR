@@ -3,7 +3,7 @@
 #include <string>
 #include <sstream>
 
-#include "vtkXMLPyFRDataWriter.h"
+#include "PyFRDataWriter.h"
 
 #include <vtkCellArray.h>
 #include <vtkCellType.h>
@@ -35,67 +35,34 @@
 #include <vtkm/cont/DeviceAdapterSerial.h>
 #include <vtkm/cont/DynamicArrayHandle.h>
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
-#include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
+#include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
 #include "ArrayChoice.h"
 #include "ArrayHandleExposed.h"
 #include "PyFRData.h"
-
-vtkStandardNewMacro(vtkXMLPyFRDataWriter);
+#include "PyFRContourData.h"
 
 //----------------------------------------------------------------------------
-vtkXMLPyFRDataWriter::vtkXMLPyFRDataWriter() : IsBinary(true),
-                                       FileName("output.vtu")
+PyFRDataWriter::PyFRDataWriter() : IsBinary(true),
+                                   FileName("output")
 {
 }
 
 //----------------------------------------------------------------------------
-vtkXMLPyFRDataWriter::~vtkXMLPyFRDataWriter()
+PyFRDataWriter::~PyFRDataWriter()
 {
 }
 
 //----------------------------------------------------------------------------
-void vtkXMLPyFRDataWriter::SetInputData(vtkDataObject* input)
+void PyFRDataWriter::operator ()(PyFRData* pyfrData) const
 {
-  this->SetInputData(0, input);
-}
-
-//----------------------------------------------------------------------------
-void vtkXMLPyFRDataWriter::SetInputData(int index, vtkDataObject* input)
-{
-  this->SetInputDataInternal(index, input);
-}
-
-//----------------------------------------------------------------------------
-int vtkXMLPyFRDataWriter::Write()
-{
-  // Make sure we have input.
-  if (this->GetNumberOfInputConnections(0) < 1)
-    {
-    vtkErrorMacro("No input provided!");
-    return 0;
-    }
-
-  // always write even if the data hasn't changed
-  this->Modified();
-  this->UpdateWholeExtent();
-
-  return (this->GetErrorCode() == vtkErrorCode::NoError);
-}
-
-//----------------------------------------------------------------------------
-void vtkXMLPyFRDataWriter::WriteData()
-{
-  const PyFRData* pyfrData = PyFRData::SafeDownCast(this->GetExecutive()->GetInputData(0, 0));
-  if(!pyfrData)
-    throw std::runtime_error("PyFRData input required.");
-
   const vtkm::cont::DataSet& dataSet = pyfrData->GetDataSet();
 
   namespace vtkmc = vtkm::cont;
   typedef vtkmc::ArrayHandleExposed<vtkIdType> IdArrayHandleExposed;
   typedef vtkmc::ArrayHandleExposed<FPType> ScalarDataArrayHandleExposed;
   typedef vtkmc::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandleExposed;
+  typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
 
   typedef vtkmc::ArrayHandle<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
   Vec3ArrayHandleExposed vertices;
@@ -103,7 +70,7 @@ void vtkXMLPyFRDataWriter::WriteData()
     Vec3ArrayHandle tmp = dataSet.GetCoordinateSystem().GetData()
       .CastToArrayHandle(Vec3ArrayHandle::ValueType(),
                          Vec3ArrayHandle::StorageTag());
-    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+    vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
       Copy(tmp,vertices);
     }
 
@@ -130,7 +97,7 @@ void vtkXMLPyFRDataWriter::WriteData()
       .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                          PyFRData::ScalarDataArrayHandle::StorageTag());
     ScalarDataArrayHandleExposed solutionArrayHost;
-    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+    vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
       Copy(solutionArray, solutionArrayHost);
 
     solutionData[i] = vtkSmartPointer<ArrayChoice<FPType>::type>::New();
@@ -171,7 +138,8 @@ void vtkXMLPyFRDataWriter::WriteData()
   // Write the file
   vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer =
     vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
-  writer->SetFileName(FileName.c_str());
+  std::stringstream s; s << FileName << ".vtu";
+  writer->SetFileName(s.str().c_str());
   writer->SetInputData(grid);
 
   if (this->IsBinary)
@@ -183,41 +151,77 @@ void vtkXMLPyFRDataWriter::WriteData()
 }
 
 //----------------------------------------------------------------------------
-int vtkXMLPyFRDataWriter::RequestData(
-  vtkInformation *,
-  vtkInformationVector **,
-  vtkInformationVector *)
+void PyFRDataWriter::operator ()(PyFRContourData* pyfrContourData) const
 {
-  this->SetErrorCode(vtkErrorCode::NoError);
+  PyFRContourData* contourData = const_cast<PyFRContourData*>(pyfrContourData);
 
-  vtkDataObject *input = this->GetInput();
-  int idx;
+  PyFRContourData::Vec3ArrayHandle& verts_out = contourData->Vertices;
 
-  // make sure input is available
-  if ( !input )
+  vtkSmartPointer<ArrayChoice<FPType>::type> pointData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
+
+  vtkIdType nVerts = verts_out.GetNumberOfValues();
+  FPType* vertsArray = reinterpret_cast<FPType*>(verts_out.Storage().StealArray());
+  pointData->SetArray(vertsArray, nVerts*3,
+                      0, // give VTK control of the data
+                      0);// delete using "free"
+  pointData->SetNumberOfComponents(3);
+
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  points->SetData(pointData);
+
+  PyFRContourData::Vec3ArrayHandle& normals_out = contourData->Normals;
+
+  vtkSmartPointer<ArrayChoice<FPType>::type> normalsData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
+
+  vtkIdType nNormals = normals_out.GetNumberOfValues();
+  FPType* normalsArray = reinterpret_cast<FPType*>(normals_out.Storage().StealArray());
+  normalsData->SetArray(normalsArray, nNormals*3,
+                        0, // give VTK control of the data
+                        0);// delete using "free"
+  normalsData->SetNumberOfComponents(3);
+
+  PyFRContourData::ScalarDataArrayHandle& scalars_out = contourData->Density;
+
+  vtkSmartPointer<ArrayChoice<FPType>::type> solutionData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
+  vtkIdType nSolution = scalars_out.GetNumberOfValues();
+  FPType* solutionArray = scalars_out.Storage().StealArray();
+  solutionData->SetArray(solutionArray, nSolution,
+                         0, // give VTK control of the data
+                         0);// delete using "free"
+  solutionData->SetNumberOfComponents(1);
+  solutionData->SetName("output");
+
+  vtkSmartPointer<vtkCellArray> polys =
+        vtkSmartPointer<vtkCellArray>::New();
+  vtkIdType indices[3];
+  for (vtkIdType i=0;i<points->GetNumberOfPoints();i+=3)
     {
-    vtkErrorMacro(<< "No input!");
-    return 0;
+    for (vtkIdType j=0;j<3;j++)
+      indices[j] = i+j;
+    polys->InsertNextCell(3,indices);
     }
 
-  for (idx = 0; idx < this->GetNumberOfInputPorts(); ++idx)
-    {
-    if (this->GetInputExecutive(idx, 0) != NULL)
-      {
-      this->GetInputExecutive(idx, 0)->Update();
-      }
-    }
+  // Create a polydata object and add the points to it.
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints(points);
+  polydata->SetPolys(polys);
+  polydata->GetPointData()->SetNormals(normalsData);
+  polydata->GetPointData()->AddArray(solutionData);
 
-  this->InvokeEvent(vtkCommand::StartEvent,NULL);
-  this->WriteData();
-  this->InvokeEvent(vtkCommand::EndEvent,NULL);
+  // Write the file
+  vtkSmartPointer<vtkXMLPolyDataWriter> writer =
+    vtkSmartPointer<vtkXMLPolyDataWriter>::New();
+  std::stringstream s; s << FileName << ".vtp";
+  writer->SetFileName(s.str().c_str());
+  writer->SetInputData(polydata);
 
-  return 1;
-}
-//----------------------------------------------------------------------------
+  if (this->IsBinary)
+    writer->SetDataModeToBinary();
+  else
+    writer->SetDataModeToAscii();
 
-void vtkXMLPyFRDataWriter::PrintSelf(ostream& os, vtkIndent indent)
-{
-  this->Superclass::PrintSelf(os, indent);
-  os << indent << "FileName: " << this->FileName << "\n";
+  writer->Write();
 }

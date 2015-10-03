@@ -20,7 +20,7 @@
 #include "vtkObjectFactory.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
 
-#include "PyFRContourData.h"
+#include "vtkPyFRContourData.h"
 
 vtkStandardNewMacro(vtkPyFRContourDataAlgorithm);
 
@@ -45,15 +45,15 @@ void vtkPyFRContourDataAlgorithm::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
-PyFRContourData* vtkPyFRContourDataAlgorithm::GetOutput()
+vtkPyFRContourData* vtkPyFRContourDataAlgorithm::GetOutput()
 {
   return this->GetOutput(0);
 }
 
 //----------------------------------------------------------------------------
-PyFRContourData* vtkPyFRContourDataAlgorithm::GetOutput(int port)
+vtkPyFRContourData* vtkPyFRContourDataAlgorithm::GetOutput(int port)
 {
-  return PyFRContourData::SafeDownCast(this->GetOutputDataObject(port));
+  return vtkPyFRContourData::SafeDownCast(this->GetOutputDataObject(port));
 }
 
 //----------------------------------------------------------------------------
@@ -104,7 +104,7 @@ int vtkPyFRContourDataAlgorithm::FillOutputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
   // now add our info
-  info->Set(vtkDataObject::DATA_TYPE_NAME(), "PyFRContourData");
+  info->Set(vtkDataObject::DATA_TYPE_NAME(), "vtkPyFRContourData");
   return 1;
 }
 
@@ -112,7 +112,7 @@ int vtkPyFRContourDataAlgorithm::FillOutputPortInformation(
 int vtkPyFRContourDataAlgorithm::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
-  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "PyFRContourData");
+  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRContourData");
   return 1;
 }
 
@@ -163,7 +163,7 @@ int vtkPyFRContourDataAlgorithm::RequestDataObject(
   vtkInformationVector* vtkNotUsed(outputVector))
 {
   // do nothing let subclasses handle it
-  PyFRContourData *newobj = PyFRContourData::New();
+  vtkPyFRContourData *newobj = vtkPyFRContourData::New();
   this->GetExecutive()->SetOutputData(0, newobj);
   newobj->Delete();
   return 1;

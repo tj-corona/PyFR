@@ -12,7 +12,7 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-// .NAME vtkPyFRAlgorithm - Superclass for algorithms that produce only PyFRData as output
+// .NAME vtkPyFRAlgorithm - Superclass for algorithms that produce only vtkPyFRData as output
 // .SECTION Description
 
 #ifndef vtkPyFRDataAlgorithm_h
@@ -22,12 +22,10 @@
 #include "vtkAlgorithm.h"
 #include "vtkTypeTemplate.h" // For templated vtkObject API
 
-#include "PyFRData.h"
-
 class vtkDataSet;
-class PyFRData;
+class vtkPyFRData;
 
-class VTKCOMMONEXECUTIONMODEL_EXPORT vtkPyFRDataAlgorithm : public vtkAlgorithm
+class VTK_EXPORT vtkPyFRDataAlgorithm : public vtkAlgorithm
 {
 public:
   static vtkPyFRDataAlgorithm *New();
@@ -42,8 +40,8 @@ public:
 
   // Description:
   // Get the output data object for a port on this algorithm.
-  PyFRData* GetOutput();
-  PyFRData* GetOutput(int);
+  vtkPyFRData* GetOutput();
+  vtkPyFRData* GetOutput(int);
   virtual void SetOutput(vtkDataObject* d);
 
   // this method is not recommended for use, but lots of old style filters
@@ -94,7 +92,7 @@ protected:
                                   vtkInformationVector**,
                                   vtkInformationVector*);
 
-  // Overridden to say that we take in and produce PyFRData objects
+  // Overridden to say that we take in and produce vtkPyFRData objects
   virtual int FillOutputPortInformation(int port, vtkInformation* info);
   virtual int FillInputPortInformation(int port, vtkInformation* info);
 
