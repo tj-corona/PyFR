@@ -1,6 +1,7 @@
 <ServerManagerConfiguration>
   <ProxyGroup name="filters">
-    <SourceProxy name="PyFRDataContourFilter" class="vtkPyFRDataContourFilter" label="ContourPyFRData">
+    <SourceProxy name="PyFRDataContourFilter"
+		 class="vtkPyFRDataContourFilter" label="Contour PyFR Data">
       <Documentation long_help="Generate isosurface from PyFR data."
                      short_help="Generate isosurface.">
 	The ContourPyFRData filter computes isosurfaces using PyFR data. The

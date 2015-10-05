@@ -1,7 +1,6 @@
 include_directories(${PROJECT_SOURCE_DIR}/Source/PyFR)
 
 set(vtkPyFR_SRCS
-  vtkPyFRAdaptor.cxx
   vtkPyFRContourData.cxx
   vtkPyFRContourDataAlgorithm.cxx
   vtkPyFRData.cxx
@@ -11,6 +10,10 @@ set(vtkPyFR_SRCS
   vtkXMLPyFRContourDataWriter.cxx
   vtkXMLPyFRDataWriter.cxx
   )
+
+set (vtkPyFR_catalyst_SRCS
+  vtkPyFRAdaptor.cxx
+  ${vtkPyFR_SRCS})
 
 set( vtkPyFRLibs )
 set( CMAKE_CXX_FLAGS_ORIGINAL  "${CMAKE_CXX_FLAGS}" )
@@ -24,7 +27,7 @@ foreach (fpType IN LISTS fpList)
   target_link_libraries(${pluginLib} PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${pyfrLib} ${CUDA_LIBRARIES})
   list( APPEND vtkPyFRLibs ${pluginLib} )
 
-  add_library(${catalystLib} SHARED ${vtkPyFR_SRCS})
+  add_library(${catalystLib} SHARED ${vtkPyFR_catalyst_SRCS})
   target_link_libraries(${catalystLib} PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${VTK_LIBRARIES} ${pyfrLib} ${CUDA_LIBRARIES})
   list( APPEND vtkPyFRLibs ${catalystLib} )
 endforeach()

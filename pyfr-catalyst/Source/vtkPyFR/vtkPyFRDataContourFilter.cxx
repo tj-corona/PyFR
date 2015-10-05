@@ -4,6 +4,7 @@
 #include <vtkDataObjectTypes.h>
 #include <vtkInformation.h>
 #include <vtkInformationVector.h>
+#include <vtkInstantiator.h>
 #include <vtkObjectFactory.h>
 
 #include "PyFRDataContourFilter.h"
@@ -11,6 +12,21 @@
 #include "vtkPyFRData.h"
 #include "vtkPyFRContourData.h"
 
+//----------------------------------------------------------------------------
+int vtkPyFRDataContourFilter::RegisterPyFRDataTypes()
+{
+  vtkInstantiator::RegisterInstantiator("vtkPyFRData",
+                                        &New_vtkPyFRData);
+  vtkInstantiator::RegisterInstantiator("vtkPyFRContourData",
+                                        &New_vtkPyFRContourData);
+
+  return 1;
+}
+
+int vtkPyFRDataContourFilter::PyFRDataTypesRegistered =
+  vtkPyFRDataContourFilter::RegisterPyFRDataTypes();
+
+//----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkPyFRDataContourFilter);
 
 //----------------------------------------------------------------------------

@@ -5,7 +5,6 @@
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
-#include <vtkInstantiator.h>
 #include <vtkNew.h>
 
 #include "PyFRData.h"
@@ -21,11 +20,6 @@ namespace
 
 void* CatalystInitialize(char* outputfile, void* p)
 {
-  vtkInstantiator::RegisterInstantiator("vtkPyFRData",
-                                        &New_vtkPyFRData);
-  vtkInstantiator::RegisterInstantiator("vtkPyFRContourData",
-                                        &New_vtkPyFRContourData);
-
   vtkPyFRData* data = vtkPyFRData::New();
   data->GetData()->Init(p);
 

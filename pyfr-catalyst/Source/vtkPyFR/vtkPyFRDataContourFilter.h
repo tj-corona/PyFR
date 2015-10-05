@@ -31,6 +31,9 @@ protected:
   int ContourField;
 
 private:
+  static int PyFRDataTypesRegistered;
+  static int RegisterPyFRDataTypes();
+
   vtkPyFRDataContourFilter(const vtkPyFRDataContourFilter&);
   void operator=(const vtkPyFRDataContourFilter&);
 };
