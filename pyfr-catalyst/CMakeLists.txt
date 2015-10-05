@@ -30,41 +30,8 @@ vtkm_configure_device(Cuda REQUIRED)
 find_package(BoostHeaders ${VTKm_REQUIRED_BOOST_VERSION} REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
-set(Adaptor_CUDA_SRCS
-  PyFRContourData.cu
-  PyFRData.cu
-  PyFRDataContourFilter.cu
-  PyFRDataWriter.cu
-)
+set(fpList "float;double" CACHE INTERNAL "fpList")
+set(libSuffix_float fp32 CACHE INTERNAL "float suffix")
+set(libSuffix_double fp64 CACHE INTERNAL "double suffix")
 
-set(Adaptor_SRCS
-  vtkPyFRAdaptor.cxx
-  vtkPyFRContourData.cxx
-  vtkPyFRContourDataAlgorithm.cxx
-  vtkPyFRData.cxx
-  vtkPyFRDataAlgorithm.cxx
-  vtkPyFRDataContourFilter.cxx
-  vtkPyFRPipeline.cxx
-  vtkXMLPyFRContourDataWriter.cxx
-  vtkXMLPyFRDataWriter.cxx
-  )
-
-set( CMAKE_CXX_FLAGS_ORIGINAL  "${CMAKE_CXX_FLAGS}" )
-
-set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_ORIGINAL} -DFPType=float" )
-
-cuda_add_library(pyfr_fp32 SHARED ${Adaptor_CUDA_SRCS})
-add_paraview_plugin(pyfr_plugin_fp32 "1.0" SERVER_MANAGER_XML PyFR.xml SERVER_MANAGER_SOURCES ${Adaptor_SRCS})
-add_library(pyfr_catalyst_fp32 SHARED ${Adaptor_SRCS})
-target_link_libraries(pyfr_plugin_fp32 PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore pyfr_fp32 ${CUDA_LIBRARIES})
-target_link_libraries(pyfr_catalyst_fp32 PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${VTK_LIBRARIES} pyfr_fp32 ${CUDA_LIBRARIES})
-
-SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_ORIGINAL} -DFPType=double" )
-
-cuda_add_library(pyfr_fp64 SHARED ${Adaptor_CUDA_SRCS})
-add_paraview_plugin(pyfr_plugin_fp64 "1.0" SERVER_MANAGER_XML PyFR.xml SERVER_MANAGER_SOURCES ${Adaptor_SRCS})
-add_library(pyfr_catalyst_fp64 SHARED ${Adaptor_SRCS})
-target_link_libraries(pyfr_plugin_fp64 PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore pyfr_fp64 ${CUDA_LIBRARIES})
-target_link_libraries(pyfr_catalyst_fp64 PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${VTK_LIBRARIES} pyfr_fp64 ${CUDA_LIBRARIES})
-
-install(TARGETS pyfr_fp32 pyfr_plugin_fp32 pyfr_catalyst_fp32 pyfr_fp64 pyfr_plugin_fp64 pyfr_catalyst_fp64 DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+add_subdirectory(Source)

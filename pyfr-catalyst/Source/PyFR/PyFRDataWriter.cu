@@ -37,10 +37,24 @@
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
 #include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
-#include "ArrayChoice.h"
 #include "ArrayHandleExposed.h"
 #include "PyFRData.h"
 #include "PyFRContourData.h"
+
+template <typename fptype>
+struct ArrayChoice;
+
+template <>
+struct ArrayChoice<float>
+{
+  typedef vtkFloatArray type;
+};
+
+template <>
+struct ArrayChoice<double>
+{
+  typedef vtkDoubleArray type;
+};
 
 //----------------------------------------------------------------------------
 PyFRDataWriter::PyFRDataWriter() : IsBinary(true),
