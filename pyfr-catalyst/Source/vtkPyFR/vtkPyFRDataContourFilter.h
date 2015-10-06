@@ -19,7 +19,7 @@ public:
 
   int FillInputPortInformation(int,vtkInformation*);
 
-  void SetContourValue(FPType value) { this->ContourValue = value; }
+  void SetContourValue(double value) { this->ContourValue = value; }
 
   void SetContourField(int i) { this->ContourField = i; }
 

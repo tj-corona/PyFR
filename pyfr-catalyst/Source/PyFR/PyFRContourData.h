@@ -1,6 +1,8 @@
 #ifndef PYFRCONTOURDATA_H
 #define PYFRCONTOURDATA_H
 
+#include <string>
+
 #include <vtkDataObject.h>
 
 //State that the default backend for this code is CUDA
@@ -25,10 +27,13 @@ public:
   Vec3ArrayHandle Vertices;
   Vec3ArrayHandle Normals;
   ScalarDataArrayHandle Density;
+  ScalarDataArrayHandle Pressure;
   ScalarDataArrayHandle Velocity_u;
   ScalarDataArrayHandle Velocity_v;
   ScalarDataArrayHandle Velocity_w;
-  ScalarDataArrayHandle Pressure;
+
+  ScalarDataArrayHandle& GetScalarData(int);
+  ScalarDataArrayHandle& GetScalarData(std::string);
 };
 
 #endif

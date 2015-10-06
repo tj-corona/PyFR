@@ -27,6 +27,6 @@ private:
   vtkPyFRPipeline(const vtkPyFRPipeline&); // Not implemented
   void operator=(const vtkPyFRPipeline&); // Not implemented
 
-  std::string fileName;
+  std::string FileName;
 };
 #endif

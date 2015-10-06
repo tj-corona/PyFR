@@ -8,7 +8,8 @@
 
 //----------------------------------------------------------------------------
 PyFRDataContourFilter::PyFRDataContourFilter() : ContourValue(0.),
-                                                 ContourField("density")
+                                                 ContourField("density"),
+                                                 ProjectedField("pressure")
 {
 }
 
@@ -29,25 +30,31 @@ void PyFRDataContourFilter::operator()(PyFRData* input,
 
   PyFRContourData::Vec3ArrayHandle& verts_out = output->Vertices;
   PyFRContourData::Vec3ArrayHandle& normals_out = output->Normals;
-  PyFRContourData::ScalarDataArrayHandle& scalars_out = output->Density;
 
-  vtkm::cont::Field scalars = dataSet.GetField(this->ContourField);
-  PyFRData::ScalarDataArrayHandle scalarsArray = scalars.GetData()
+  vtkm::cont::Field contourField = dataSet.GetField(this->ContourField);
+  PyFRData::ScalarDataArrayHandle contourArray = contourField.GetData()
     .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                        PyFRData::ScalarDataArrayHandle::StorageTag());
 
   IsosurfaceFilter* isosurfaceFilter = new IsosurfaceFilter(dataSet);
 
   isosurfaceFilter->Run(this->ContourValue,
-                        scalarsArray,
+                        contourArray,
                         verts_out,
                         normals_out);
 
-  isosurfaceFilter->MapFieldOntoIsosurface(scalarsArray,
+  PyFRContourData::ScalarDataArrayHandle& scalars_out =
+    output->GetScalarData(this->ProjectedField);
+  vtkm::cont::Field projectedField = dataSet.GetField(this->ProjectedField);
+  PyFRData::ScalarDataArrayHandle projectedArray = projectedField.GetData()
+    .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
+                       PyFRData::ScalarDataArrayHandle::StorageTag());
+
+  isosurfaceFilter->MapFieldOntoIsosurface(projectedArray,
                                            scalars_out);
 }
-//----------------------------------------------------------------------------
 
+//----------------------------------------------------------------------------
 void PyFRDataContourFilter::SetContourField(int i)
 {
   switch (i)

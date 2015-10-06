@@ -30,8 +30,16 @@ public:
   void SetContourFieldToVelocity_v() { this->ContourField = "velocity_v"; }
   void SetContourFieldToVelocity_w() { this->ContourField = "velocity_w"; }
 
+  void ProjectFieldOntoContour(int i);
+  void ProjectDensityOntoContour()    { this->ProjectedField = "density"; }
+  void ProjectPressureOntoContour()   { this->ProjectedField = "pressure"; }
+  void ProjectVelocity_uOntoContour() { this->ProjectedField = "velocity_u"; }
+  void ProjectVelocity_vOntoContour() { this->ProjectedField = "velocity_v"; }
+  void ProjectVelocity_wOntoContour() { this->ProjectedField = "velocity_w"; }
+
 protected:
   FPType ContourValue;
   std::string ContourField;
+  std::string ProjectedField;
 };
 #endif

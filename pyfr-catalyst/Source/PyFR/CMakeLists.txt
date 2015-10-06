@@ -2,6 +2,7 @@ set(PyFR_SRCS
   PyFRContourData.cu
   PyFRData.cu
   PyFRDataContourFilter.cu
+  PyFRDataConverter.cu
   PyFRDataWriter.cu
 )
 

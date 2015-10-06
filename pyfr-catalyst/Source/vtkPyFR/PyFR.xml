@@ -19,16 +19,6 @@
           <DataType value="PyFRData"/>
         </DataTypeDomain>
       </InputProperty>
-      <DoubleVectorProperty animateable="1"
-                            command="SetContourValue"
-                            label="Isosurface"
-                            name="ContourValue"
-                            number_of_elements="1"
-			    default_values="1">
-        <Documentation>
-	  This property specifies the value at which to compute an isosurface.
-	</Documentation>
-      </DoubleVectorProperty>
       <IntVectorProperty
           name="ContourField"
           command="SetContourField"
@@ -46,6 +36,56 @@
 	  the isosurface.
         </Documentation>
       </IntVectorProperty>
+      <DoubleVectorProperty
+	  name = "ContourValue"
+	  command="SetContourValue"
+          number_of_elements="1"
+	  default_values="1">
+        <Documentation>
+	  This property specifies the value at which to compute an isosurface.
+	</Documentation>
+      </DoubleVectorProperty>
+    </SourceProxy>
+    <!-- ==================================================================== -->
+    <SourceProxy name="PyFRDataConverter"
+		 class="vtkPyFRDataConverter" label="Convert PyFR Data">
+      <Documentation long_help="Convert PyFR data to vtkUnstructuredGrid."
+                     short_help="Convert PyFR data.">
+	The ConvertPyFRData filter converts PyFR data into an
+	unstructured grid.
+      </Documentation>
+      <InputProperty
+          name="Input"
+          command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="PyFRData"/>
+        </DataTypeDomain>
+      </InputProperty>
+    </SourceProxy>
+    <!-- ==================================================================== -->
+    <SourceProxy name="PyFRContourDataConverter"
+		 class="vtkPyFRContourDataConverter"
+		 label="Convert PyFR Contour Data">
+      <Documentation long_help="Convert PyFR data to vtkPolyData."
+                     short_help="Convert PyFR data.">
+	The ConvertPyFRContourData filter converts PyFR contour data
+	into polydata.
+      </Documentation>
+      <InputProperty
+          name="Input"
+          command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="PyFRContourData"/>
+        </DataTypeDomain>
+      </InputProperty>
     </SourceProxy>
   </ProxyGroup>
 </ServerManagerConfiguration>
