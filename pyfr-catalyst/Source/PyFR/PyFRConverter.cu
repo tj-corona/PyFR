@@ -151,11 +151,11 @@ void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyDa
 
   typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
 
-  // if (pyfrContourData->GetVertices().GetNumberOfValues() == 0)
-  //   {
-  //   polydata->Reset();
-  //   return;
-  //   }
+  if (pyfrContourData->GetVertices().GetNumberOfValues() == 0)
+    {
+//    polydata->Reset();
+    return;
+    }
 
   PyFRContourData::Vec3ArrayHandle verts_out;
   vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
