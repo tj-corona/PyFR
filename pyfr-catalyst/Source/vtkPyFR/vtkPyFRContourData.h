@@ -15,6 +15,8 @@ public:
   void SetData(PyFRContourData* d) { data = d; }
   PyFRContourData* GetData() const { return data; }
 
+  void ReleaseResources();
+
 protected:
   vtkPyFRContourData();
   virtual ~vtkPyFRContourData();

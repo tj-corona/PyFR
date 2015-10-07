@@ -1,7 +1,6 @@
 #include "PyFRContourData.h"
 
-#include <vtkDataObjectTypes.h>
-#include <vtkObjectFactory.h>
+#include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
 PyFRContourData::PyFRContourData()
 {
@@ -13,7 +12,7 @@ PyFRContourData::~PyFRContourData()
 }
 
 //----------------------------------------------------------------------------
-PyFRContourData::ScalarDataArrayHandle& PyFRContourData::GetScalarData(int i)
+PyFRContourData::ScalarDataArrayHandle PyFRContourData::GetScalarData(int i) const
 {
   switch (i)
     {
@@ -33,7 +32,7 @@ PyFRContourData::ScalarDataArrayHandle& PyFRContourData::GetScalarData(int i)
 }
 
 //----------------------------------------------------------------------------
-PyFRContourData::ScalarDataArrayHandle& PyFRContourData::GetScalarData(std::string s)
+PyFRContourData::ScalarDataArrayHandle PyFRContourData::GetScalarData(std::string s) const
 {
   if (s == "density") return this->Density;
   if (s == "pressure") return this->Pressure;

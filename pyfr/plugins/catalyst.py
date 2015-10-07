@@ -49,6 +49,9 @@ class CatalystPlugin(BasePlugin):
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
         outputfile = self.cfg.get(self.cfgsect, 'outputfile')
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
+        hostname = self.cfg.get(self.cfgsect, 'hostname')
+        c_hostname = create_string_buffer(bytes(hostname, encoding='utf_8'))
+        port = self.cfg.getint(self.cfgsect, 'port');
         prec = self.cfg.get('backend', 'precision', 'double')
         if prec  == 'double':
             self.catalyst = load_library('pyfr_catalyst_fp64')
@@ -106,7 +109,9 @@ class CatalystPlugin(BasePlugin):
         self._interpolate_upts = proxylist(kerns)
 
         # Finally, initialize Catalyst
-        self._data = self.catalyst.CatalystInitialize(c_outputfile,
+        self._data = self.catalyst.CatalystInitialize(c_hostname,
+                                                      port,
+                                                      c_outputfile,
                                                       self._catalystData)
 
     def _prepare_vtu(self, etype, part):
@@ -181,6 +186,18 @@ class CatalystPlugin(BasePlugin):
         return meshDataForCellType, soln_vtu_op
 
     def __call__(self, intg):
+        if np.isclose(intg.tcurr,intg.tend):
+
+            # Configure the input bank
+            self.eles_scal_upts_inb.active = intg._idxcurr
+
+            # Interpolate to the vis points
+            self._queue % self._interpolate_upts()
+
+            self.catalyst.CatalystCoProcess(c_double(intg.tcurr),intg.nacptsteps,self._data,c_bool(True))
+            self.catalyst.CatalystFinalize(self._data)
+            return
+
         if intg.nacptsteps % self.nsteps:
             return
 
@@ -191,6 +208,3 @@ class CatalystPlugin(BasePlugin):
         self._queue % self._interpolate_upts()
 
         self.catalyst.CatalystCoProcess(c_double(intg.tcurr),intg.nacptsteps,self._data)
-
-    def __exit__(self, *args):
-        self.catalyst.CatalystFinalize(self._data)

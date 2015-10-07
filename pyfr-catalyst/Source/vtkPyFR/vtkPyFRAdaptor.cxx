@@ -18,7 +18,8 @@ namespace
   vtkCPProcessor* Processor = NULL;
 }
 
-void* CatalystInitialize(char* outputfile, void* p)
+//----------------------------------------------------------------------------
+void* CatalystInitialize(char* hostName, int port, char* outputfile, void* p)
 {
   vtkPyFRData* data = vtkPyFRData::New();
   data->GetData()->Init(p);
@@ -28,16 +29,27 @@ void* CatalystInitialize(char* outputfile, void* p)
     Processor = vtkCPProcessor::New();
     Processor->Initialize();
     }
+  vtkNew<vtkCPDataDescription> dataDescription;
+  dataDescription->AddInput("input");
+  dataDescription->SetTimeData(0, 0);
+  dataDescription->GetInputDescriptionByName("input")->SetGrid(data);
+
   vtkNew<vtkPyFRPipeline> pipeline;
-  pipeline->Initialize(outputfile);
+  pipeline->Initialize(hostName,port,outputfile,dataDescription.GetPointer());
   Processor->AddPipeline(pipeline.GetPointer());
 
   return data;
 }
 
+//----------------------------------------------------------------------------
 void CatalystFinalize(void* p)
 {
   vtkPyFRData* data = static_cast<vtkPyFRData*>(p);
+  vtkPyFRPipeline* pipeline =
+    vtkPyFRPipeline::SafeDownCast(Processor->GetPipeline(0));
+  vtkPyFRContourData* contourData = pipeline->GetOutputData();
+  contourData->ReleaseResources();
+
   if(Processor)
     {
     Processor->Delete();
@@ -49,19 +61,20 @@ void CatalystFinalize(void* p)
     }
 }
 
-void CatalystCoProcess(double time,unsigned int timeStep, void* p)
+//----------------------------------------------------------------------------
+void CatalystCoProcess(double time,unsigned int timeStep, void* p,bool lastTimeStep)
 {
   vtkPyFRData* data = static_cast<vtkPyFRData*>(p);
   data->GetData()->Update();
   vtkNew<vtkCPDataDescription> dataDescription;
   dataDescription->AddInput("input");
   dataDescription->SetTimeData(time, timeStep);
-  // if(lastTimeStep == true)
-  //   {
-  //   // assume that we want to all the pipelines to execute if it
-  //   // is the last time step.
-  //   dataDescription->ForceOutputOn();
-  //   }
+  if(lastTimeStep == true)
+    {
+    // assume that we want to all the pipelines to execute if it
+    // is the last time step.
+    dataDescription->ForceOutputOn();
+    }
   if(Processor->RequestDataDescription(dataDescription.GetPointer()) != 0)
     {
     dataDescription->GetInputDescriptionByName("input")->SetGrid(data);

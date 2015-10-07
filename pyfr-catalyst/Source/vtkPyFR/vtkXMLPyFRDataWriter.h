@@ -20,10 +20,7 @@ public:
   void SetDataModeToAscii() { IsBinary = false; }
   void SetDataModeToBinary() { IsBinary = true; }
 
-  int RequestData(
-    vtkInformation *,
-    vtkInformationVector **,
-    vtkInformationVector *);
+  int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
 
   int Write();
 

@@ -8,7 +8,7 @@
 #include <vtkObjectFactory.h>
 #include <vtkPolyData.h>
 
-#include "PyFRDataConverter.h"
+#include "PyFRConverter.h"
 
 #include "vtkPyFRContourData.h"
 
@@ -81,7 +81,7 @@ int vtkPyFRContourDataConverter::RequestData(
   vtkPolyData *output = vtkPolyData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  PyFRDataConverter convert;
+  PyFRConverter convert;
   convert(input->GetData(),output);
 
   return 1;

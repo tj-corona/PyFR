@@ -2,8 +2,11 @@
 
 #include <sstream>
 
+#include <vtkCollection.h>
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
+#include <vtkLiveInsituLink.h>
+#include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPVTrivialProducer.h>
 #include <vtkSmartPointer.h>
@@ -11,17 +14,19 @@
 #include <vtkSMDoubleVectorProperty.h>
 #include <vtkSMInputProperty.h>
 #include <vtkSMOutputPort.h>
+#include <vtkSMParaViewPipelineController.h>
 #include <vtkSMPluginManager.h>
 #include <vtkSMProxyManager.h>
 #include <vtkSMSourceProxy.h>
 #include <vtkSMSessionProxyManager.h>
 #include <vtkSMStringVectorProperty.h>
+#include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
 
 #include "vtkPyFRData.h"
 #include "vtkPyFRContourData.h"
 #include "vtkPyFRContourDataConverter.h"
-#include "vtkPyFRDataContourFilter.h"
+#include "vtkPyFRContourFilter.h"
 #include "vtkXMLPyFRDataWriter.h"
 #include "vtkXMLPyFRContourDataWriter.h"
 
@@ -31,22 +36,197 @@
 vtkStandardNewMacro(vtkPyFRPipeline);
 
 //----------------------------------------------------------------------------
-vtkPyFRPipeline::vtkPyFRPipeline()
+vtkPyFRPipeline::vtkPyFRPipeline() : InsituLink(NULL)
 {
 }
 
 //----------------------------------------------------------------------------
 vtkPyFRPipeline::~vtkPyFRPipeline()
 {
+  if (this->InsituLink)
+    this->InsituLink->Delete();
 }
 
 //----------------------------------------------------------------------------
-void vtkPyFRPipeline::Initialize(char* fileName)
+void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
+                                 vtkCPDataDescription* dataDescription)
 {
   this->FileName = std::string(fileName);
 
-  vtkSMProxyManager::GetProxyManager()->GetPluginManager()->
-    LoadLocalPlugin(TOSTRING(PyFRPlugin));
+  vtkSMProxyManager* proxyManager = vtkSMProxyManager::GetProxyManager();
+
+  // Load PyFR plugin
+  proxyManager->GetPluginManager()->LoadLocalPlugin(TOSTRING(PyFRPlugin));
+
+  // Grab the active session proxy manager
+  vtkSMSessionProxyManager* sessionProxyManager =
+    proxyManager->GetActiveSessionProxyManager();
+
+  // Create the vtkLiveInsituLink (the "link" to the visualization processes).
+  this->InsituLink = vtkLiveInsituLink::New();
+
+  // Tell vtkLiveInsituLink what host/port must it connect to for the
+  // visualization process.
+  this->InsituLink->SetHostname(hostName);
+  this->InsituLink->SetInsituPort(port);
+
+  // Initialize the "link"
+  this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->
+                                     GetActiveSessionProxyManager());
+
+  // Grab the data object from the data description
+  vtkPyFRData* pyfrData =
+    vtkPyFRData::SafeDownCast(dataDescription->
+                              GetInputDescriptionByName("input")->GetGrid());
+
+  bool preFilterWrite = false;
+  bool postFilterWrite = false;
+
+  // Construct a pipeline controller to register my elements
+  vtkNew<vtkSMParaViewPipelineController> controller;
+
+  // Create a vtkPVTrivialProducer and set its output
+  // to be the input data.
+  vtkSmartPointer<vtkSMSourceProxy> producer;
+  producer.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(
+      sessionProxyManager->NewProxy("sources", "PVTrivialProducer")));
+  producer->UpdateVTKObjects();
+  vtkObjectBase* clientSideObject = producer->GetClientSideObject();
+  vtkPVTrivialProducer* realProducer =
+    vtkPVTrivialProducer::SafeDownCast(clientSideObject);
+  realProducer->SetOutput(pyfrData);
+  controller->InitializeProxy(producer);
+  controller->RegisterPipelineProxy(producer,"Source");
+
+  if (preFilterWrite)
+    {
+    // Create a convertor to convert the pyfr data into a vtkUnstructuredGrid
+    vtkSmartPointer<vtkSMSourceProxy> pyfrDataConverter;
+    pyfrDataConverter.TakeReference(
+      vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                     NewProxy("filters", "PyFRDataConverter")));
+    vtkSMInputProperty* pyfrDataConverterInputConnection =
+      vtkSMInputProperty::SafeDownCast(pyfrDataConverter->GetProperty("Input"));
+
+    producer->UpdateVTKObjects();
+    pyfrDataConverterInputConnection->SetInputConnection(0, producer, 0);
+    pyfrDataConverter->UpdatePropertyInformation();
+    pyfrDataConverter->UpdateVTKObjects();
+    controller->InitializeProxy(pyfrDataConverter);
+    controller->RegisterPipelineProxy(pyfrDataConverter,"convertPyFRData");
+
+    // Create an unstructured grid writer, set the filename and then update the
+    // pipeline.
+    vtkSmartPointer<vtkSMWriterProxy> unstructuredGridWriter;
+    unstructuredGridWriter.TakeReference(
+      vtkSMWriterProxy::SafeDownCast(sessionProxyManager->
+                                     NewProxy("writers",
+                                              "XMLUnstructuredGridWriter")));
+    vtkSMInputProperty* unstructuredGridWriterInputConnection =
+      vtkSMInputProperty::SafeDownCast(unstructuredGridWriter->
+                                       GetProperty("Input"));
+    unstructuredGridWriterInputConnection->SetInputConnection(0,
+                                                              pyfrDataConverter,
+                                                              0);
+    vtkSMStringVectorProperty* unstructuredGridFileName =
+      vtkSMStringVectorProperty::SafeDownCast(unstructuredGridWriter->
+                                              GetProperty("FileName"));
+
+      {
+      std::ostringstream o;
+      o << this->FileName.substr(0,this->FileName.find_last_of("."));
+      o << "_" <<std::fixed << std::setprecision(3)<<dataDescription->GetTime();
+      o << ".vtu";
+      unstructuredGridFileName->SetElement(0, o.str().c_str());
+      }
+
+    unstructuredGridWriter->UpdatePropertyInformation();
+    unstructuredGridWriter->UpdateVTKObjects();
+    unstructuredGridWriter->UpdatePipeline();
+    controller->InitializeProxy(unstructuredGridWriter);
+    controller->RegisterPipelineProxy(unstructuredGridWriter,
+                                      "UnstructuredGridWriter");
+    }
+
+  // Add the contour filter
+  vtkSmartPointer<vtkSMSourceProxy> contour;
+  contour.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("filters",
+                                            "PyFRContourFilter")));
+  vtkSMInputProperty* contourInputConnection =
+    vtkSMInputProperty::SafeDownCast(contour->GetProperty("Input"));
+
+  vtkSMIntVectorProperty* contourField =
+    vtkSMIntVectorProperty::SafeDownCast(contour->GetProperty("ContourField"));
+  contourField->SetElements1(0);
+
+  vtkSMDoubleVectorProperty* contourValue =
+    vtkSMDoubleVectorProperty::SafeDownCast(contour->
+                                            GetProperty("ContourValue"));
+  contourValue->SetElements1(1.0045);
+
+  contour->UpdateVTKObjects();
+  contourInputConnection->SetInputConnection(0, producer, 0);
+  contour->UpdatePropertyInformation();
+  contour->UpdateVTKObjects();
+  controller->InitializeProxy(contour);
+  controller->RegisterPipelineProxy(contour,"Contour");
+
+  vtkObjectBase* clientSideContourBase = contour->GetClientSideObject();
+  vtkPyFRContourFilter* realContour =
+    vtkPyFRContourFilter::SafeDownCast(clientSideContourBase);
+  this->OutputData = vtkPyFRContourData::SafeDownCast(realContour->GetOutput());
+
+  // Create a convertor to convert the pyfr contour data into polydata
+  vtkSmartPointer<vtkSMSourceProxy> pyfrContourDataConverter;
+  pyfrContourDataConverter.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("filters",
+                                            "PyFRContourDataConverter")));
+  vtkSMInputProperty* pyfrContourDataConverterInputConnection =
+    vtkSMInputProperty::SafeDownCast(pyfrContourDataConverter->
+                                     GetProperty("Input"));
+
+  producer->UpdateVTKObjects();
+  pyfrContourDataConverterInputConnection->SetInputConnection(0, contour, 0);
+  pyfrContourDataConverter->UpdatePropertyInformation();
+  pyfrContourDataConverter->UpdateVTKObjects();
+  controller->InitializeProxy(pyfrContourDataConverter);
+  controller->RegisterPipelineProxy(pyfrContourDataConverter,
+                                    "ConvertToPolyData");
+
+  if (postFilterWrite)
+    {
+    // Create the polydata writer, set the filename and then update the pipeline
+    vtkSmartPointer<vtkSMWriterProxy> polydataWriter;
+    polydataWriter.TakeReference(
+      vtkSMWriterProxy::SafeDownCast(sessionProxyManager->
+                                     NewProxy("writers", "XMLPolyDataWriter")));
+    vtkSMInputProperty* polydataWriterInputConnection =
+      vtkSMInputProperty::SafeDownCast(polydataWriter->GetProperty("Input"));
+    polydataWriterInputConnection->SetInputConnection(0,
+                                                      pyfrContourDataConverter,
+                                                      0);
+    vtkSMStringVectorProperty* polydataFileName =
+      vtkSMStringVectorProperty::SafeDownCast(polydataWriter->
+                                              GetProperty("FileName"));
+
+      {
+      std::ostringstream o;
+      o << this->FileName.substr(0,this->FileName.find_last_of("."));
+      o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
+      o << ".vtp";
+      polydataFileName->SetElement(0, o.str().c_str());
+      }
+
+    polydataWriter->UpdatePropertyInformation();
+    polydataWriter->UpdateVTKObjects();
+    polydataWriter->UpdatePipeline();
+    controller->InitializeProxy(polydataWriter);
+    controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
+    }
 }
 
 //----------------------------------------------------------------------------
@@ -73,164 +253,49 @@ int vtkPyFRPipeline::RequestDataDescription(
 //----------------------------------------------------------------------------
 int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 {
-  if(!dataDescription)
-    {
-    vtkWarningMacro("DataDescription is NULL");
-    return 0;
-    }
+  vtkSMSessionProxyManager* sessionProxyManager =
+    vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager();
+
+  // Grab the data object from the data description
   vtkPyFRData* pyfrData =
     vtkPyFRData::SafeDownCast(dataDescription->
                               GetInputDescriptionByName("input")->GetGrid());
-  if(pyfrData == NULL)
-    {
-    vtkWarningMacro("DataDescription is missing input PyFR data.");
-    return 0;
-    }
-  if(this->RequestDataDescription(dataDescription) == 0)
-    {
-    return 1;
-    }
 
-  vtkSMProxyManager* proxyManager = vtkSMProxyManager::GetProxyManager();
-  vtkSMSessionProxyManager* sessionProxyManager =
-    proxyManager->GetActiveSessionProxyManager();
-
-  // Create a vtkPVTrivialProducer and set its output
-  // to be the input data.
-  vtkSmartPointer<vtkSMSourceProxy> producer;
-  producer.TakeReference(
-    vtkSMSourceProxy::SafeDownCast(
-      sessionProxyManager->NewProxy("sources", "PVTrivialProducer")));
-  producer->UpdateVTKObjects();
-  vtkObjectBase* clientSideObject = producer->GetClientSideObject();
+  // Use it to update the source
+  vtkSMSourceProxy* source =
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->GetProxy("Source"));
+  vtkObjectBase* clientSideObject = source->GetClientSideObject();
   vtkPVTrivialProducer* realProducer =
     vtkPVTrivialProducer::SafeDownCast(clientSideObject);
-  realProducer->SetOutput(pyfrData);
+  realProducer->SetOutput(pyfrData,dataDescription->GetTime());
 
-  // {
-  // Create a convertor to convert the pyfr data into a vtkUnstructuredGrid
-  // vtkSmartPointer<vtkSMSourceProxy> converter;
-  // converter.TakeReference(
-  //   vtkSMSourceProxy::SafeDownCast(sessionProxyManager->NewProxy("filters", "PyFRDataConverter")));
-  // vtkSMInputProperty* converterInputConnection =
-  //   vtkSMInputProperty::SafeDownCast(converter->GetProperty("Input"));
+  // stay in the loop while the simulation is paused
+  while (true)
+    {
+    this->InsituLink->InsituUpdate(dataDescription->GetTime(),
+                                   dataDescription->GetTimeStep());
 
-  // producer->UpdateVTKObjects();
-  // converterInputConnection->SetInputConnection(0, producer, 0);
-  // converter->UpdatePropertyInformation();
-  // converter->UpdateVTKObjects();
+    vtkNew<vtkCollection> sources;
+    sessionProxyManager->GetProxies("sources",sources.GetPointer());
+    for (int i=0;i<sources->GetNumberOfItems();i++)
+      vtkSMSourceProxy::SafeDownCast(sources->GetItemAsObject(i))->
+        UpdatePipeline(dataDescription->GetTime());
 
-  // // // Create an unstructured grid writer, set the filename and then update the
-  // // pipeline.
-  // vtkSmartPointer<vtkSMWriterProxy> writer;
-  // writer.TakeReference(
-  //   vtkSMWriterProxy::SafeDownCast(sessionProxyManager->NewProxy("writers", "XMLUnstructuredGridWriter")));
-  // vtkSMInputProperty* writerInputConnection =
-  //   vtkSMInputProperty::SafeDownCast(writer->GetProperty("Input"));
-  // writerInputConnection->SetInputConnection(0, converter, 0);
-  // vtkSMStringVectorProperty* fileName =
-  //   vtkSMStringVectorProperty::SafeDownCast(writer->GetProperty("FileName"));
+    this->InsituLink->InsituPostProcess(dataDescription->GetTime(),
+                                        dataDescription->GetTimeStep());
+    if (this->InsituLink->GetSimulationPaused())
+      {
+      if (this->InsituLink->WaitForLiveChange())
+        {
+        break;
+        }
+      }
+    else
+      {
+      break;
+      }
+    }
 
-  // std::ostringstream o;
-  // o << this->FileName.substr(0,this->FileName.find_last_of("."));
-  // o << "_" << std::fixed << std::setprecision(3) << dataDescription->GetTime();
-  // o << ".vtu";
-
-  // fileName->SetElement(0, o.str().c_str());
-  // writer->UpdatePropertyInformation();
-  // writer->UpdateVTKObjects();
-  // writer->UpdatePipeline();
-  // }
-
-  vtkSmartPointer<vtkSMSourceProxy> contour;
-  contour.TakeReference(
-    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->NewProxy("filters", "PyFRDataContourFilter")));
-  vtkSMInputProperty* contourInputConnection =
-    vtkSMInputProperty::SafeDownCast(contour->GetProperty("Input"));
-
-  vtkSMIntVectorProperty* contourField =
-    vtkSMIntVectorProperty::SafeDownCast(contour->GetProperty("ContourField"));
-  contourField->SetElements1(0);
-
-  vtkSMDoubleVectorProperty* contourValue =
-    vtkSMDoubleVectorProperty::SafeDownCast(contour->GetProperty("ContourValue"));
-  contourValue->SetElements1(1.0045);
-
-  producer->UpdateVTKObjects();
-  contourInputConnection->SetInputConnection(0, producer, 0);
-  contour->UpdatePropertyInformation();
-  contour->UpdateVTKObjects();
-
-  // Create a convertor to convert the pyfr contour data into polydata
-  vtkSmartPointer<vtkSMSourceProxy> converter;
-  converter.TakeReference(
-    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->NewProxy("filters", "PyFRContourDataConverter")));
-  vtkSMInputProperty* converterInputConnection =
-    vtkSMInputProperty::SafeDownCast(converter->GetProperty("Input"));
-
-  producer->UpdateVTKObjects();
-  converterInputConnection->SetInputConnection(0, contour, 0);
-  converter->UpdatePropertyInformation();
-  converter->UpdateVTKObjects();
-
-  // Finally, create the polydata writer, set the
-  // filename and then update the pipeline.
-  vtkSmartPointer<vtkSMWriterProxy> writer;
-  writer.TakeReference(
-    vtkSMWriterProxy::SafeDownCast(sessionProxyManager->NewProxy("writers", "XMLPolyDataWriter")));
-  vtkSMInputProperty* writerInputConnection =
-    vtkSMInputProperty::SafeDownCast(writer->GetProperty("Input"));
-  writerInputConnection->SetInputConnection(0, converter, 0);
-  vtkSMStringVectorProperty* fileName =
-    vtkSMStringVectorProperty::SafeDownCast(writer->GetProperty("FileName"));
-
-  std::ostringstream o;
-  o << this->FileName.substr(0,this->FileName.find_last_of("."));
-  o << "_" << std::fixed << std::setprecision(3) << dataDescription->GetTime();
-  o << ".vtp";
-
-  fileName->SetElement(0, o.str().c_str());
-  writer->UpdatePropertyInformation();
-  writer->UpdateVTKObjects();
-  writer->UpdatePipeline();
-
-/*
-  {
-  std::stringstream s;
-  s << this->FileName.substr(0,this->FileName.find_last_of("."));
-  s << "_" << std::fixed << std::setprecision(3) << dataDescription->GetTime();
-  s << "_input";
-
-  vtkSmartPointer<vtkXMLPyFRDataWriter> writer =
-    vtkSmartPointer<vtkXMLPyFRDataWriter>::New();
-
-  writer->SetFileName(s.str().c_str());
-  writer->SetInputData(pyfrData);
-  writer->SetDataModeToBinary();
-  writer->Write();
-  }
-
-  vtkSmartPointer<vtkPyFRDataContourFilter> isocontour =
-    vtkSmartPointer<vtkPyFRDataContourFilter>::New();
-
-  isocontour->SetContourField(0);
-  isocontour->SetContourValue(1.0045);
-  isocontour->SetInputData(pyfrData);
-
-  {
-  std::stringstream s;
-  s << this->FileName.substr(0,this->FileName.find_last_of("."));
-  s << "_" << std::fixed << std::setprecision(3) << dataDescription->GetTime();
-
-  vtkSmartPointer<vtkXMLPyFRContourDataWriter> writer =
-    vtkSmartPointer<vtkXMLPyFRContourDataWriter>::New();
-
-  writer->SetFileName(s.str().c_str());
-  writer->SetInputConnection(isocontour->GetOutputPort());
-  writer->SetDataModeToBinary();
-  writer->Write();
-  }
-*/
   return 1;
 }
 

@@ -8,7 +8,7 @@
 #include <vtkObjectFactory.h>
 #include <vtkUnstructuredGrid.h>
 
-#include "PyFRDataConverter.h"
+#include "PyFRConverter.h"
 
 #include "vtkPyFRData.h"
 
@@ -51,7 +51,7 @@ int vtkPyFRDataConverter::RequestData(
   vtkUnstructuredGrid *output = vtkUnstructuredGrid::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  PyFRDataConverter convert;
+  PyFRConverter convert;
   convert(input->GetData(),output);
 
   return 1;

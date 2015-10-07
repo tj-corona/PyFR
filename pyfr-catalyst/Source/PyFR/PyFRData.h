@@ -1,8 +1,6 @@
 #ifndef PYFRDATA_H
 #define PYFRDATA_H
 
-#include <vtkDataObject.h>
-
 //State that the default backend for this code is CUDA
 //not serial
 // #define VTKM_DEVICE_ADAPTER VTKM_DEVICE_ADAPTER_CUDA
@@ -16,6 +14,7 @@
 #include <vtkm/cont/ArrayHandleImplicit.h>
 #include <vtkm/cont/ArrayHandlePermutation.h>
 #include <vtkm/cont/cuda/ArrayHandleCuda.h>
+#include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 #include <vtkm/cont/DataSet.h>
 
 #include "CatalystData.h"

@@ -32,7 +32,7 @@
 
 #include "vtkPyFRData.h"
 
-#include "PyFRDataWriter.h"
+#include "PyFRWriter.h"
 
 vtkStandardNewMacro(vtkXMLPyFRDataWriter);
 
@@ -83,7 +83,7 @@ void vtkXMLPyFRDataWriter::WriteData()
   if(!pyfrData)
     throw std::runtime_error("PyFRData input required.");
 
-  PyFRDataWriter writer;
+  PyFRWriter writer;
   writer.SetFileName(this->FileName);
   if (this->IsBinary)
     writer.SetDataModeToBinary();

@@ -39,7 +39,7 @@
 
 #include "vtkPyFRContourData.h"
 
-#include "PyFRDataWriter.h"
+#include "PyFRWriter.h"
 
 vtkStandardNewMacro(vtkXMLPyFRContourDataWriter);
 
@@ -91,7 +91,7 @@ void vtkXMLPyFRContourDataWriter::WriteData()
   if(!pyfrContourData)
     throw std::runtime_error("PyFRContourData input required.");
 
-  PyFRDataWriter writer;
+  PyFRWriter writer;
   writer.SetFileName(this->FileName);
   if (this->IsBinary)
     writer.SetDataModeToBinary();

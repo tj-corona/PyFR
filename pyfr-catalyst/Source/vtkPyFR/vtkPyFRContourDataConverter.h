@@ -16,10 +16,7 @@ public:
     vtkInformationVector **,
     vtkInformationVector *);
 
-  int RequestData(
-    vtkInformation *,
-    vtkInformationVector **,
-    vtkInformationVector *);
+  int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
 
   int FillOutputPortInformation(int,vtkInformation*);
 

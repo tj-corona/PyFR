@@ -8,9 +8,6 @@
 #include <sstream>
 #include <stdexcept>
 
-#include <vtkDataObjectTypes.h>
-#include <vtkObjectFactory.h>
-
 #include <vtkm/CellShape.h>
 #include <vtkm/TopologyElementTag.h>
 #include <vtkm/cont/CellSetSingleType.h>
@@ -70,24 +67,27 @@ void PyFRData::Init(void* data)
 
   vtkm::cont::ArrayHandle<vtkm::UInt8> types;
     {
-      std::vector<vtkm::UInt8> tmp(meshData->nCells,vtkm::CELL_SHAPE_HEXAHEDRON);
-      vtkm::cont::ArrayHandle<vtkm::UInt8> tmp2 =
-        vtkm::cont::make_ArrayHandle(tmp);
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(tmp2, types);
+    std::vector<vtkm::UInt8> tmp(meshData->nCells,vtkm::CELL_SHAPE_HEXAHEDRON);
+    vtkm::cont::ArrayHandle<vtkm::UInt8> tmp2 =
+      vtkm::cont::make_ArrayHandle(tmp);
+    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+      Copy(tmp2, types);
     }
 
   vtkm::cont::ArrayHandle<vtkm::Int32> nVertices;
     {
-      std::vector<vtkm::Int32> tmp(meshData->nCells,8);
-      vtkm::cont::ArrayHandle<vtkm::Int32> tmp2 =
-        vtkm::cont::make_ArrayHandle(tmp);
-      vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-        Copy(tmp2, nVertices);
+    std::vector<vtkm::Int32> tmp(meshData->nCells,8);
+    vtkm::cont::ArrayHandle<vtkm::Int32> tmp2 =
+      vtkm::cont::make_ArrayHandle(tmp);
+    vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
+      Copy(tmp2, nVertices);
     }
 
   vtkm::cont::CellSetExplicit<> cset(meshData->nCells, "cells", 3);
   cset.Fill(types, nVertices, connectivity);
+
+  // vtkm::cont::CellSetSingleType<> cset(vtkm::CellShapeTagHexahedron(), "cells");
+  // cset.Fill(connectivity);
 
   StridedDataFunctor stridedDataFunctor[5];
   for (unsigned i=0;i<5;i++)
@@ -130,7 +130,6 @@ void PyFRData::Init(void* data)
   vtkm::cont::Field velocity_v("velocity_v",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(velocity_vArray));
   vtkm::cont::Field velocity_w("velocity_w",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(velocity_wArray));
   vtkm::cont::Field pressure("pressure",LINEAR,vtkm::cont::Field::ASSOC_POINTS,vtkm::cont::DynamicArrayHandle(pressureArray));
-  vtkm::cont::Field raw_solution("raw_solution",LINEAR,vtkm::cont::Field::ASSOC_POINTS,rawSolutionArray);
 
   this->dataSet.AddCoordinateSystem(vtkm::cont::CoordinateSystem("coordinates",
                                                                  1,vertices));
@@ -139,7 +138,6 @@ void PyFRData::Init(void* data)
   this->dataSet.AddField(velocity_v);
   this->dataSet.AddField(velocity_w);
   this->dataSet.AddField(pressure);
-  this->dataSet.AddField(raw_solution);
   this->dataSet.AddCellSet(cset);
 }
 

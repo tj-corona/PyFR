@@ -10,10 +10,7 @@ public:
   static vtkPyFRDataConverter* New();
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
-  int RequestData(
-    vtkInformation *,
-    vtkInformationVector **,
-    vtkInformationVector *);
+  int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
 
   int FillInputPortInformation(int,vtkInformation*);
 

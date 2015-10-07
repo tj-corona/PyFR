@@ -6,7 +6,7 @@ set(vtkPyFR_SRCS
   vtkPyFRContourDataConverter.cxx
   vtkPyFRData.cxx
   vtkPyFRDataAlgorithm.cxx
-  vtkPyFRDataContourFilter.cxx
+  vtkPyFRContourFilter.cxx
   vtkPyFRDataConverter.cxx
   vtkXMLPyFRContourDataWriter.cxx
   vtkXMLPyFRDataWriter.cxx
