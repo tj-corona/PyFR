@@ -269,6 +269,45 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     vtkPVTrivialProducer::SafeDownCast(clientSideObject);
   realProducer->SetOutput(pyfrData,dataDescription->GetTime());
 
+  vtkSMSourceProxy* unstructuredGridWriter =
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+				   GetProxy("UnstructuredGridWriter"));
+  if (unstructuredGridWriter)
+    {
+      vtkSMStringVectorProperty* unstructuredGridFileName =
+	vtkSMStringVectorProperty::SafeDownCast(unstructuredGridWriter->
+						GetProperty("FileName"));
+
+      {
+	std::ostringstream o;
+	o << this->FileName.substr(0,this->FileName.find_last_of("."));
+	o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
+	o << ".vtu";
+	unstructuredGridFileName->SetElement(0, o.str().c_str());
+      }
+    unstructuredGridWriter->UpdatePropertyInformation();
+    unstructuredGridWriter->UpdateVTKObjects();
+    }
+  vtkSMSourceProxy* polydataWriter =
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+				   GetProxy("polydataWriter"));
+  if (polydataWriter)
+    {
+      vtkSMStringVectorProperty* polydataFileName =
+	vtkSMStringVectorProperty::SafeDownCast(polydataWriter->
+						GetProperty("FileName"));
+
+      {
+	std::ostringstream o;
+	o << this->FileName.substr(0,this->FileName.find_last_of("."));
+	o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
+	o << ".vtp";
+	polydataFileName->SetElement(0, o.str().c_str());
+      }
+    polydataWriter->UpdatePropertyInformation();
+    polydataWriter->UpdateVTKObjects();
+    }
+
   // stay in the loop while the simulation is paused
   while (true)
     {
