@@ -29,14 +29,6 @@
 #include <vtkXMLPolyDataWriter.h>
 #include <vtkXMLUnstructuredGridWriter.h>
 
-#include <vtkm/cont/ArrayHandleCast.h>
-#include <vtkm/cont/DeviceAdapter.h>
-#include <vtkm/cont/DeviceAdapterAlgorithm.h>
-#include <vtkm/cont/DeviceAdapterSerial.h>
-#include <vtkm/cont/DynamicArrayHandle.h>
-#include <vtkm/cont/cuda/ArrayHandleCuda.h>
-#include <vtkm/cont/cuda/internal/DeviceAdapterTagCuda.h>
-
 #include "vtkPyFRContourData.h"
 
 #include "PyFRWriter.h"
