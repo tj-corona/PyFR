@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <stdexcept>
 
 #include "vtkXMLPyFRContourDataWriter.h"
 

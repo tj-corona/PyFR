@@ -23,13 +23,15 @@ include("${PARAVIEW_USE_FILE}")
 include(ParaViewPlugins)
 
 set(CLIENT_OR_SERVER "Client" CACHE STRING "Build libraries for client or server-side functinality.")
-set_property(CACHE CLIENT_OR_SERVER PROPERTY STRINGS "Client" "Server" "Both")
+set_property(CACHE CLIENT_OR_SERVER PROPERTY STRINGS "Client" "Server")
 
-if(${CLIENT_OR_SERVER} STREQUAL Client OR ${CLIENT_OR_SERVER} STREQUAL Both)
+if(${CLIENT_OR_SERVER} STREQUAL Client)
   set (BuildClientLibs TRUE CACHE INTERNAL "Build client-side libraries")
+  set (BuildServerLibs FALSE CACHE INTERNAL "Build server-side libraries")
 endif()
-if(${CLIENT_OR_SERVER} STREQUAL Server OR ${CLIENT_OR_SERVER} STREQUAL Both)
+if(${CLIENT_OR_SERVER} STREQUAL Server)
   set (BuildServerLibs TRUE CACHE INTERNAL "Build server-side libraries")
+  set (BuildClientLibs FALSE CACHE INTERNAL "Build client-side libraries")
 endif()
 
 if (BuildServerLibs)
