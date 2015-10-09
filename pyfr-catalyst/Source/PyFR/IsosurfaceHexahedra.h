@@ -34,7 +34,7 @@
 #include <vtkm/worklet/WorkletMapField.h>
 #include <vtkm/Pair.h>
 
-#include <vtkm/cont/CellSetSubset.h>
+#include <vtkm/cont/CellSetPermutation.h>
 #include <vtkm/cont/DataSet.h>
 #include <vtkm/cont/Field.h>
 #include <vtkm/worklet/DispatcherMapTopology.h>
@@ -305,9 +305,9 @@ public:
     vtkm::cont::CellSetExplicit<> cellSet = this->DataSet.GetCellSet(0)
       .template CastTo<vtkm::cont::CellSetExplicit<> >();
 
-    vtkm::cont::CellSetSubset<vtkm::cont::ArrayHandle<vtkm::Id>,
-      vtkm::cont::CellSetExplicit<> > cellSubset(validCellIndicesArray,
-                                                 cellSet);
+    vtkm::cont::CellSetPermutation<vtkm::cont::ArrayHandle<vtkm::Id>,
+      vtkm::cont::CellSetExplicit<> > cellPermutation(validCellIndicesArray,
+                                                      cellSet);
 
     typedef typename vtkm::worklet::DispatcherMapTopology< IsoSurfaceGenerate,
       DeviceAdapter> IsoSurfaceDispatcher;
@@ -315,7 +315,7 @@ public:
     isosurfaceDispatcher.Invoke(isoField,
                                 this->DataSet.GetCoordinateSystem(0).GetData(),
                                 inputCellIterationNumber,
-                                cellSubset);
+                                cellPermutation);
   }
 
   template<typename Field, typename StorageTag>
