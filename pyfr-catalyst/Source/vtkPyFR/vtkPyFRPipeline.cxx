@@ -19,6 +19,8 @@
 #include <vtkSMPluginManager.h>
 #include <vtkSMPropertyHelper.h>
 #include <vtkSMProxyManager.h>
+#include <vtkSMPVRepresentationProxy.h>
+#include <vtkSMRepresentationProxy.h>
 #include <vtkSMSourceProxy.h>
 #include <vtkSMSessionProxyManager.h>
 #include <vtkSMStringVectorProperty.h>
@@ -208,8 +210,14 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   controller->RegisterViewProxy(polydataViewer);
 
   // Show the result.
-  controller->Show(vtkSMSourceProxy::SafeDownCast(pyfrContourDataConverter), 0,
-                   vtkSMViewProxy::SafeDownCast(polydataViewer));
+  vtkSMProxy* representationBase = controller->
+    Show(vtkSMSourceProxy::SafeDownCast(pyfrContourDataConverter), 0,
+         vtkSMViewProxy::SafeDownCast(polydataViewer));
+
+  this->Representation =
+    vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
+  this->Representation->SetScalarColoring("pressure",0);
+  this->Representation->SetScalarBarVisibility(polydataViewer,true);
 
   if (postFilterWrite)
     {
@@ -338,6 +346,8 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
       viewProxy->UpdateVTKObjects();
       viewProxy->Update();
       }
+
+    this->Representation->RescaleTransferFunctionToDataRange();
 
     this->InsituLink->InsituPostProcess(dataDescription->GetTime(),
                                         dataDescription->GetTimeStep());

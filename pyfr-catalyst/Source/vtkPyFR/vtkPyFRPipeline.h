@@ -7,6 +7,7 @@
 class vtkCPDataDescription;
 class vtkLiveInsituLink;
 class vtkPyFRContourData;
+class vtkSMPVRepresentationProxy;
 
 class vtkPyFRPipeline : public vtkCPPipeline
 {
@@ -37,5 +38,7 @@ private:
   std::string FileName;
 
   vtkPyFRContourData* OutputData;
+
+  vtkSMPVRepresentationProxy* Representation;
 };
 #endif
