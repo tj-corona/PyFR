@@ -1,8 +1,8 @@
 #include "PyFRContourFilter.h"
 
 #include <vtkm/cont/cuda/DeviceAdapterCuda.h>
-#include <vtkm/worklet/IsosurfaceHexahedra.h>
 
+#include "IsosurfaceHexahedra.h"
 #include "PyFRData.h"
 #include "PyFRContourData.h"
 
