@@ -8,14 +8,16 @@
 #include <vtkLiveInsituLink.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPVLiveRenderView.h>
 #include <vtkPVTrivialProducer.h>
 #include <vtkSmartPointer.h>
 #include <vtkSMIntVectorProperty.h>
 #include <vtkSMDoubleVectorProperty.h>
 #include <vtkSMInputProperty.h>
 #include <vtkSMOutputPort.h>
-#include <vtkSMParaViewPipelineController.h>
+#include <vtkSMParaViewPipelineControllerWithRendering.h>
 #include <vtkSMPluginManager.h>
+#include <vtkSMPropertyHelper.h>
 #include <vtkSMProxyManager.h>
 #include <vtkSMSourceProxy.h>
 #include <vtkSMSessionProxyManager.h>
@@ -83,7 +85,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   bool postFilterWrite = false;
 
   // Construct a pipeline controller to register my elements
-  vtkNew<vtkSMParaViewPipelineController> controller;
+  vtkNew<vtkSMParaViewPipelineControllerWithRendering> controller;
 
   // Create a vtkPVTrivialProducer and set its output
   // to be the input data.
@@ -196,6 +198,18 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   controller->InitializeProxy(pyfrContourDataConverter);
   controller->RegisterPipelineProxy(pyfrContourDataConverter,
                                     "ConvertToPolyData");
+
+  // Create a view
+  vtkSmartPointer<vtkSMViewProxy> polydataViewer;
+  polydataViewer.TakeReference(
+    vtkSMViewProxy::SafeDownCast(sessionProxyManager->
+                                 NewProxy("views","RenderView")));
+  controller->InitializeProxy(polydataViewer);
+  controller->RegisterViewProxy(polydataViewer);
+
+  // Show the result.
+  controller->Show(vtkSMSourceProxy::SafeDownCast(pyfrContourDataConverter), 0,
+                   vtkSMViewProxy::SafeDownCast(polydataViewer));
 
   if (postFilterWrite)
     {
@@ -314,11 +328,16 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     this->InsituLink->InsituUpdate(dataDescription->GetTime(),
                                    dataDescription->GetTimeStep());
 
-    vtkNew<vtkCollection> sources;
-    sessionProxyManager->GetProxies("sources",sources.GetPointer());
-    for (int i=0;i<sources->GetNumberOfItems();i++)
-      vtkSMSourceProxy::SafeDownCast(sources->GetItemAsObject(i))->
-        UpdatePipeline(dataDescription->GetTime());
+    vtkNew<vtkCollection> views;
+    sessionProxyManager->GetProxies("views",views.GetPointer());
+    for (int i=0;i<views->GetNumberOfItems();i++)
+      {
+      vtkSMViewProxy* viewProxy =
+        vtkSMViewProxy::SafeDownCast(views->GetItemAsObject(i));
+      vtkSMPropertyHelper(viewProxy,"ViewTime").Set(dataDescription->GetTime());
+      viewProxy->UpdateVTKObjects();
+      viewProxy->Update();
+      }
 
     this->InsituLink->InsituPostProcess(dataDescription->GetTime(),
                                         dataDescription->GetTimeStep());
