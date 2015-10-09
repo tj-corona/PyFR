@@ -26,12 +26,28 @@ if (BuildServerLibs)
 
     add_paraview_plugin(${pluginLib} "1.0" SERVER_MANAGER_XML PyFR.xml SERVER_MANAGER_SOURCES ${vtkPyFR_SRCS})
     target_include_directories(${pluginLib} PUBLIC ${PROJECT_SOURCE_DIR}/Source/PyFR)
-    target_link_libraries(${pluginLib} PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${pyfrLib} ${CUDA_LIBRARIES})
+    target_link_libraries(${pluginLib} PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${pyfrLib} ${CUDA_LIBRARIES} ${MPI_LIBRARIES})
+    if(MPI_COMPILE_FLAGS)
+      set_target_properties(${pluginLib} PROPERTIES
+	COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+    endif()
+    if(MPI_LINK_FLAGS)
+      set_target_properties(${pluginLib} PROPERTIES
+	LINK_FLAGS "${MPI_LINK_FLAGS}")
+    endif()
     list( APPEND vtkPyFRLibs ${pluginLib} )
 
     add_library(${catalystLib} SHARED ${vtkPyFR_catalyst_SRCS})
     target_include_directories(${catalystLib} PUBLIC ${PROJECT_SOURCE_DIR}/Source/PyFR)
-    target_link_libraries(${catalystLib} PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${VTK_LIBRARIES} ${pluginLib} ${pyfrLib} ${CUDA_LIBRARIES})
+    target_link_libraries(${catalystLib} PRIVATE vtkPVCatalyst vtkPVVTKExtensionsDefault vtkPVClientServerCoreCore ${VTK_LIBRARIES} ${pluginLib} ${pyfrLib} ${CUDA_LIBRARIES} ${MPI_LIBRARIES})
+    if(MPI_COMPILE_FLAGS)
+      set_target_properties(${catalystLib} PROPERTIES
+	COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+    endif()
+    if(MPI_LINK_FLAGS)
+      set_target_properties(${catalystLib} PROPERTIES
+	LINK_FLAGS "${MPI_LINK_FLAGS}")
+    endif()
     list( APPEND vtkPyFRLibs ${catalystLib} )
   endforeach()
 endif()

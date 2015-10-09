@@ -35,6 +35,9 @@ if(${CLIENT_OR_SERVER} STREQUAL Server)
 endif()
 
 if (BuildServerLibs)
+  find_package(MPI REQUIRED)
+  include_directories(${MPI_INCLUDE_PATH})
+
   find_package(VTKm REQUIRED)
   include(VTKmMacros)
   vtkm_configure_device(Serial REQUIRED)
