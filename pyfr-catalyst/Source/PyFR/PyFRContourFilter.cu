@@ -28,6 +28,11 @@ void PyFRContourFilter::operator()(PyFRData* input,
   typedef vtkm::worklet::IsosurfaceFilterHexahedra<FPType,CudaTag>
   IsosurfaceFilter;
 
+  typedef std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > >
+    Vec3HandleVec;
+  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
+  typedef std::vector<FPType> DataVec;
+
   vtkm::cont::Field contourField = dataSet.GetField(this->ContourField);
   PyFRData::ScalarDataArrayHandle contourArray = contourField.GetData()
     .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
@@ -35,12 +40,21 @@ void PyFRContourFilter::operator()(PyFRData* input,
   PyFRContourData::Vec3ArrayHandle vertices = output->GetVertices();
   PyFRContourData::Vec3ArrayHandle normals = output->GetNormals();
 
-  IsosurfaceFilter isosurfaceFilter(dataSet);
+  IsosurfaceFilter isosurfaceFilter;
 
-  isosurfaceFilter.Run(this->ContourValue,
+  DataVec dataVec;
+  dataVec.push_back(this->ContourValue);
+  Vec3HandleVec verticesVec;
+  verticesVec.push_back(vertices);
+  Vec3HandleVec normalsVec;
+  normalsVec.push_back(normals);
+
+  isosurfaceFilter.Run(dataVec,
+                       dataSet.GetCellSet().CastTo(PyFRData::CellSet()),
+                       dataSet.GetCoordinateSystem(),
                        contourArray,
-                       vertices,
-                       normals);
+                       verticesVec,
+                       normalsVec);
 
   std::string fields[5] = {"density",
                            "pressure",
@@ -59,8 +73,10 @@ void PyFRContourFilter::operator()(PyFRData* input,
       .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                          PyFRData::ScalarDataArrayHandle::StorageTag());
 
-    isosurfaceFilter.MapFieldOntoIsosurface(projectedArray,
-                                            scalars_out);
+    ScalarDataHandleVec scalarDataHandleVec;
+    scalarDataHandleVec.push_back(scalars_out);
+    isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
+                                             scalarDataHandleVec);
     }
 }
 

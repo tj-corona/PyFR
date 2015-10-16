@@ -21,8 +21,11 @@
 #ifndef vtk_m_worklet_IsosurfaceHexahedra_h
 #define vtk_m_worklet_IsosurfaceHexahedra_h
 
+#include <cassert>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <boost/static_assert.hpp>
 
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/ArrayHandle.h>
@@ -45,53 +48,68 @@
 
 namespace vtkm {
 namespace worklet {
+namespace internal {
 
 /// \brief Compute the isosurface for a uniform grid data set
-template <typename FieldType, typename DeviceAdapter>
+template <typename FieldType, typename DeviceAdapter,
+  vtkm::IdComponent NumberOfIsovalues>
 class IsosurfaceFilterHexahedra
 {
+  BOOST_STATIC_ASSERT(NumberOfIsovalues > 0);
 protected:
-  vtkm::cont::DataSet DataSet;
-  vtkm::cont::ArrayHandle<FieldType> InterpolationWeight;
-  vtkm::cont::ArrayHandle<vtkm::Id> InterpolationLowId;
-  vtkm::cont::ArrayHandle<vtkm::Id> InterpolationHighId;
-  vtkm::Id NumOutputCells;
+  typedef vtkm::IdComponent IsovalueCount;
+
+  typedef vtkm::Vec<vtkm::Id,NumberOfIsovalues> IdVec;
+  typedef vtkm::cont::ArrayHandle<IdVec> IdVecHandle;
+  typedef vtkm::cont::ArrayHandle<vtkm::Id> IdHandle;
+  typedef std::vector<IdHandle> IdHandleVec;
+
+  typedef std::vector<FieldType> FieldVec;
+  typedef vtkm::cont::ArrayHandle<FieldType> FieldHandle;
+  typedef std::vector<FieldHandle> FieldHandleVec;
 
 public:
-
   class ClassifyCell : public vtkm::worklet::WorkletMapTopologyPointToCell
   {
   public:
+    typedef vtkm::ListTagBase<IdVec> IdVecType;
+
     typedef void ControlSignature(FieldInFrom<Scalar> scalars,
                                   TopologyIn topology,
-                                  FieldOut<IdType> numVertices);
-    typedef void ExecutionSignature(_1, FromCount, _3);
+                                  FieldOut<IdVecType> numVertices);
+    typedef void ExecutionSignature(_1, _3,WorkIndex);
     typedef _2 InputDomain;
 
     typedef vtkm::cont::ArrayHandle<vtkm::Id> IdArrayHandle;
     typedef typename IdArrayHandle::ExecutionTypes<DeviceAdapter>::PortalConst IdPortalType;
-    IdPortalType VertexTable;
-    FieldType Isovalue;
+    const IdPortalType VertexTable;
+    vtkm::Vec<FieldType,NumberOfIsovalues> Isovalues;
 
     VTKM_CONT_EXPORT
-    ClassifyCell(IdPortalType vertexTable, FieldType isovalue) :
-      VertexTable(vertexTable),
-      Isovalue(isovalue)
+    ClassifyCell(const IdPortalType vertexTable,
+                 const FieldVec& isovalues) :
+      VertexTable(vertexTable)
     {
+      for (unsigned i=0;i<NumberOfIsovalues;i++)
+        this->Isovalues[i] = isovalues[i];
     }
 
     template<typename ScalarsVecType>
     VTKM_EXEC_EXPORT
     void operator()(const ScalarsVecType &scalars,
-                    const vtkm::Id count,
-                    vtkm::Id& numVertices) const
+                    IdVec& numVertices,
+                    const vtkm::Id inputCellId) const
     {
       const vtkm::Id mask[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
-      vtkm::Id caseId = 0;
-      for (vtkm::IdComponent i = 0; i < count; ++i)
-        caseId += (static_cast<FieldType>(scalars[i]) > this->Isovalue)*mask[i];
-      numVertices = this->VertexTable.Get(caseId) / 3;
+#pragma unroll
+      for (IsovalueCount iso=0;iso<NumberOfIsovalues;iso++)
+        {
+        vtkm::Id caseId = 0;
+        for (vtkm::IdComponent i = 0; i < 8; ++i)
+          caseId += (static_cast<FieldType>(scalars[i]) > this->Isovalues[iso])*mask[i];
+        numVertices[iso] = this->VertexTable.Get(caseId) / 3;
+        }
     }
   };
 
@@ -103,7 +121,7 @@ public:
                                   FieldInFrom<Vec3> coordinates,
                                   FieldInTo<IdType> inputLowerBounds,
                                   TopologyIn topology);
-    typedef void ExecutionSignature(WorkIndex, FromCount, _1, _2, _3, FromIndices);
+    typedef void ExecutionSignature(WorkIndex, _1, _2, _3, FromIndices);
     typedef _4 InputDomain;
 
     const FieldType Isovalue;
@@ -141,10 +159,9 @@ public:
     {
     }
 
-    template<typename ScalarsVecType, typename VectorsVecType, typename IdVecType>
+    template<typename ScalarsVecType,typename VectorsVecType,typename IdVecType>
     VTKM_EXEC_EXPORT
     void operator()(const vtkm::Id outputCellId,
-                    const vtkm::Id count,
                     const ScalarsVecType &scalars,
                     const VectorsVecType &pointCoords,
                     const vtkm::Id inputLowerBounds,
@@ -158,7 +175,8 @@ public:
       // Compute the Marching Cubes case number for this cell
       unsigned int cubeindex = 0;
       const vtkm::Id mask[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
-      for (vtkm::IdComponent i = 0; i < count; ++i)
+#pragma unroll
+      for (vtkm::IdComponent i = 0; i < 8; ++i)
         cubeindex += (static_cast<FieldType>(scalars[i]) > this->Isovalue)*mask[i];
 
       // Interpolate for vertex positions and associated scalar values
@@ -218,137 +236,422 @@ public:
     }
   };
 
-  IsosurfaceFilterHexahedra(const vtkm::cont::DataSet &dataSet) :
-    DataSet(dataSet),
-    NumOutputCells(0)
+  class SingleId
   {
-  }
+  public:
+    typedef typename IdVecHandle::ValueType Vec;
+    typedef typename Vec::ComponentType T;
+    typedef vtkm::cont::ArrayHandleTransform<T,IdVecHandle,SingleId> Array;
 
-  template<typename CoordinateType>
-  void Run(const FieldType &isovalue,
-           const vtkm::cont::DynamicArrayHandle& isoField,
-           vtkm::cont::ArrayHandle< vtkm::Vec<CoordinateType,3> >& verticesArray,
-           vtkm::cont::ArrayHandle< vtkm::Vec<CoordinateType,3> >& normalsArray)
-  {
-    //todo this needs to change so that we don't presume the storage type
-    vtkm::cont::ArrayHandle<FieldType> field;
-    field = isoField.CastToArrayHandle(FieldType(), VTKM_DEFAULT_STORAGE_TAG());
-    this->Run(isovalue, field, verticesArray, normalsArray);
-  }
+    vtkm::Id operator()(Vec vec) const
+    {
+      return vec[this->Isovalue];
+    }
 
-  template<typename StorageTag, typename CoordinateType>
-  void Run(const FieldType &isovalue,
-           const vtkm::cont::ArrayHandle<FieldType,StorageTag>& isoField,
-           vtkm::cont::ArrayHandle< vtkm::Vec<CoordinateType,3> >& verticesArray,
-           vtkm::cont::ArrayHandle< vtkm::Vec<CoordinateType,3> >& normalsArray)
+    void SetIsovalue(IsovalueCount iso) { this->Isovalue = iso; }
+  private:
+    IsovalueCount Isovalue;
+  };
+
+  public:
+  IsosurfaceFilterHexahedra() {}
+
+  template<class CellSetType,typename StorageTag,typename CoordinateType>
+  static void Run(const FieldVec& isovalues,
+                  const CellSetType& cellSet,
+                  const vtkm::cont::CoordinateSystem& coordinateSystem,
+                  const vtkm::cont::ArrayHandle<FieldType,StorageTag>& isoField,
+                  std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& vertices,
+                  std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& normals,
+                  FieldHandleVec& interpolationWeights,
+                  IdHandleVec& interpolationLowIds,
+                  IdHandleVec& interpolationHighIds)
   {
     typedef typename vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter> DeviceAlgorithms;
 
     // Set up the Marching Cubes case tables
-    vtkm::cont::ArrayHandle<vtkm::Id> vertexTableArray =
-        vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::numVerticesTable,
-                                     256);
-    vtkm::cont::ArrayHandle<vtkm::Id> triangleTableArray =
-        vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::triTable,
-                                     256*16);
+    // TODO: make this static?
+    IdHandle vertexTableArray =
+    vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::numVerticesTable,256);
 
     // Call the ClassifyCell functor to compute the Marching Cubes case numbers
     // for each cell, and the number of vertices to be generated
     ClassifyCell classifyCell(vertexTableArray.PrepareForInput(DeviceAdapter()),
-                              isovalue);
+                              isovalues);
 
     typedef typename vtkm::worklet::DispatcherMapTopology<
                                       ClassifyCell,
                                       DeviceAdapter> ClassifyCellDispatcher;
     ClassifyCellDispatcher classifyCellDispatcher(classifyCell);
 
-    vtkm::cont::ArrayHandle<vtkm::Id> numOutputTrisPerCell;
+    IdVecHandle numOutputTrisPerCell;
     classifyCellDispatcher.Invoke(isoField,
-                                  this->DataSet.GetCellSet(0),
+                                  cellSet,
                                   numOutputTrisPerCell);
 
     // Compute the number of valid input cells and those ids
-    this->NumOutputCells =
+    IdVec NumOutputCells =
       DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
                                       numOutputTrisPerCell);
 
-    // Terminate if no cells have triangles left
-    if (this->NumOutputCells == 0) return;
+    // TODO: make this static?
+    vtkm::cont::ArrayHandle<vtkm::Id> triangleTableArray =
+      vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::triTable,256*16);
 
-    typedef vtkm::cont::ArrayHandle<vtkm::Id> IdHandleType;
+    SingleId singleId;
+    for (IsovalueCount iso=0;iso<NumberOfIsovalues;iso++)
+      {
+      singleId.SetIsovalue(iso);
+      typename SingleId::Array numOutputTrisPerCell_single(numOutputTrisPerCell,
+                                                           singleId);
 
-    IdHandleType validCellIndicesArray,inputCellIterationNumber;
-    vtkm::cont::ArrayHandleCounting<vtkm::Id> validCellCountImplicitArray(0, 1, this->NumOutputCells);
-    DeviceAlgorithms::UpperBounds(numOutputTrisPerCell,
-                                  validCellCountImplicitArray,
-                                  validCellIndicesArray);
-    numOutputTrisPerCell.ReleaseResources();
+      IdHandle validCellIndicesArray,inputCellIterationNumber;
+      vtkm::cont::ArrayHandleCounting<vtkm::Id> validCellCountImplicitArray(0, 1, NumOutputCells[iso]);
 
-    // Compute for each output triangle what iteration of the input cell generates it
-    DeviceAlgorithms::LowerBounds(validCellIndicesArray,
-                                  validCellIndicesArray,
-                                  inputCellIterationNumber);
+      DeviceAlgorithms::UpperBounds(numOutputTrisPerCell_single,
+                                    validCellCountImplicitArray,
+                                    validCellIndicesArray);
 
-    // Generate a single triangle per cell
-    const vtkm::Id numTotalVertices = this->NumOutputCells * 3;
+      // Compute for each output triangle what iteration of the input cell
+      // generates it
+      DeviceAlgorithms::LowerBounds(validCellIndicesArray,
+                                    validCellIndicesArray,
+                                    inputCellIterationNumber);
 
-    IsoSurfaceGenerate isosurface(
-      isovalue,
-      triangleTableArray.PrepareForInput(DeviceAdapter()),
-      InterpolationWeight.PrepareForOutput(numTotalVertices, DeviceAdapter()),
-      InterpolationLowId.PrepareForOutput(numTotalVertices, DeviceAdapter()),
-      InterpolationHighId.PrepareForOutput(numTotalVertices, DeviceAdapter()),
-      verticesArray.PrepareForOutput(numTotalVertices, DeviceAdapter()),
-      normalsArray.PrepareForOutput(numTotalVertices, DeviceAdapter())
-    );
+      // Generate a single triangle per cell
+      const vtkm::Id numTotalVertices = NumOutputCells[iso] * 3;
 
-    vtkm::cont::CellSetExplicit<> cellSet = this->DataSet.GetCellSet(0)
-      .template CastTo<vtkm::cont::CellSetExplicit<> >();
+      IsoSurfaceGenerate isosurface(
+        isovalues[iso],
+        triangleTableArray.PrepareForInput(DeviceAdapter()),
+        interpolationWeights[iso].PrepareForOutput(numTotalVertices,
+                                                   DeviceAdapter()),
+        interpolationLowIds[iso].PrepareForOutput(numTotalVertices,
+                                                  DeviceAdapter()),
+        interpolationHighIds[iso].PrepareForOutput(numTotalVertices,
+                                                   DeviceAdapter()),
+        vertices[iso].PrepareForOutput(numTotalVertices, DeviceAdapter()),
+        normals[iso].PrepareForOutput(numTotalVertices, DeviceAdapter())
+      );
 
-    vtkm::cont::CellSetPermutation<vtkm::cont::ArrayHandle<vtkm::Id>,
-      vtkm::cont::CellSetExplicit<> > cellPermutation(validCellIndicesArray,
-                                                      cellSet);
+      vtkm::cont::CellSetPermutation<vtkm::cont::ArrayHandle<vtkm::Id>,
+        CellSetType> cellPermutation(validCellIndicesArray,
+                                     cellSet);
 
-    typedef typename vtkm::worklet::DispatcherMapTopology< IsoSurfaceGenerate,
-      DeviceAdapter> IsoSurfaceDispatcher;
-    IsoSurfaceDispatcher isosurfaceDispatcher(isosurface);
-    isosurfaceDispatcher.Invoke(isoField,
-                                this->DataSet.GetCoordinateSystem(0).GetData(),
-                                inputCellIterationNumber,
-                                cellPermutation);
+      typedef typename vtkm::worklet::DispatcherMapTopology< IsoSurfaceGenerate,
+        DeviceAdapter> IsoSurfaceDispatcher;
+      IsoSurfaceDispatcher isosurfaceDispatcher(isosurface);
+      isosurfaceDispatcher.Invoke(isoField,
+                                  coordinateSystem.GetData(),
+                                  inputCellIterationNumber,
+                                  cellPermutation);
+      }
   }
 
   template<typename Field, typename StorageTag>
-  void MapFieldOntoIsosurface(const vtkm::cont::ArrayHandle<Field,
-                              StorageTag>& fieldIn,
-                              vtkm::cont::ArrayHandle< Field >& fieldOut)
+  static void MapFieldOntoIsosurfaces(const vtkm::cont::ArrayHandle<Field,StorageTag>& fieldIn,
+                                      const FieldHandleVec& interpolationWeights,
+                                      const IdHandleVec& interpolationLowIds,
+                                      const IdHandleVec& interpolationHighIds,
+                                      std::vector<vtkm::cont::ArrayHandle< Field > >& fieldOut)
   {
-    if (this->NumOutputCells == 0)
+    assert(fieldOut.size() == NumberOfIsovalues);
+    for (IsovalueCount iso = 0; iso < NumberOfIsovalues; iso++)
       {
-      fieldOut.Shrink(0);
-      return;
+      if (interpolationWeights[iso].GetNumberOfValues() == 0)
+        {
+        fieldOut[iso].Shrink(0);
+        continue;
+        }
+
+      typedef vtkm::cont::ArrayHandle<Field,StorageTag> FieldHandleType;
+      typedef vtkm::cont::ArrayHandlePermutation<IdHandle,
+        FieldHandleType> FieldPermutationHandleType;
+
+      FieldPermutationHandleType low(interpolationLowIds[iso],fieldIn);
+      FieldPermutationHandleType high(interpolationHighIds[iso],fieldIn);
+
+      ApplyToField<Field> applyToField;
+
+      typedef typename vtkm::worklet::DispatcherMapField<
+        ApplyToField<Field>,
+        DeviceAdapter> ApplyToFieldDispatcher;
+      ApplyToFieldDispatcher applyToFieldDispatcher(applyToField);
+
+      applyToFieldDispatcher.Invoke(low,
+                                    high,
+                                    interpolationWeights[iso],
+                                    fieldOut[iso]);
       }
-
-    typedef vtkm::cont::ArrayHandle<vtkm::Id> IdHandleType;
-    typedef vtkm::cont::ArrayHandle<Field,StorageTag> FieldHandleType;
-    typedef vtkm::cont::ArrayHandlePermutation<IdHandleType,
-      FieldHandleType> FieldPermutationHandleType;
-
-    FieldPermutationHandleType low(InterpolationLowId,fieldIn);
-    FieldPermutationHandleType high(InterpolationHighId,fieldIn);
-
-    ApplyToField<Field> applyToField;
-
-    typedef typename vtkm::worklet::DispatcherMapField<
-      ApplyToField<Field>,
-      DeviceAdapter> ApplyToFieldDispatcher;
-    ApplyToFieldDispatcher applyToFieldDispatcher(applyToField);
-
-    applyToFieldDispatcher.Invoke(low,
-                                  high,
-                                  InterpolationWeight,
-                                  fieldOut);
   }
+};
+
+}
+}
+} // namespace vtkm::worklet::internal
+
+namespace vtkm {
+namespace worklet {
+
+template <typename FieldType, typename DeviceAdapter,
+  vtkm::IdComponent MaxNumberOfIsovalues=6>
+class IsosurfaceFilterHexahedra
+{
+public:
+  typedef vtkm::IdComponent IsovalueCount;
+  typedef std::vector<FieldType> FieldVec;
+
+  typedef std::vector<vtkm::cont::ArrayHandle<FieldType> > FieldHandleVec;
+
+  typedef vtkm::cont::ArrayHandle<vtkm::Id> IdHandle;
+  typedef std::vector<IdHandle> IdHandleVec;
+
+private:
+  template<typename StorageTag,typename CoordinateType>
+  class RunOnCellTypeFunctor
+  {
+  public:
+    typedef IsosurfaceFilterHexahedra<FieldType,DeviceAdapter,
+    MaxNumberOfIsovalues> IsosurfaceFilter;
+
+    typedef vtkm::cont::ArrayHandle<FieldType,StorageTag> FieldHandle;
+
+    typedef vtkm::Vec<CoordinateType,3> Vec3;
+    typedef vtkm::cont::ArrayHandle<Vec3> Vec3Handle;
+    typedef std::vector<Vec3Handle> Vec3HandleVec;
+
+    RunOnCellTypeFunctor(IsosurfaceFilter* filter,
+                         const FieldVec& isovalues,
+                         const vtkm::cont::CoordinateSystem& coords,
+                         const FieldHandle& isoField,
+                         Vec3HandleVec& vertices,
+                         Vec3HandleVec& normals) : Filter(filter),
+                                                   Isovalues(isovalues),
+                                                   CoordinateSystem(coords),
+                                                   IsoField(isoField),
+                                                   Vertices(vertices),
+                                                   Normals(normals) {}
+
+    template<typename CellSetType>
+    void operator() (const CellSetType& cellSet) const
+    {
+      return this->Filter->Run(this->Isovalues,
+                               cellSet,
+                               this->CoordinateSystem,
+                               this->IsoField,
+                               Vertices,
+                               Normals);
+    }
+
+  private:
+    IsosurfaceFilter* Filter;
+    const FieldVec& Isovalues;
+    const vtkm::cont::CoordinateSystem& CoordinateSystem;
+    const FieldHandle& IsoField;
+    Vec3HandleVec& Vertices;
+    Vec3HandleVec& Normals;
+  };
+
+  template<class CellSetType,typename StorageTag,typename CoordinateType,
+    IsovalueCount NumberOfIsovalues=1>
+  class RunOverIsocontourSetFunctor
+  {
+  public:
+    typedef vtkm::cont::ArrayHandle<FieldType,StorageTag> FieldHandle;
+
+    typedef vtkm::Vec<CoordinateType,3> Vec3;
+    typedef vtkm::cont::ArrayHandle<Vec3> Vec3Handle;
+    typedef std::vector<Vec3Handle> Vec3HandleVec;
+
+    RunOverIsocontourSetFunctor(const FieldVec& isovalues,
+                                const CellSetType& cellSet,
+                                const vtkm::cont::CoordinateSystem& coords,
+                                const FieldHandle& isoField,
+                                Vec3HandleVec& vertices,
+                                Vec3HandleVec& normals,
+                                FieldHandleVec& interpolationWeights,
+                                IdHandleVec& interpolationLowIds,
+                                IdHandleVec& interpolationHighIds)
+    {
+      if (isovalues.size() == NumberOfIsovalues)
+        {
+        ::vtkm::worklet::internal::IsosurfaceFilterHexahedra<FieldType,
+          DeviceAdapter,NumberOfIsovalues> filter;
+        filter.template Run<CellSetType,StorageTag,
+          CoordinateType>(isovalues,
+                          cellSet,
+                          coords,
+                          isoField,
+                          vertices,
+                          normals,
+                          interpolationWeights,
+                          interpolationLowIds,
+                          interpolationHighIds);
+        }
+      else
+        RunOverIsocontourSetFunctor<CellSetType,StorageTag,
+          CoordinateType,NumberOfIsovalues+1>(isovalues,
+                                              cellSet,
+                                              coords,
+                                              isoField,
+                                              vertices,
+                                              normals,
+                                              interpolationWeights,
+                                              interpolationLowIds,
+                                              interpolationHighIds);
+    }
+  };
+
+  template<class CellSetType,typename StorageTag,typename CoordinateType>
+  class RunOverIsocontourSetFunctor<CellSetType,StorageTag,CoordinateType,
+    MaxNumberOfIsovalues>
+  {
+  public:
+    typedef vtkm::cont::ArrayHandle<FieldType,StorageTag> FieldHandle;
+
+    typedef vtkm::Vec<CoordinateType,3> Vec3;
+    typedef vtkm::cont::ArrayHandle<Vec3> Vec3Handle;
+    typedef std::vector<Vec3Handle> Vec3HandleVec;
+
+    RunOverIsocontourSetFunctor(const FieldVec&,
+                     const CellSetType&,
+                     const vtkm::cont::CoordinateSystem&,
+                     const FieldHandle&,
+                     Vec3HandleVec&,
+                     Vec3HandleVec&,
+                     FieldHandleVec&,
+                     IdHandleVec&,
+                     IdHandleVec&)
+    {
+      return;
+    }
+  };
+
+  template<typename Field,typename StorageTag,IsovalueCount NumberOfIsovalues=1>
+  class MapOntoIsocontourSetFunctor
+  {
+  public:
+    typedef vtkm::cont::ArrayHandle<Field,StorageTag> InFieldHandle;
+    typedef std::vector<vtkm::cont::ArrayHandle<Field> > OutFieldHandleVec;
+
+    MapOntoIsocontourSetFunctor(const InFieldHandle& fieldIn,
+                                const FieldHandleVec& interpolationWeights,
+                                const IdHandleVec& interpolationLowIds,
+                                const IdHandleVec& interpolationHighIds,
+                                OutFieldHandleVec& fieldOut)
+    {
+      if (fieldOut.size() == NumberOfIsovalues)
+        {
+        ::vtkm::worklet::internal::IsosurfaceFilterHexahedra<FieldType,
+          DeviceAdapter,NumberOfIsovalues> filter;
+        filter.template MapFieldOntoIsosurfaces<Field,
+          StorageTag>(fieldIn,
+                      interpolationWeights,
+                      interpolationLowIds,
+                      interpolationHighIds,
+                      fieldOut);
+        }
+      else
+        MapOntoIsocontourSetFunctor<Field,StorageTag,
+          NumberOfIsovalues+1>(fieldIn,
+                               interpolationWeights,
+                               interpolationLowIds,
+                               interpolationHighIds,
+                               fieldOut);
+    }
+  };
+
+  template<typename Field,typename StorageTag>
+  class MapOntoIsocontourSetFunctor<Field,StorageTag,MaxNumberOfIsovalues>
+  {
+  public:
+    typedef vtkm::cont::ArrayHandle<Field,StorageTag> InFieldHandle;
+    typedef std::vector<vtkm::cont::ArrayHandle<Field> > OutFieldHandleVec;
+
+    MapOntoIsocontourSetFunctor(const InFieldHandle&,
+                                const FieldHandleVec&,
+                                const IdHandleVec&,
+                                const IdHandleVec&,
+                                OutFieldHandleVec&)
+    {
+      return;
+    }
+  };
+
+public:
+  template<typename StorageTag,typename CoordinateType>
+  void Run(const FieldVec& isovalues,
+           const vtkm::cont::DataSet& dataSet,
+           const vtkm::cont::ArrayHandle<FieldType,StorageTag>& isoField,
+           std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& vertices,
+           std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& normals)
+  {
+    return Run(isovalues,
+               dataSet.GetCellSet(),
+               dataSet.GetCoordinateSystem(),
+               isoField,
+               vertices,
+               normals);
+  }
+
+  template<typename CellSetList,typename StorageTag, typename CoordinateType>
+  void Run(const FieldVec& isovalues,
+           const vtkm::cont::DynamicCellSetBase<CellSetList>& cellSet,
+           const vtkm::cont::CoordinateSystem& coordinateSystem,
+           const vtkm::cont::ArrayHandle<FieldType,StorageTag>& isoField,
+           std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& vertices,
+           std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& normals)
+  {
+    typedef RunOnCellTypeFunctor<StorageTag,CoordinateType> Run;
+    Run run(this,isovalues,coordinateSystem,isoField,vertices,normals);
+    return cellSet.CastAndCall(run);
+  }
+
+  template<class CellSetType,typename StorageTag,typename CoordinateType>
+  void Run(const FieldVec& isovalues,
+           const CellSetType& cellSet,
+           const vtkm::cont::CoordinateSystem& coords,
+           const vtkm::cont::ArrayHandle<FieldType,StorageTag>& isoField,
+           std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& vertices,
+           std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& normals)
+  {
+    IsovalueCount nIsovalues = isovalues.size();
+    this->InterpolationWeights.resize(nIsovalues);
+    this->InterpolationLowIds.resize(nIsovalues);
+    this->InterpolationHighIds.resize(nIsovalues);
+    vertices.resize(nIsovalues);
+    normals.resize(nIsovalues);
+
+    RunOverIsocontourSetFunctor<CellSetType,StorageTag,
+      CoordinateType>(isovalues,
+                      cellSet,
+                      coords,
+                      isoField,
+                      vertices,
+                      normals,
+                      this->InterpolationWeights,
+                      this->InterpolationLowIds,
+                      this->InterpolationHighIds);
+  }
+
+  template<typename Field, typename StorageTag>
+  void MapFieldOntoIsosurfaces(const vtkm::cont::ArrayHandle<Field,StorageTag>& fieldIn,
+                               std::vector<vtkm::cont::ArrayHandle< Field > >& fieldOut)
+{
+  IsovalueCount nIsovalues = InterpolationWeights.size();
+  fieldOut.resize(InterpolationWeights.size());
+
+  MapOntoIsocontourSetFunctor<Field,StorageTag>(fieldIn,
+                                                this->InterpolationWeights,
+                                                this->InterpolationLowIds,
+                                                this->InterpolationHighIds,
+                                                fieldOut);
+}
+
+protected:
+    FieldHandleVec InterpolationWeights;
+    IdHandleVec    InterpolationLowIds;
+    IdHandleVec    InterpolationHighIds;
 };
 
 }

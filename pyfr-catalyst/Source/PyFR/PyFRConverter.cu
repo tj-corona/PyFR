@@ -120,8 +120,7 @@ void PyFRConverter::operator ()(const PyFRData* pyfrData,vtkUnstructuredGrid* gr
     solutionData[i]->SetName(fieldName[i].c_str());
     }
 
-  vtkm::cont::CellSetExplicit<> cellSet = dataSet.GetCellSet(0)
-      .template CastTo<vtkm::cont::CellSetExplicit<> >();
+  PyFRData::CellSet cellSet = dataSet.GetCellSet().CastTo(PyFRData::CellSet());
 
     vtkm::cont::ArrayHandle<vtkm::Id> connectivity =
       cellSet.GetConnectivityArray(vtkm::TopologyElementTagPoint(),
