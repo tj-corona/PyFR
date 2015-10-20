@@ -169,7 +169,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   vtkSMDoubleVectorProperty* contourValue =
     vtkSMDoubleVectorProperty::SafeDownCast(contour->
                                             GetProperty("ContourValue"));
-  contourValue->SetElements1(1.0045);
+  vtkSMPropertyHelper(contour,"ContourValue").Set(0,1.0045);
 
   contour->UpdateVTKObjects();
   contourInputConnection->SetInputConnection(0, producer, 0);
