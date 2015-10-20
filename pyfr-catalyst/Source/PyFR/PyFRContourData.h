@@ -3,6 +3,8 @@
 
 #define BOOST_SP_DISABLE_THREADS
 
+#include <vector>
+
 #include "PyFRContour.h"
 
 class PyFRContourData
@@ -13,7 +15,7 @@ public:
 
   void SetNumberOfContours(unsigned i) { this->Contours.resize(i); }
   unsigned GetNumberOfContours() const { return this->Contours.size(); }
-  const PyFRContour& GetContour(int i=0) const { return this->Contours[i]; }
+  const PyFRContour& GetContour(int i) const { return this->Contours[i]; }
 
 private:
   std::vector<PyFRContour> Contours;

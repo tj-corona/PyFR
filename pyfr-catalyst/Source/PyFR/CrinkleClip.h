@@ -185,7 +185,6 @@ public:
            const vtkm::cont::CoordinateSystem& coords,
            vtkm::cont::DataSet& output)
   {
-    DeviceAdapter device;
     IdHandle cellCount;
 
     ClassifyCell<BinaryPredicate> classifyCell(binaryOp);

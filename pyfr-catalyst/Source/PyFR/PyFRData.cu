@@ -65,27 +65,6 @@ void PyFRData::Init(void* data)
       Copy(cast, connectivity);
     }
 
-  // vtkm::cont::ArrayHandle<vtkm::UInt8> types;
-  //   {
-  //   std::vector<vtkm::UInt8> tmp(meshData->nCells,vtkm::CELL_SHAPE_HEXAHEDRON);
-  //   vtkm::cont::ArrayHandle<vtkm::UInt8> tmp2 =
-  //     vtkm::cont::make_ArrayHandle(tmp);
-  //   vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-  //     Copy(tmp2, types);
-  //   }
-
-  // vtkm::cont::ArrayHandle<vtkm::Int32> nVertices;
-  //   {
-  //   std::vector<vtkm::Int32> tmp(meshData->nCells,8);
-  //   vtkm::cont::ArrayHandle<vtkm::Int32> tmp2 =
-  //     vtkm::cont::make_ArrayHandle(tmp);
-  //   vtkm::cont::DeviceAdapterAlgorithm<VTKM_DEFAULT_DEVICE_ADAPTER_TAG>().
-  //     Copy(tmp2, nVertices);
-  //   }
-
-  // CellSet cset(meshData->nCells, "cells", 3);
-  // cset.Fill(types, nVertices, connectivity);
-
   vtkm::cont::CellSetSingleType<> cset(vtkm::CellShapeTagHexahedron(), "cells");
   cset.Fill(connectivity);
 

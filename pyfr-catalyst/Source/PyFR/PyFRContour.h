@@ -13,6 +13,9 @@ public:
   typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
   typedef vtkm::cont::ArrayHandleExposed<FPType> ScalarDataArrayHandle;
 
+  PyFRContour() {}
+  ~PyFRContour() {}
+
   Vec3ArrayHandle GetVertices() const { return this->Vertices; }
   Vec3ArrayHandle GetNormals() const { return this->Normals; }
 
@@ -26,7 +29,7 @@ private:
   ScalarDataArrayHandle Pressure;
   ScalarDataArrayHandle Velocity_u;
   ScalarDataArrayHandle Velocity_v;
-    ScalarDataArrayHandle Velocity_w;
+  ScalarDataArrayHandle Velocity_w;
 };
 
 #endif

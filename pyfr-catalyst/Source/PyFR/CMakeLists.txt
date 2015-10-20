@@ -1,6 +1,7 @@
 set(PyFR_SRCS
   PyFRContour.cu
   PyFRData.cu
+  PyFRCrinkleClipFilter.cu
   PyFRContourFilter.cu
   PyFRConverter.cu
   PyFRWriter.cu

@@ -58,11 +58,11 @@ public:
   typedef vtkm::cont::ArrayHandlePermutation<DataIndexArrayHandle,
     RawDataArrayHandle> ScalarDataArrayHandle;
 
-  // typedef vtkm::cont::CellSetExplicit<> CellSet;
   typedef vtkm::cont::CellSetSingleType<> CellSet;
 
   void Init(void* field);
 
+  vtkm::cont::DataSet& GetDataSet() { return dataSet; }
   const vtkm::cont::DataSet& GetDataSet() const { return dataSet; }
 
   void Update();
