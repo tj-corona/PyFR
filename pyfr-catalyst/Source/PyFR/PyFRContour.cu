@@ -1,18 +1,9 @@
-#include "PyFRContourData.h"
+#include "PyFRContour.h"
 
 #include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
-PyFRContourData::PyFRContourData()
-{
-}
-
-//------------------------------------------------------------------------------
-PyFRContourData::~PyFRContourData()
-{
-}
-
 //----------------------------------------------------------------------------
-PyFRContourData::ScalarDataArrayHandle PyFRContourData::GetScalarData(int i) const
+PyFRContour::ScalarDataArrayHandle PyFRContour::GetScalarData(int i) const
 {
   switch (i)
     {
@@ -32,7 +23,7 @@ PyFRContourData::ScalarDataArrayHandle PyFRContourData::GetScalarData(int i) con
 }
 
 //----------------------------------------------------------------------------
-PyFRContourData::ScalarDataArrayHandle PyFRContourData::GetScalarData(std::string s) const
+PyFRContour::ScalarDataArrayHandle PyFRContour::GetScalarData(std::string s) const
 {
   if (s == "density") return this->Density;
   if (s == "pressure") return this->Pressure;

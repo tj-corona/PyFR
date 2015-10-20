@@ -2,6 +2,7 @@
 #define VTKPYFRDATACONTOURFILTER_H
 
 #include <string>
+#include <vector>
 
 #include "vtkPyFRContourDataAlgorithm.h"
 
@@ -16,7 +17,8 @@ public:
 
   int FillInputPortInformation(int,vtkInformation*);
 
-  void SetContourValue(double value) { this->ContourValue = value; }
+  void SetNumberOfContours(int i) { this->ContourValues.resize(i); }
+  void SetContourValue(int i,double value) { this->ContourValues[i] = value; }
 
   void SetContourField(int i) { this->ContourField = i; }
 
@@ -24,7 +26,7 @@ protected:
   vtkPyFRContourFilter();
   virtual ~vtkPyFRContourFilter();
 
-  FPType ContourValue;
+  std::vector<FPType> ContourValues;
   int ContourField;
 
 private:

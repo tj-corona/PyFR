@@ -5,6 +5,7 @@
 
 #include "PyFRConverter.h"
 
+#include <vtkAppendPolyData.h>
 #include <vtkCellArray.h>
 #include <vtkCellType.h>
 #include <vtkCommand.h>
@@ -37,6 +38,7 @@
 
 #include "ArrayHandleExposed.h"
 #include "PyFRData.h"
+#include "PyFRContour.h"
 #include "PyFRContourData.h"
 
 template <typename fptype>
@@ -132,7 +134,6 @@ void PyFRConverter::operator ()(const PyFRData* pyfrData,vtkUnstructuredGrid* gr
   grid->SetPoints(points);
   for (unsigned i=0;i<5;i++)
     grid->GetPointData()->AddArray(solutionData[i]);
-  vtkIdType indices[8];
   vtkIdType counter = 0;
   while (counter < connectivity.GetNumberOfValues())
     {
@@ -144,21 +145,21 @@ void PyFRConverter::operator ()(const PyFRData* pyfrData,vtkUnstructuredGrid* gr
 }
 
 //----------------------------------------------------------------------------
-void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyData* polydata) const
+void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata) const
 {
   typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
 
   typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
 
-  if (pyfrContourData->GetVertices().GetNumberOfValues() == 0)
+  if (contour.GetVertices().GetNumberOfValues() == 0)
     {
 //    polydata->Reset();
     return;
     }
 
-  PyFRContourData::Vec3ArrayHandle verts_out;
+  PyFRContour::Vec3ArrayHandle verts_out;
   vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
-    Copy(pyfrContourData->GetVertices(),verts_out);
+    Copy(contour.GetVertices(),verts_out);
 
   vtkSmartPointer<ArrayChoice<FPType>::type> pointData =
     vtkSmartPointer<ArrayChoice<FPType>::type>::New();
@@ -173,9 +174,9 @@ void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyDa
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   points->SetData(pointData);
 
-  PyFRContourData::Vec3ArrayHandle normals_out;
+  PyFRContour::Vec3ArrayHandle normals_out;
   vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
-    Copy(pyfrContourData->GetNormals(),normals_out);
+    Copy(contour.GetNormals(),normals_out);
 
   vtkSmartPointer<ArrayChoice<FPType>::type> normalsData =
     vtkSmartPointer<ArrayChoice<FPType>::type>::New();
@@ -204,8 +205,8 @@ void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyDa
   std::string fields[5] = {"density","pressure","velocity_u","velocity_v","velocity_w"};
   for (unsigned i=0;i<5;i++)
     {
-    PyFRContourData::ScalarDataArrayHandle scalarsOut = pyfrContourData->GetScalarData(fields[i]);
-    PyFRContourData::ScalarDataArrayHandle scalarsOutHost;
+    PyFRContour::ScalarDataArrayHandle scalarsOut = contour.GetScalarData(fields[i]);
+    PyFRContour::ScalarDataArrayHandle scalarsOutHost;
     vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
       Copy(scalarsOut,scalarsOutHost);
 
@@ -221,4 +222,26 @@ void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyDa
 
     polydata->GetPointData()->AddArray(solutionData);
     }
+}
+
+//----------------------------------------------------------------------------
+void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyData* outPolyData) const
+{
+  vtkSmartPointer<vtkAppendPolyData> appendFilter =
+    vtkSmartPointer<vtkAppendPolyData>::New();
+  appendFilter->SetOutput(outPolyData);
+
+  std::vector<vtkPolyData*> polyData(pyfrContourData->GetNumberOfContours(),NULL);
+
+  for (unsigned i=0;i<pyfrContourData->GetNumberOfContours();i++)
+    {
+    polyData[i] = vtkPolyData::New();
+    this->operator()(pyfrContourData->GetContour(i),polyData[i]);
+    appendFilter->AddInputData(polyData[i]);
+    }
+
+  appendFilter->Update();
+
+  for (unsigned i=0;i<pyfrContourData->GetNumberOfContours();i++)
+    polyData[i]->Delete();
 }

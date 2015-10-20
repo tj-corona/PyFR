@@ -77,7 +77,7 @@ public:
     typedef void ControlSignature(FieldInFrom<Scalar> scalars,
                                   TopologyIn topology,
                                   FieldOut<IdVecType> numVertices);
-    typedef void ExecutionSignature(_1, _3,WorkIndex);
+    typedef void ExecutionSignature(_1, _3);
     typedef _2 InputDomain;
 
     typedef vtkm::cont::ArrayHandle<vtkm::Id> IdArrayHandle;
@@ -97,8 +97,7 @@ public:
     template<typename ScalarsVecType>
     VTKM_EXEC_EXPORT
     void operator()(const ScalarsVecType &scalars,
-                    IdVec& numVertices,
-                    const vtkm::Id inputCellId) const
+                    IdVec& numVertices) const
     {
       const vtkm::Id mask[] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 

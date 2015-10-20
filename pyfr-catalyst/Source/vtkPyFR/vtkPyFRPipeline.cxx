@@ -216,6 +216,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
 
   this->Representation =
     vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
+  this->Representation->SetRepresentationType("Surface With Edges");
   this->Representation->SetScalarColoring("pressure",0);
   this->Representation->SetScalarBarVisibility(polydataViewer,true);
 
@@ -309,6 +310,7 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
       }
     unstructuredGridWriter->UpdatePropertyInformation();
     unstructuredGridWriter->UpdateVTKObjects();
+    unstructuredGridWriter->UpdatePipeline();
     }
   vtkSMSourceProxy* polydataWriter =
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
@@ -328,6 +330,7 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
       }
     polydataWriter->UpdatePropertyInformation();
     polydataWriter->UpdateVTKObjects();
+    polydataWriter->UpdatePipeline();
     }
 
   // stay in the loop while the simulation is paused

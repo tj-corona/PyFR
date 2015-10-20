@@ -30,8 +30,7 @@ int vtkPyFRContourFilter::PyFRDataTypesRegistered =
 vtkStandardNewMacro(vtkPyFRContourFilter);
 
 //----------------------------------------------------------------------------
-vtkPyFRContourFilter::vtkPyFRContourFilter() : ContourValue(0.),
-                                               ContourField(0)
+vtkPyFRContourFilter::vtkPyFRContourFilter() : ContourField(0)
 {
 }
 
@@ -57,7 +56,8 @@ int vtkPyFRContourFilter::RequestData(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   PyFRContourFilter filter;
-  filter.SetContourValue(this->ContourValue);
+  for (unsigned i=0;i<this->ContourValues.size();i++)
+    filter.AddContourValue(this->ContourValues[i]);
   filter.SetContourField(this->ContourField);
   filter(input->GetData(),output->GetData());
 
@@ -77,5 +77,7 @@ void vtkPyFRContourFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "ContourField: " << this->ContourField << "\n";
-  os << indent << "ContourValue: " << this->ContourValue << "\n";
+  os << indent << "ContourValues: ";
+  for (unsigned i=0;i<this->ContourValues.size();i++)
+    os << this->ContourValues[i] << "\n";
 }

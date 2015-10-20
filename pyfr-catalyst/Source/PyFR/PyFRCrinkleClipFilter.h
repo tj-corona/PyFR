@@ -1,26 +1,20 @@
-#ifndef PYFRCONTOURFILTER_H
-#define PYFRCONTOURFILTER_H
+#ifndef PYFRCRINKLECLIPFILTER_H
+#define PYFRCRINKLECLIPFILTER_H
 
 #include <string>
 #include <vector>
 
-//State that the default backend for this code is CUDA
-//not serial
-// #define VTKM_DEVICE_ADAPTER VTKM_DEVICE_ADAPTER_CUDA
-//Disable treading support in our array handle
-//needed for nvcc to stop complaining.
 #define BOOST_SP_DISABLE_THREADS
 
 class PyFRData;
-class PyFRContourData;
 
-class PyFRContourFilter
+class PyFRCrinkleClipFilter
 {
 public:
-  PyFRContourFilter();
-  virtual ~PyFRContourFilter();
+  PyFRCrinkleClipFilter();
+  virtual ~PyFRCrinkleClipFilter();
 
-  void operator ()(PyFRData*,PyFRContourData*) const;
+  void operator ()(PyFRData*,PyFRData*) const;
 
   void AddContourValue(FPType value) { this->ContourValues.push_back(value); }
   void ClearContourValues()          { this->ContourValues.clear(); }

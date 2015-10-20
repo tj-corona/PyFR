@@ -7,8 +7,7 @@
 #include "PyFRContourData.h"
 
 //----------------------------------------------------------------------------
-PyFRContourFilter::PyFRContourFilter() : ContourValue(0.),
-                                         ContourField("density")
+PyFRContourFilter::PyFRContourFilter() : ContourField("density")
 {
 }
 
@@ -37,18 +36,19 @@ void PyFRContourFilter::operator()(PyFRData* input,
   PyFRData::ScalarDataArrayHandle contourArray = contourField.GetData()
     .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                        PyFRData::ScalarDataArrayHandle::StorageTag());
-  PyFRContourData::Vec3ArrayHandle vertices = output->GetVertices();
-  PyFRContourData::Vec3ArrayHandle normals = output->GetNormals();
-
-  IsosurfaceFilter isosurfaceFilter;
 
   DataVec dataVec;
-  dataVec.push_back(this->ContourValue);
   Vec3HandleVec verticesVec;
-  verticesVec.push_back(vertices);
   Vec3HandleVec normalsVec;
-  normalsVec.push_back(normals);
+  output->SetNumberOfContours(this->ContourValues.size());
+  for (unsigned i=0;i<output->GetNumberOfContours();i++)
+    {
+    dataVec.push_back(this->ContourValues[i]);
+    verticesVec.push_back(output->GetContour(i).GetVertices());
+    normalsVec.push_back(output->GetContour(i).GetNormals());
+    }
 
+  IsosurfaceFilter isosurfaceFilter;
   isosurfaceFilter.Run(dataVec,
                        dataSet.GetCellSet().CastTo(PyFRData::CellSet()),
                        dataSet.GetCoordinateSystem(),
@@ -64,17 +64,19 @@ void PyFRContourFilter::operator()(PyFRData* input,
 
   for (unsigned i=0;i<5;i++)
     {
-    PyFRContourData::ScalarDataArrayHandle scalars_out =
-      output->GetScalarData(fields[i]);
-
+    ScalarDataHandleVec scalarDataHandleVec;
+    for (unsigned j=0;j<output->GetNumberOfContours();j++)
+      {
+      PyFRContour::ScalarDataArrayHandle scalars_out =
+        output->GetContour(j).GetScalarData(fields[i]);
+      scalarDataHandleVec.push_back(scalars_out);
+      }
     vtkm::cont::Field projectedField = dataSet.GetField(fields[i]);
 
     PyFRData::ScalarDataArrayHandle projectedArray = projectedField.GetData()
       .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                          PyFRData::ScalarDataArrayHandle::StorageTag());
 
-    ScalarDataHandleVec scalarDataHandleVec;
-    scalarDataHandleVec.push_back(scalars_out);
     isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
                                              scalarDataHandleVec);
     }
