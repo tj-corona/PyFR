@@ -37,7 +37,7 @@
         </Documentation>
       </IntVectorProperty>
       <DoubleVectorProperty animateable="1"
-	  name = "ContourValues"
+	  name = "ContourValue"
 	  command="SetContourValue"
           number_of_elements_per_command="1"
           repeat_command="1"
