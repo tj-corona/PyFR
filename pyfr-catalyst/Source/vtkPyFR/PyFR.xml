@@ -45,6 +45,12 @@
           repeat_command="1"
           set_number_command="SetNumberOfContours"
           use_index="1">
+        <ArrayRangeDomain name="scalar_range">
+          <RequiredProperties>
+            <Property function="Input"
+                      name="Input" />
+          </RequiredProperties>
+        </ArrayRangeDomain>
         <Documentation>
 	  This property specifies the values at which to compute an isosurface.
 	</Documentation>
