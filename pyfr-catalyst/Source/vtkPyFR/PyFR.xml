@@ -37,13 +37,14 @@
         </Documentation>
       </IntVectorProperty>
       <DoubleVectorProperty animateable="1"
-	  name = "ContourValue"
 	  command="SetContourValue"
+	  label = "Isosurfaces"
+	  name = "ContourValues"
+	  number_of_elements="0"
           number_of_elements_per_command="1"
           repeat_command="1"
           set_number_command="SetNumberOfContours"
-          use_index="1"
-          panel_visibility="advanced">
+          use_index="1">
         <Documentation>
 	  This property specifies the values at which to compute an isosurface.
 	</Documentation>
