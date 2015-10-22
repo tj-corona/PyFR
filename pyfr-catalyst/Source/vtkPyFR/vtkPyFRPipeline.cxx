@@ -27,7 +27,7 @@
 #include <vtkSMStringVectorProperty.h>
 #include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
-
+#include <vtkSMProxyListDomain.h>
 #include "vtkPyFRData.h"
 #include "vtkPyFRCrinkleClipFilter.h"
 #include "vtkPyFRContourData.h"
@@ -161,14 +161,13 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
                                    NewProxy("filters",
                                             "PyFRCrinkleClipFilter")));
-  vtkSMInputProperty* clipInputConnection =
-    vtkSMInputProperty::SafeDownCast(clip->GetProperty("Input"));
-
+  controller->PreInitializeProxy(clip);
+  vtkSMPropertyHelper(clip, "Input").Set(producer, 0);
+  vtkSMProxyListDomain* pld = vtkSMProxyListDomain::SafeDownCast(
+	clip->GetProperty("ClipFunction")->FindDomain("vtkSMProxyListDomain"));
+  vtkSMPropertyHelper(clip, "ClipFunction").Set(pld->GetProxy(0));
   clip->UpdateVTKObjects();
-  clipInputConnection->SetInputConnection(0, producer, 0);
-  clip->UpdatePropertyInformation();
-  clip->UpdateVTKObjects();
-  controller->InitializeProxy(clip);
+  controller->PostInitializeProxy(clip);
   controller->RegisterPipelineProxy(clip,"Clip");
 
   // Add the contour filter

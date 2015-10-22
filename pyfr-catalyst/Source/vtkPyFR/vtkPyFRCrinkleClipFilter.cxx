@@ -9,7 +9,7 @@
 #include <vtkObjectFactory.h>
 #include <vtkPlane.h>
 #include <vtkSphere.h>
-
+#include <vtkNew.h>
 #include "PyFRCrinkleClipFilter.h"
 
 #include "vtkPyFRData.h"
@@ -32,14 +32,15 @@ vtkCxxSetObjectMacro(vtkPyFRCrinkleClipFilter,ClipFunction,vtkImplicitFunction);
 //----------------------------------------------------------------------------
 vtkPyFRCrinkleClipFilter::vtkPyFRCrinkleClipFilter()
 {
-  this->Plane = vtkPlane::New();
-  this->ClipFunction  = this->Plane;
+  this->ClipFunction  = NULL;
+  vtkNew<vtkPlane> defaultPlane;
+  this->SetClipFunction(defaultPlane.GetPointer());
 }
 
 //----------------------------------------------------------------------------
 vtkPyFRCrinkleClipFilter::~vtkPyFRCrinkleClipFilter()
 {
-  this->Plane->Delete();
+  this->SetClipFunction(NULL);
 }
 
 //----------------------------------------------------------------------------
@@ -74,10 +75,14 @@ int vtkPyFRCrinkleClipFilter::RequestData(
 
   vtkPlane *plane = vtkPlane::SafeDownCast(this->GetClipFunction());
   if (plane)
+    {
     filter(input->GetData(),output->GetData(),plane);
+    }
   vtkSphere *sphere = vtkSphere::SafeDownCast(this->GetClipFunction());
   if (sphere)
+    {
     filter(input->GetData(),output->GetData(),sphere);
+    }
 
   return 1;
 }
