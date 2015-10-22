@@ -8,17 +8,14 @@ struct PyFRContourFilter
 {
   void operator ()(PyFRData*,PyFRContourData*) const {}
 
-  void SetContourValue(FPType value) { this->ContourValue = value; }
+  void AddContourValue(FPType) {}
+  void ClearContourValues() {}
 
   void SetContourField(int) {}
-  void SetContourFieldToDensity()    { this->ContourField = "density"; }
-  void SetContourFieldToPressure()   { this->ContourField = "pressure"; }
-  void SetContourFieldToVelocity_u() { this->ContourField = "velocity_u"; }
-  void SetContourFieldToVelocity_v() { this->ContourField = "velocity_v"; }
-  void SetContourFieldToVelocity_w() { this->ContourField = "velocity_w"; }
-
-protected:
-  FPType ContourValue;
-  std::string ContourField;
+  void SetContourFieldToDensity() {}
+  void SetContourFieldToPressure() {}
+  void SetContourFieldToVelocity_u() {}
+  void SetContourFieldToVelocity_v() {}
+  void SetContourFieldToVelocity_w() {}
 };
 #endif

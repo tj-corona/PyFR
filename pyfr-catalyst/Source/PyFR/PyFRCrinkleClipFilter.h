@@ -14,8 +14,8 @@ public:
   PyFRCrinkleClipFilter() {}
   virtual ~PyFRCrinkleClipFilter() {}
 
-  void operator ()(PyFRData* inputData,PyFRData* outputData,vtkSphere*) const;
-  void operator ()(PyFRData* inputData,PyFRData* outputData,vtkPlane*) const;
+  void operator ()(PyFRData*,PyFRData*,vtkSphere*) const;
+  void operator ()(PyFRData*,PyFRData*,vtkPlane*) const;
 
 };
 

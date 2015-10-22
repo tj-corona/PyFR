@@ -7,7 +7,7 @@ class vtkPlane;
 
 struct PyFRCrinkleClipFilter
 {
-  void PyFRCrinkleClipFilter::operator ()(PyFRData*,PyFRData*,vtkSphere&) const {}
-  void PyFRCrinkleClipFilter::operator ()(PyFRData*,PyFRData*,vtkPlane&) const {}
+  void operator ()(PyFRData*,PyFRData*,vtkSphere*) const {}
+  void operator ()(PyFRData*,PyFRData*,vtkPlane*) const {}
 };
 #endif
