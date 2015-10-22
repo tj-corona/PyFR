@@ -88,6 +88,14 @@ int vtkPyFRCrinkleClipFilter::RequestData(
 }
 //----------------------------------------------------------------------------
 
+int vtkPyFRCrinkleClipFilter::FillInputPortInformation(
+  int vtkNotUsed(port), vtkInformation* info)
+{
+  info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRData");
+  return 1;
+}
+//----------------------------------------------------------------------------
+
 void vtkPyFRCrinkleClipFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);

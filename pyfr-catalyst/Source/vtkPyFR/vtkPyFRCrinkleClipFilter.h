@@ -23,6 +23,7 @@ public:
   void SetInputData(vtkDataObject*);
   void SetInputData(int,vtkDataObject*);
   int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
+  int FillInputPortInformation(int,vtkInformation*);
 
 protected:
   vtkImplicitFunction *ClipFunction;
