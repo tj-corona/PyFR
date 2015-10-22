@@ -8,6 +8,7 @@
 #include <vtkLiveInsituLink.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
+#include <vtkPlane.h>
 #include <vtkPVLiveRenderView.h>
 #include <vtkPVTrivialProducer.h>
 #include <vtkSmartPointer.h>
@@ -28,6 +29,7 @@
 #include <vtkSMWriterProxy.h>
 
 #include "vtkPyFRData.h"
+#include "vtkPyFRCrinkleClipFilter.h"
 #include "vtkPyFRContourData.h"
 #include "vtkPyFRContourDataConverter.h"
 #include "vtkPyFRContourFilter.h"
@@ -153,6 +155,22 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
                                       "UnstructuredGridWriter");
     }
 
+  // Add the clip filter
+  vtkSmartPointer<vtkSMSourceProxy> clip;
+  clip.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("filters",
+                                            "PyFRCrinkleClipFilter")));
+  vtkSMInputProperty* clipInputConnection =
+    vtkSMInputProperty::SafeDownCast(clip->GetProperty("Input"));
+
+  clip->UpdateVTKObjects();
+  clipInputConnection->SetInputConnection(0, producer, 0);
+  clip->UpdatePropertyInformation();
+  clip->UpdateVTKObjects();
+  controller->InitializeProxy(clip);
+  controller->RegisterPipelineProxy(clip,"Clip");
+
   // Add the contour filter
   vtkSmartPointer<vtkSMSourceProxy> contour;
   contour.TakeReference(
@@ -167,7 +185,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   vtkSMPropertyHelper(contour,"ContourValues").Set(1,1.0045);
 
   contour->UpdateVTKObjects();
-  contourInputConnection->SetInputConnection(0, producer, 0);
+  contourInputConnection->SetInputConnection(0, clip, 0);
   contour->UpdatePropertyInformation();
   contour->UpdateVTKObjects();
   controller->InitializeProxy(contour);

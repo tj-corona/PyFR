@@ -6,6 +6,7 @@
 #include "vtkPyFRDataAlgorithm.h"
 
 class vtkImplicitFunction;
+class vtkPlane;
 
 class VTK_EXPORT vtkPyFRCrinkleClipFilter : public vtkPyFRDataAlgorithm
 {
@@ -25,6 +26,7 @@ public:
 
 protected:
   vtkImplicitFunction *ClipFunction;
+  vtkPlane *Plane;
 
   vtkPyFRCrinkleClipFilter();
   virtual ~vtkPyFRCrinkleClipFilter();

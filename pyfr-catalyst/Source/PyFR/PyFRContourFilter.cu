@@ -2,6 +2,7 @@
 
 #include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
+#include "CrinkleClip.h"
 #include "IsosurfaceHexahedra.h"
 #include "PyFRData.h"
 #include "PyFRContourData.h"
@@ -31,6 +32,7 @@ void PyFRContourFilter::operator()(PyFRData* input,
     Vec3HandleVec;
   typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
   typedef std::vector<FPType> DataVec;
+  typedef vtkm::worklet::CrinkleClipTraits<typename PyFRData::CellSet>::CellSet CellSet;
 
   vtkm::cont::Field contourField = dataSet.GetField(this->ContourField);
   PyFRData::ScalarDataArrayHandle contourArray = contourField.GetData()
@@ -50,7 +52,7 @@ void PyFRContourFilter::operator()(PyFRData* input,
 
   IsosurfaceFilter isosurfaceFilter;
   isosurfaceFilter.Run(dataVec,
-                       dataSet.GetCellSet().CastTo(PyFRData::CellSet()),
+                       dataSet.GetCellSet().CastTo(CellSet()),
                        dataSet.GetCoordinateSystem(),
                        contourArray,
                        verticesVec,

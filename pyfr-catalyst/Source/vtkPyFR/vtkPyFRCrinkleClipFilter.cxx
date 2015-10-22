@@ -32,11 +32,14 @@ vtkCxxSetObjectMacro(vtkPyFRCrinkleClipFilter,ClipFunction,vtkImplicitFunction);
 //----------------------------------------------------------------------------
 vtkPyFRCrinkleClipFilter::vtkPyFRCrinkleClipFilter()
 {
+  this->Plane = vtkPlane::New();
+  this->ClipFunction  = this->Plane;
 }
 
 //----------------------------------------------------------------------------
 vtkPyFRCrinkleClipFilter::~vtkPyFRCrinkleClipFilter()
 {
+  this->Plane->Delete();
 }
 
 //----------------------------------------------------------------------------
