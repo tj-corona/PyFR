@@ -80,6 +80,7 @@ void PyFRContourFilter::operator()(PyFRData* input,
     isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
                                              scalarDataHandleVec);
     }
+
 }
 
 //----------------------------------------------------------------------------

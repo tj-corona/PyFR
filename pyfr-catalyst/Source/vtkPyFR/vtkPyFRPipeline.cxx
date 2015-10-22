@@ -163,7 +163,8 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
     vtkSMInputProperty::SafeDownCast(contour->GetProperty("Input"));
 
   vtkSMPropertyHelper(contour,"ContourField").Set(0);
-  vtkSMPropertyHelper(contour,"ContourValue").Set(0,1.0045);
+  vtkSMPropertyHelper(contour,"ContourValues").Set(0,1.0025);
+  vtkSMPropertyHelper(contour,"ContourValues").Set(1,1.0045);
 
   contour->UpdateVTKObjects();
   contourInputConnection->SetInputConnection(0, producer, 0);
@@ -210,8 +211,9 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
 
   this->Representation =
     vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
-  this->Representation->SetRepresentationType("Surface With Edges");
-  this->Representation->SetScalarColoring("pressure",0);
+  //this->Representation->SetRepresentationType("Surface With Edges");
+  //this->Representation->SetScalarColoring("pressure",0);
+  this->Representation->SetScalarColoring("density",0);
   this->Representation->SetScalarBarVisibility(polydataViewer,true);
 
   if (postFilterWrite)

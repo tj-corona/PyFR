@@ -13,7 +13,7 @@ public:
   PyFRContourData() {}
   virtual ~PyFRContourData() {}
 
-  void SetNumberOfContours(unsigned i) { this->Contours.resize(i); }
+  void SetNumberOfContours(unsigned);
   unsigned GetNumberOfContours() const { return this->Contours.size(); }
   const PyFRContour& GetContour(int i) const { return this->Contours[i]; }
 

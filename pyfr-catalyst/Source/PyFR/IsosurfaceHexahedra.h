@@ -363,7 +363,7 @@ public:
         continue;
         }
 
-      typedef vtkm::cont::ArrayHandle<Field,StorageTag> FieldHandleType;
+    typedef vtkm::cont::ArrayHandle<Field,StorageTag> FieldHandleType;
       typedef vtkm::cont::ArrayHandlePermutation<IdHandle,
         FieldHandleType> FieldPermutationHandleType;
 
@@ -615,10 +615,30 @@ public:
            std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > >& normals)
   {
     IsovalueCount nIsovalues = isovalues.size();
+    // NB: Cannot call resize to increase the lengths of vectors of array
+    // handles! You will end up with a vector of smart pointers to the same
+    // array instance. A specialization of std::allocator<> for array handles
+    // should be created.
+    typedef vtkm::cont::ArrayHandle<FieldType> FieldHandle;
+    for (unsigned iso=this->InterpolationWeights.size();iso<nIsovalues;iso++)
+      {
+      this->InterpolationWeights.push_back(FieldHandle());
+      this->InterpolationLowIds.push_back(IdHandle());
+      this->InterpolationHighIds.push_back(IdHandle());
+      }
+    // now that the vectors are guaranteed to be at least as long as we require,
+    // we can use resize to shrink them
     this->InterpolationWeights.resize(nIsovalues);
     this->InterpolationLowIds.resize(nIsovalues);
     this->InterpolationHighIds.resize(nIsovalues);
+
+    typedef vtkm::cont::ArrayHandle<vtkm::Vec<CoordinateType,3> > CoordHandle;
+    for (unsigned iso=vertices.size();iso<nIsovalues;iso++)
+      vertices.push_back(CoordHandle());
     vertices.resize(nIsovalues);
+
+    for (unsigned iso=normals.size();iso<nIsovalues;iso++)
+      normals.push_back(CoordHandle());
     normals.resize(nIsovalues);
 
     RunOverIsocontourSetFunctor<CellSetType,StorageTag,
@@ -638,7 +658,14 @@ public:
                                std::vector<vtkm::cont::ArrayHandle< Field > >& fieldOut)
 {
   IsovalueCount nIsovalues = InterpolationWeights.size();
-  fieldOut.resize(InterpolationWeights.size());
+  // NB: Cannot call resize to increase the lengths of vectors of array
+  // handles! You will end up with a vector of smart pointers to the same
+  // array instance. A specialization of std::allocator<> for array handles
+  // should be created.
+  typedef vtkm::cont::ArrayHandle<Field> FieldHandle;
+  for (unsigned iso=fieldOut.size();iso<nIsovalues;iso++)
+    fieldOut.push_back(FieldHandle());
+  fieldOut.resize(nIsovalues);
 
   MapOntoIsocontourSetFunctor<Field,StorageTag>(fieldIn,
                                                 this->InterpolationWeights,
