@@ -25,9 +25,12 @@ public:
   int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
   int FillInputPortInformation(int,vtkInformation*);
 
+  unsigned long GetMTime();
+
 protected:
   vtkImplicitFunction *ClipFunction;
   vtkPlane *Plane;
+  unsigned long LastExecuteTime;
 
   vtkPyFRCrinkleClipFilter();
   virtual ~vtkPyFRCrinkleClipFilter();

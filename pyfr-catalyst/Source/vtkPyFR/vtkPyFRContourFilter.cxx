@@ -57,7 +57,9 @@ int vtkPyFRContourFilter::RequestData(
 
   PyFRContourFilter filter;
   for (unsigned i=0;i<this->ContourValues.size();i++)
+    {
     filter.AddContourValue(this->ContourValues[i]);
+    }
   filter.SetContourField(this->ContourField);
   filter(input->GetData(),output->GetData());
 
@@ -70,6 +72,32 @@ int vtkPyFRContourFilter::FillInputPortInformation(
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRData");
   return 1;
+}
+//----------------------------------------------------------------------------
+
+void vtkPyFRContourFilter::SetNumberOfContours(int i)
+{
+  this->ContourValues.resize(i);
+}
+//----------------------------------------------------------------------------
+
+void vtkPyFRContourFilter::SetContourValue(int i,double value)
+{
+  if (i < this->ContourValues.size() && this->ContourValues[i] != value)
+    {
+    this->ContourValues[i] = value;
+    this->Modified();
+    }
+}
+//----------------------------------------------------------------------------
+
+void vtkPyFRContourFilter::SetContourField(int i)
+{
+  if (this->ContourField != i)
+    {
+    this->ContourField = i;
+    this->Modified();
+    }
 }
 //----------------------------------------------------------------------------
 

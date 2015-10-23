@@ -70,6 +70,7 @@ void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,PyFRData* outputData
 
   const vtkm::cont::DataSet& input = inputData->GetDataSet();
   vtkm::cont::DataSet& output = outputData->GetDataSet();
+  output.Clear();
 
   CoordinateArrayHandle coords = input.GetCoordinateSystem().GetData()
     .CastToArrayHandle(CoordinateArrayHandle::ValueType(),

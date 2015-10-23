@@ -17,10 +17,10 @@ public:
 
   int FillInputPortInformation(int,vtkInformation*);
 
-  void SetNumberOfContours(int i) { this->ContourValues.resize(i); }
-  void SetContourValue(int i,double value) { this->ContourValues[i] = value; }
+  void SetNumberOfContours(int i);
+  void SetContourValue(int i,double value);
 
-  void SetContourField(int i) { this->ContourField = i; }
+  void SetContourField(int i);
 
 protected:
   vtkPyFRContourFilter();

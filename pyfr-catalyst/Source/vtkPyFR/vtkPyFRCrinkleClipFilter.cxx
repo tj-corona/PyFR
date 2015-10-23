@@ -30,7 +30,7 @@ vtkStandardNewMacro(vtkPyFRCrinkleClipFilter);
 vtkCxxSetObjectMacro(vtkPyFRCrinkleClipFilter,ClipFunction,vtkImplicitFunction);
 
 //----------------------------------------------------------------------------
-vtkPyFRCrinkleClipFilter::vtkPyFRCrinkleClipFilter()
+vtkPyFRCrinkleClipFilter::vtkPyFRCrinkleClipFilter() : LastExecuteTime(0)
 {
   this->ClipFunction  = NULL;
   vtkNew<vtkPlane> defaultPlane;
@@ -76,12 +76,20 @@ int vtkPyFRCrinkleClipFilter::RequestData(
   vtkPlane *plane = vtkPlane::SafeDownCast(this->GetClipFunction());
   if (plane)
     {
-    filter(input->GetData(),output->GetData(),plane);
+    if (plane->GetMTime() > this->LastExecuteTime)
+      {
+      this->LastExecuteTime = this->GetMTime();
+      filter(input->GetData(),output->GetData(),plane);
+      }
     }
   vtkSphere *sphere = vtkSphere::SafeDownCast(this->GetClipFunction());
   if (sphere)
     {
-    filter(input->GetData(),output->GetData(),sphere);
+    if (sphere->GetMTime() > this->LastExecuteTime)
+      {
+      this->LastExecuteTime = this->GetMTime();
+      filter(input->GetData(),output->GetData(),sphere);
+      }
     }
 
   return 1;
@@ -95,6 +103,23 @@ int vtkPyFRCrinkleClipFilter::FillInputPortInformation(
   return 1;
 }
 //----------------------------------------------------------------------------
+
+// Overload standard modified time function. If the implicit clip function is
+// modified, then this object is modified as well.
+unsigned long vtkPyFRCrinkleClipFilter::GetMTime()
+{
+  unsigned long mTime=this->Superclass::GetMTime();
+  unsigned long time;
+
+  if (this->ClipFunction)
+    {
+    time = this->ClipFunction->GetMTime();
+    mTime = ( time > mTime ? time : mTime );
+    }
+
+  return mTime;
+}
+//-----------------------------------------------------------------------------
 
 void vtkPyFRCrinkleClipFilter::PrintSelf(ostream& os, vtkIndent indent)
 {

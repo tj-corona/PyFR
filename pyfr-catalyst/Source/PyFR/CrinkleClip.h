@@ -87,14 +87,13 @@ public:
                     vtkm::Id count,
                     vtkm::Id& validCell) const
     {
-      validCell = false;
+      validCell = 0;
 
       for (vtkm::IdComponent i = 0; i < count; ++i)
         {
         if (this->BinaryOp(field[i],clipField[i]))
           {
-          validCell = true;
-          break;
+          validCell = 1;
           }
         }
     }

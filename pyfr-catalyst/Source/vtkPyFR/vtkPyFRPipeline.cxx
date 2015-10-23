@@ -179,13 +179,11 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   vtkSMInputProperty* contourInputConnection =
     vtkSMInputProperty::SafeDownCast(contour->GetProperty("Input"));
 
+  vtkSMPropertyHelper(contour, "Input").Set(clip, 0);
   vtkSMPropertyHelper(contour,"ContourField").Set(0);
   vtkSMPropertyHelper(contour,"ContourValues").Set(0,1.0025);
   vtkSMPropertyHelper(contour,"ContourValues").Set(1,1.0045);
 
-  contour->UpdateVTKObjects();
-  contourInputConnection->SetInputConnection(0, clip, 0);
-  contour->UpdatePropertyInformation();
   contour->UpdateVTKObjects();
   controller->InitializeProxy(contour);
   controller->RegisterPipelineProxy(contour,"Contour");
