@@ -166,6 +166,12 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   vtkSMProxyListDomain* pld = vtkSMProxyListDomain::SafeDownCast(
 	clip->GetProperty("ClipFunction")->FindDomain("vtkSMProxyListDomain"));
   vtkSMPropertyHelper(clip, "ClipFunction").Set(pld->GetProxy(0));
+  vtkSMPropertyHelper(pld->GetProxy(0),"Origin").Set(0,0.);
+  vtkSMPropertyHelper(pld->GetProxy(0),"Origin").Set(1,0.);
+  vtkSMPropertyHelper(pld->GetProxy(0),"Origin").Set(2,0.);
+  vtkSMPropertyHelper(pld->GetProxy(0),"Normal").Set(0,0.);
+  vtkSMPropertyHelper(pld->GetProxy(0),"Normal").Set(1,0.);
+  vtkSMPropertyHelper(pld->GetProxy(0),"Normal").Set(2,1.);
   clip->UpdateVTKObjects();
   controller->PostInitializeProxy(clip);
   controller->RegisterPipelineProxy(clip,"Clip");

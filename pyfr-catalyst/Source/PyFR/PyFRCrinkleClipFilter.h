@@ -5,7 +5,6 @@
 
 class PyFRData;
 
-class vtkSphere;
 class vtkPlane;
 
 class PyFRCrinkleClipFilter
@@ -14,7 +13,6 @@ public:
   PyFRCrinkleClipFilter() {}
   virtual ~PyFRCrinkleClipFilter() {}
 
-  void operator ()(PyFRData*,PyFRData*,vtkSphere*) const;
   void operator ()(PyFRData*,PyFRData*,vtkPlane*) const;
 
 };

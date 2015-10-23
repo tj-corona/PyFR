@@ -18,8 +18,6 @@ public:
   virtual void SetClipFunction(vtkImplicitFunction*);
   vtkGetObjectMacro(ClipFunction,vtkImplicitFunction);
 
-  void InsideOut(bool) {}
-
   void SetInputData(vtkDataObject*);
   void SetInputData(int,vtkDataObject*);
   int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
@@ -29,7 +27,6 @@ public:
 
 protected:
   vtkImplicitFunction *ClipFunction;
-  vtkPlane *Plane;
   unsigned long LastExecuteTime;
 
   vtkPyFRCrinkleClipFilter();

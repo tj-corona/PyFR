@@ -8,7 +8,6 @@
 #include <vtkInstantiator.h>
 #include <vtkObjectFactory.h>
 #include <vtkPlane.h>
-#include <vtkSphere.h>
 #include <vtkNew.h>
 #include "PyFRCrinkleClipFilter.h"
 
@@ -33,8 +32,6 @@ vtkCxxSetObjectMacro(vtkPyFRCrinkleClipFilter,ClipFunction,vtkImplicitFunction);
 vtkPyFRCrinkleClipFilter::vtkPyFRCrinkleClipFilter() : LastExecuteTime(0)
 {
   this->ClipFunction  = NULL;
-  vtkNew<vtkPlane> defaultPlane;
-  this->SetClipFunction(defaultPlane.GetPointer());
 }
 
 //----------------------------------------------------------------------------
@@ -80,15 +77,6 @@ int vtkPyFRCrinkleClipFilter::RequestData(
       {
       this->LastExecuteTime = this->GetMTime();
       filter(input->GetData(),output->GetData(),plane);
-      }
-    }
-  vtkSphere *sphere = vtkSphere::SafeDownCast(this->GetClipFunction());
-  if (sphere)
-    {
-    if (sphere->GetMTime() > this->LastExecuteTime)
-      {
-      this->LastExecuteTime = this->GetMTime();
-      filter(input->GetData(),output->GetData(),sphere);
       }
     }
 

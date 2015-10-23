@@ -88,8 +88,6 @@
         <ProxyListDomain name="proxy_list">
           <Proxy group="implicit_functions"
                  name="Plane" />
-          <Proxy group="implicit_functions"
-                 name="Sphere" />
         </ProxyListDomain>
         <Documentation>This property specifies the parameters of the clip
         function (an implicit plane) used to clip the dataset.</Documentation>
