@@ -76,10 +76,6 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   this->InsituLink->SetHostname(hostName);
   this->InsituLink->SetInsituPort(port);
 
-  // Initialize the "link"
-  this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->
-                                     GetActiveSessionProxyManager());
-
   // Grab the data object from the data description
   vtkPyFRData* pyfrData =
     vtkPyFRData::SafeDownCast(dataDescription->
@@ -258,6 +254,10 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
     controller->InitializeProxy(polydataWriter);
     controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
     }
+
+  // Initialize the "link"
+  this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->
+                                     GetActiveSessionProxyManager());
 }
 
 //----------------------------------------------------------------------------
