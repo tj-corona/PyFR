@@ -163,15 +163,6 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
                                             "PyFRCrinkleClipFilter")));
   controller->PreInitializeProxy(clip);
   vtkSMPropertyHelper(clip, "Input").Set(producer, 0);
-  vtkSMProxyListDomain* pld = vtkSMProxyListDomain::SafeDownCast(
-	clip->GetProperty("ClipFunction")->FindDomain("vtkSMProxyListDomain"));
-  vtkSMPropertyHelper(clip, "ClipFunction").Set(pld->GetProxy(0));
-  vtkSMPropertyHelper(pld->GetProxy(0),"Origin").Set(0,0.);
-  vtkSMPropertyHelper(pld->GetProxy(0),"Origin").Set(1,0.);
-  vtkSMPropertyHelper(pld->GetProxy(0),"Origin").Set(2,0.);
-  vtkSMPropertyHelper(pld->GetProxy(0),"Normal").Set(0,0.);
-  vtkSMPropertyHelper(pld->GetProxy(0),"Normal").Set(1,0.);
-  vtkSMPropertyHelper(pld->GetProxy(0),"Normal").Set(2,1.);
   clip->UpdateVTKObjects();
   controller->PostInitializeProxy(clip);
   controller->RegisterPipelineProxy(clip,"Clip");

@@ -15,19 +15,27 @@ public:
   static vtkPyFRCrinkleClipFilter* New();
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
-  virtual void SetClipFunction(vtkImplicitFunction*);
-  vtkGetObjectMacro(ClipFunction,vtkImplicitFunction);
-
   void SetInputData(vtkDataObject*);
   void SetInputData(int,vtkDataObject*);
   int RequestData(vtkInformation*,vtkInformationVector**,vtkInformationVector*);
   int FillInputPortInformation(int,vtkInformation*);
 
-  unsigned long GetMTime();
+  // Description:
+  // Set/get plane normal. Plane is defined by point and normal.
+  vtkSetVector3Macro(Normal,double);
+  vtkGetVectorMacro(Normal,double,3);
+
+  // Description:
+  // Set/get point through which plane passes. Plane is defined by point
+  // and normal.
+  vtkSetVector3Macro(Origin,double);
+  vtkGetVectorMacro(Origin,double,3);
 
 protected:
-  vtkImplicitFunction *ClipFunction;
   unsigned long LastExecuteTime;
+
+  FPType Normal[3];
+  FPType Origin[3];
 
   vtkPyFRCrinkleClipFilter();
   virtual ~vtkPyFRCrinkleClipFilter();

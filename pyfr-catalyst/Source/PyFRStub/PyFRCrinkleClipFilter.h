@@ -2,10 +2,9 @@
 #define PYFRCRINKLECLIPFILTER_H
 
 class PyFRData;
-class vtkPlane;
 
 struct PyFRCrinkleClipFilter
 {
-  void operator ()(PyFRData*,PyFRData*,vtkPlane*) const {}
+  void operator ()(PyFRData*,PyFRData*,const FPType*,const FPType*) const {}
 };
 #endif

@@ -79,43 +79,25 @@
           <DataType value="PyFRData"/>
         </DataTypeDomain>
       </InputProperty>
-      <ProxyProperty command="SetClipFunction"
-                     label="Clip Type"
-                     name="ClipFunction">
-        <ProxyGroupDomain name="groups">
-          <Group name="implicit_functions" />
-        </ProxyGroupDomain>
-        <ProxyListDomain name="proxy_list">
-          <Proxy group="implicit_functions"
-                 name="Plane" />
-        </ProxyListDomain>
-        <Documentation>This property specifies the parameters of the clip
-        function (an implicit plane) used to clip the dataset.</Documentation>
-      </ProxyProperty>
-      <DoubleVectorProperty information_only="1"
-                            name="InputBounds">
-        <BoundsDomain name="bounds">
+      <DoubleVectorProperty command="SetOrigin"
+                            default_values="0.0 0.0 0.0"
+                            name="Origin"
+                            number_of_elements="3">
+        <BoundsDomain default_mode="mid"
+                      mode="normal"
+                      name="range">
           <RequiredProperties>
             <Property function="Input"
                       name="Input" />
           </RequiredProperties>
         </BoundsDomain>
       </DoubleVectorProperty>
-<!--
-      <IntVectorProperty command="SetInsideOut"
-                         default_values="0"
-                         name="InsideOut"
-                         number_of_elements="1">
-        <BooleanDomain name="bool" />
-        <Documentation>If this property is set to 0, the clip filter will
-        return that portion of the dataset that lies within the clip function.
-        If set to 1, the portions of the dataset that lie outside the clip
-        function will be returned instead.</Documentation>
-      </IntVectorProperty>
-      <Hints>
-        <Visibility replace_input="2" />
-      </Hints>
--->
+      <DoubleVectorProperty command="SetNormal"
+                            default_values="0.0 0.0 1.0"
+                            name="Normal"
+                            number_of_elements="3">
+        <DoubleRangeDomain name="range" />
+      </DoubleVectorProperty>
     </SourceProxy>
 
     <!-- ==================================================================== -->

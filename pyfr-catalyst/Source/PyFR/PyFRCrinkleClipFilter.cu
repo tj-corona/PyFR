@@ -7,12 +7,10 @@
 #include <vtkm/ImplicitFunctions.h>
 #include <vtkm/cont/cuda/DeviceAdapterCuda.h>
 
-#include <vtkPlane.h>
-
 #include "CrinkleClip.h"
 #include "PyFRData.h"
 
-void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,PyFRData* outputData,vtkPlane* plane) const
+void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,PyFRData* outputData,const FPType* origin,const FPType* normal) const
 {
   typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
   typedef vtkm::worklet::CrinkleClip<CudaTag> CrinkleClip;
@@ -20,12 +18,12 @@ void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,PyFRData* outputData
   typedef vtkm::ListTagBase<PyFRData::CellSet> CellSetTag;
   typedef vtkm::Plane ImplicitFunction;
 
-  ImplicitFunction func(vtkm::Vec<FPType,3>(plane->GetOrigin()[0],
-                                            plane->GetOrigin()[1],
-                                            plane->GetOrigin()[2]),
-                        vtkm::Vec<FPType,3>(plane->GetNormal()[0],
-                                            plane->GetNormal()[1],
-                                            plane->GetNormal()[2]));
+  ImplicitFunction func(vtkm::Vec<FPType,3>(origin[0],
+                                            origin[1],
+                                            origin[2]),
+                        vtkm::Vec<FPType,3>(normal[0],
+                                            normal[1],
+                                            normal[2]));
 
   const vtkm::cont::DataSet& input = inputData->GetDataSet();
   vtkm::cont::DataSet& output = outputData->GetDataSet();

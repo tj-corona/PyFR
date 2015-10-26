@@ -26,18 +26,15 @@ int vtkPyFRCrinkleClipFilter::PyFRDataTypeRegistered =
 
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkPyFRCrinkleClipFilter);
-vtkCxxSetObjectMacro(vtkPyFRCrinkleClipFilter,ClipFunction,vtkImplicitFunction);
 
 //----------------------------------------------------------------------------
 vtkPyFRCrinkleClipFilter::vtkPyFRCrinkleClipFilter() : LastExecuteTime(0)
 {
-  this->ClipFunction  = NULL;
 }
 
 //----------------------------------------------------------------------------
 vtkPyFRCrinkleClipFilter::~vtkPyFRCrinkleClipFilter()
 {
-  this->SetClipFunction(NULL);
 }
 
 //----------------------------------------------------------------------------
@@ -68,16 +65,11 @@ int vtkPyFRCrinkleClipFilter::RequestData(
   vtkPyFRData *output = vtkPyFRData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  PyFRCrinkleClipFilter filter;
-
-  vtkPlane *plane = vtkPlane::SafeDownCast(this->GetClipFunction());
-  if (plane)
+  if (this->GetMTime() > this->LastExecuteTime)
     {
-    if (plane->GetMTime() > this->LastExecuteTime)
-      {
-      this->LastExecuteTime = this->GetMTime();
-      filter(input->GetData(),output->GetData(),plane);
-      }
+    this->LastExecuteTime = this->GetMTime();
+    PyFRCrinkleClipFilter filter;
+    filter(input->GetData(),output->GetData(),this->Origin,this->Normal);
     }
 
   return 1;
@@ -89,23 +81,6 @@ int vtkPyFRCrinkleClipFilter::FillInputPortInformation(
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRData");
   return 1;
-}
-//----------------------------------------------------------------------------
-
-// Overload standard modified time function. If the implicit clip function is
-// modified, then this object is modified as well.
-unsigned long vtkPyFRCrinkleClipFilter::GetMTime()
-{
-  unsigned long mTime=this->Superclass::GetMTime();
-  unsigned long time;
-
-  if (this->ClipFunction)
-    {
-    time = this->ClipFunction->GetMTime();
-    mTime = ( time > mTime ? time : mTime );
-    }
-
-  return mTime;
 }
 //-----------------------------------------------------------------------------
 
