@@ -13,5 +13,6 @@ struct PyFRParallelSliceFilter
   void SetNumberOfPlanes(unsigned) {}
 
   void operator ()(PyFRData*,PyFRContourData*) const {}
+  void MapFieldOntoSlices(int,PyFRData*,PyFRContourData*) {}
 };
 #endif
