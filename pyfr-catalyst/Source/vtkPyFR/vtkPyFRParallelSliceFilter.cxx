@@ -35,8 +35,8 @@ vtkPyFRParallelSliceFilter::vtkPyFRParallelSliceFilter() : Spacing(1.),
                                                            LastExecuteTime(0)
 {
   this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.;
-  this->Normal[0] = this->Normal[1] = 0.;
-  this->Normal[2] = 1.;
+  this->Normal[1] = this->Normal[2] = 0.;
+  this->Normal[0] = 1.;
   this->Filter = new PyFRParallelSliceFilter();
 }
 
