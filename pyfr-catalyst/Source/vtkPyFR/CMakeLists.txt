@@ -7,6 +7,7 @@ set(vtkPyFR_SRCS
   vtkPyFRContourFilter.cxx
   vtkPyFRCrinkleClipFilter.cxx
   vtkPyFRDataConverter.cxx
+  vtkPyFRParallelSliceFilter.cxx
   vtkXMLPyFRContourDataWriter.cxx
   vtkXMLPyFRDataWriter.cxx
   )

@@ -1,4 +1,4 @@
-#include "vtkPyFRContourFilter.h"
+#include "vtkPyFRParallelSliceFilter.h"
 
 #include <vtkDataObject.h>
 #include <vtkDataObjectTypes.h>
@@ -7,13 +7,13 @@
 #include <vtkInstantiator.h>
 #include <vtkObjectFactory.h>
 
-#include "PyFRContourFilter.h"
+#include "PyFRParallelSliceFilter.h"
 
 #include "vtkPyFRData.h"
 #include "vtkPyFRContourData.h"
 
 //----------------------------------------------------------------------------
-int vtkPyFRContourFilter::RegisterPyFRDataTypes()
+int vtkPyFRParallelSliceFilter::RegisterPyFRDataTypes()
 {
   vtkInstantiator::RegisterInstantiator("vtkPyFRData",
                                         &New_vtkPyFRData);
@@ -23,24 +23,28 @@ int vtkPyFRContourFilter::RegisterPyFRDataTypes()
   return 1;
 }
 
-int vtkPyFRContourFilter::PyFRDataTypesRegistered =
-  vtkPyFRContourFilter::RegisterPyFRDataTypes();
+int vtkPyFRParallelSliceFilter::PyFRDataTypesRegistered =
+  vtkPyFRParallelSliceFilter::RegisterPyFRDataTypes();
 
 //----------------------------------------------------------------------------
-vtkStandardNewMacro(vtkPyFRContourFilter);
+vtkStandardNewMacro(vtkPyFRParallelSliceFilter);
 
 //----------------------------------------------------------------------------
-vtkPyFRContourFilter::vtkPyFRContourFilter() : ContourField(0)
+vtkPyFRParallelSliceFilter::vtkPyFRParallelSliceFilter() : Spacing(1.),
+                                                           NumberOfPlanes(1)
+{
+  this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.;
+  this->Normal[0] = this->Normal[1] = 0.;
+  this->Normal[2] = 1.;
+}
+
+//----------------------------------------------------------------------------
+vtkPyFRParallelSliceFilter::~vtkPyFRParallelSliceFilter()
 {
 }
 
 //----------------------------------------------------------------------------
-vtkPyFRContourFilter::~vtkPyFRContourFilter()
-{
-}
-
-//----------------------------------------------------------------------------
-int vtkPyFRContourFilter::RequestData(
+int vtkPyFRParallelSliceFilter::RequestData(
   vtkInformation*,
   vtkInformationVector** inputVector,
   vtkInformationVector* outputVector)
@@ -55,19 +59,17 @@ int vtkPyFRContourFilter::RequestData(
   vtkPyFRContourData *output = vtkPyFRContourData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  PyFRContourFilter filter;
-  for (unsigned i=0;i<this->ContourValues.size();i++)
-    {
-    filter.AddContourValue(this->ContourValues[i]);
-    }
-  filter.SetContourField(this->ContourField);
+  PyFRParallelSliceFilter filter;
+  filter.SetPlane(this->Origin,this->Normal);
+  filter.SetSpacing(this->Spacing);
+  filter.SetNumberOfPlanes(this->NumberOfPlanes);
   filter(input->GetData(),output->GetData());
 
   return 1;
 }
 //----------------------------------------------------------------------------
 
-int vtkPyFRContourFilter::FillInputPortInformation(
+int vtkPyFRParallelSliceFilter::FillInputPortInformation(
   int vtkNotUsed(port), vtkInformation* info)
 {
   info->Set(vtkAlgorithm::INPUT_REQUIRED_DATA_TYPE(), "vtkPyFRData");
@@ -75,38 +77,7 @@ int vtkPyFRContourFilter::FillInputPortInformation(
 }
 //----------------------------------------------------------------------------
 
-void vtkPyFRContourFilter::SetNumberOfContours(int i)
-{
-  this->ContourValues.resize(i);
-  this->Modified();
-}
-//----------------------------------------------------------------------------
-
-void vtkPyFRContourFilter::SetContourValue(int i,double value)
-{
-  if (i < this->ContourValues.size() && this->ContourValues[i] != value)
-    {
-    this->ContourValues[i] = value;
-    this->Modified();
-    }
-}
-//----------------------------------------------------------------------------
-
-void vtkPyFRContourFilter::SetContourField(int i)
-{
-  if (this->ContourField != i)
-    {
-    this->ContourField = i;
-    this->Modified();
-    }
-}
-//----------------------------------------------------------------------------
-
-void vtkPyFRContourFilter::PrintSelf(ostream& os, vtkIndent indent)
+void vtkPyFRParallelSliceFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
-  os << indent << "ContourField: " << this->ContourField << "\n";
-  os << indent << "ContourValues: ";
-  for (unsigned i=0;i<this->ContourValues.size();i++)
-    os << this->ContourValues[i] << "\n";
 }

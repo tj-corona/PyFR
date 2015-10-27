@@ -5,6 +5,7 @@ set(PyFR_SRCS
   PyFRCrinkleClipFilter.cu
   PyFRContourFilter.cu
   PyFRConverter.cu
+  PyFRParallelSliceFilter.cu
   PyFRWriter.cu
 )
 

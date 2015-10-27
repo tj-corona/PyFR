@@ -33,6 +33,7 @@
 #include "vtkPyFRContourData.h"
 #include "vtkPyFRContourDataConverter.h"
 #include "vtkPyFRContourFilter.h"
+#include "vtkPyFRParallelSliceFilter.h"
 #include "vtkXMLPyFRDataWriter.h"
 #include "vtkXMLPyFRContourDataWriter.h"
 
@@ -163,6 +164,36 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   controller->PostInitializeProxy(clip);
   controller->RegisterPipelineProxy(clip,"Clip");
 
+  // Add the slice filter
+  vtkSmartPointer<vtkSMSourceProxy> slice;
+  slice.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("filters",
+                                            "PyFRParallelSliceFilter")));
+  controller->PreInitializeProxy(slice);
+  vtkSMPropertyHelper(slice, "Input").Set(clip, 0);
+  slice->UpdateVTKObjects();
+  controller->PostInitializeProxy(slice);
+  controller->RegisterPipelineProxy(slice,"Slice");
+
+  // Create a converter to convert the pyfr slice data into polydata
+  vtkSmartPointer<vtkSMSourceProxy> pyfrSliceDataConverter;
+  pyfrSliceDataConverter.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("filters",
+                                            "PyFRContourDataConverter")));
+  vtkSMInputProperty* pyfrSliceDataConverterInputConnection =
+    vtkSMInputProperty::SafeDownCast(pyfrSliceDataConverter->
+                                     GetProperty("Input"));
+
+  producer->UpdateVTKObjects();
+  pyfrSliceDataConverterInputConnection->SetInputConnection(0, slice, 0);
+  pyfrSliceDataConverter->UpdatePropertyInformation();
+  pyfrSliceDataConverter->UpdateVTKObjects();
+  controller->InitializeProxy(pyfrSliceDataConverter);
+  controller->RegisterPipelineProxy(pyfrSliceDataConverter,
+                                    "ConvertSlicesToPolyData");
+
   // Add the contour filter
   vtkSmartPointer<vtkSMSourceProxy> contour;
   contour.TakeReference(
@@ -186,7 +217,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
     vtkPyFRContourFilter::SafeDownCast(clientSideContourBase);
   this->OutputData = vtkPyFRContourData::SafeDownCast(realContour->GetOutput());
 
-  // Create a convertor to convert the pyfr contour data into polydata
+  // Create a converter to convert the pyfr contour data into polydata
   vtkSmartPointer<vtkSMSourceProxy> pyfrContourDataConverter;
   pyfrContourDataConverter.TakeReference(
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
@@ -212,7 +243,17 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   controller->InitializeProxy(polydataViewer);
   controller->RegisterViewProxy(polydataViewer);
 
-  // Show the result.
+  // Show the results.
+    {
+    vtkSMProxy* representationBase =
+      controller->Show(vtkSMSourceProxy::SafeDownCast(pyfrSliceDataConverter),0,
+                       vtkSMViewProxy::SafeDownCast(polydataViewer));
+    vtkSMPVRepresentationProxy* representation =
+      vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
+
+    representation->SetScalarColoring("pressure",0);
+    }
+
   vtkSMProxy* representationBase = controller->
     Show(vtkSMSourceProxy::SafeDownCast(pyfrContourDataConverter), 0,
          vtkSMViewProxy::SafeDownCast(polydataViewer));
@@ -220,8 +261,8 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   this->Representation =
     vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
   //this->Representation->SetRepresentationType("Surface With Edges");
-  //this->Representation->SetScalarColoring("pressure",0);
-  this->Representation->SetScalarColoring("density",0);
+  this->Representation->SetScalarColoring("pressure",0);
+  // this->Representation->SetScalarColoring("density",0);
   this->Representation->SetScalarBarVisibility(polydataViewer,true);
 
   if (postFilterWrite)

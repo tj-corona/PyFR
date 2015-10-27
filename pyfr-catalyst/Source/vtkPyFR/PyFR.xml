@@ -99,7 +99,68 @@
         <DoubleRangeDomain name="range" />
       </DoubleVectorProperty>
     </SourceProxy>
-
+    <!-- ==================================================================== -->
+    <SourceProxy name="PyFRParallelSliceFilter"
+		 class="vtkPyFRParallelSliceFilter" label="Slice PyFR Data">
+      <Documentation long_help="Slice PyFR data with parallel planes."
+                     short_help="Slice PyFR data.">
+	The ParallelSlicePyFRData filter slices PyFR data with
+	parallel planes. The filter uses vtk-m to generate the
+	isosurface entirely on the GPU, eliminating the need for
+	PyFR's field data to be transferred to the host.
+      </Documentation>
+      <InputProperty
+          name="Input"
+          command="SetInputConnection">
+        <ProxyGroupDomain name="groups">
+          <Group name="sources"/>
+          <Group name="filters"/>
+        </ProxyGroupDomain>
+        <DataTypeDomain name="input_type">
+          <DataType value="PyFRData"/>
+        </DataTypeDomain>
+      </InputProperty>
+      <IntVectorProperty
+          name="NumberOfPlanes"
+          command="SetNumberOfPlanes"
+          number_of_elements="1"
+          default_values="1">
+        <IntRangeDomain name="range" />
+        <Documentation>
+          This property indicates how many parallel planes will be
+	  used to slice the dataset.
+        </Documentation>
+      </IntVectorProperty>
+      <DoubleVectorProperty
+          name="Spacing"
+          command="SetSpacing"
+          number_of_elements="1"
+          default_values="1">
+        <DoubleRangeDomain name="range" />
+        <Documentation>
+          This property determines the spacing between parallel slice planes.
+        </Documentation>
+      </DoubleVectorProperty>
+      <DoubleVectorProperty command="SetOrigin"
+                            default_values="0.0 0.0 0.0"
+                            name="Origin"
+                            number_of_elements="3">
+        <BoundsDomain default_mode="mid"
+                      mode="normal"
+                      name="range">
+          <RequiredProperties>
+            <Property function="Input"
+                      name="Input" />
+          </RequiredProperties>
+        </BoundsDomain>
+      </DoubleVectorProperty>
+      <DoubleVectorProperty command="SetNormal"
+                            default_values="0.0 0.0 1.0"
+                            name="Normal"
+                            number_of_elements="3">
+        <DoubleRangeDomain name="range" />
+      </DoubleVectorProperty>
+    </SourceProxy>
     <!-- ==================================================================== -->
     <SourceProxy name="PyFRDataConverter"
 		 class="vtkPyFRDataConverter" label="Convert PyFR Data">
