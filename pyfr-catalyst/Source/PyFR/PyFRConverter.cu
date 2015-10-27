@@ -213,8 +213,7 @@ void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata
                          0, // give VTK control of the data
                          0);// delete using "free"
   solutionData->SetNumberOfComponents(1);
-  solutionData->SetName(PyFRData::FieldName(contour.GetScalarDataType())
-                        .c_str());
+  solutionData->SetName("scalarData");
 
   polydata->GetPointData()->AddArray(solutionData);
 }

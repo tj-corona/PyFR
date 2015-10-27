@@ -9,6 +9,7 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPlane.h>
+#include <vtkPVArrayInformation.h>
 #include <vtkPVLiveRenderView.h>
 #include <vtkPVTrivialProducer.h>
 #include <vtkSmartPointer.h>
@@ -255,7 +256,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
     vtkSMPVRepresentationProxy* representation =
       vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
 
-    representation->SetScalarColoring("pressure",0);
+    representation->SetScalarColoring("scalarData",0);
     }
 
   vtkSMProxy* representationBase = controller->
@@ -265,8 +266,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   this->Representation =
     vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
   //this->Representation->SetRepresentationType("Surface With Edges");
-  this->Representation->SetScalarColoring("pressure",0);
-  // this->Representation->SetScalarColoring("density",0);
+  this->Representation->SetScalarColoring("scalarData",0);
   this->Representation->SetScalarBarVisibility(polydataViewer,true);
 
   if (postFilterWrite)
