@@ -31,16 +31,19 @@ vtkStandardNewMacro(vtkPyFRParallelSliceFilter);
 
 //----------------------------------------------------------------------------
 vtkPyFRParallelSliceFilter::vtkPyFRParallelSliceFilter() : Spacing(1.),
-                                                           NumberOfPlanes(1)
+                                                           NumberOfPlanes(1),
+                                                           LastExecuteTime(0)
 {
   this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.;
   this->Normal[0] = this->Normal[1] = 0.;
   this->Normal[2] = 1.;
+  this->Filter = new PyFRParallelSliceFilter();
 }
 
 //----------------------------------------------------------------------------
 vtkPyFRParallelSliceFilter::~vtkPyFRParallelSliceFilter()
 {
+  delete this->Filter;
 }
 
 //----------------------------------------------------------------------------
@@ -59,13 +62,16 @@ int vtkPyFRParallelSliceFilter::RequestData(
   vtkPyFRContourData *output = vtkPyFRContourData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  PyFRParallelSliceFilter filter;
-  filter.SetPlane(this->Origin,this->Normal);
-  filter.SetSpacing(this->Spacing);
-  filter.SetNumberOfPlanes(this->NumberOfPlanes);
-  filter(input->GetData(),output->GetData());
-  filter.MapFieldOntoSlices(this->MappedField,input->GetData(),
-                            output->GetData());
+  if (this->GetMTime() > this->LastExecuteTime)
+    {
+    this->LastExecuteTime = this->GetMTime();
+    Filter->SetPlane(this->Origin,this->Normal);
+    Filter->SetSpacing(this->Spacing);
+    Filter->SetNumberOfPlanes(this->NumberOfPlanes);
+    Filter->operator()(input->GetData(),output->GetData());
+    }
+  Filter->MapFieldOntoSlices(this->MappedField,input->GetData(),
+                             output->GetData());
 
   return 1;
 }

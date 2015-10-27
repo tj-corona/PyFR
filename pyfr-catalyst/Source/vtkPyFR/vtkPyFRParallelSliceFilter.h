@@ -6,6 +6,8 @@
 
 #include "vtkPyFRContourDataAlgorithm.h"
 
+class PyFRParallelSliceFilter;
+
 class VTK_EXPORT vtkPyFRParallelSliceFilter : public vtkPyFRContourDataAlgorithm
 {
 public:
@@ -41,6 +43,10 @@ protected:
   FPType Spacing;
   int NumberOfPlanes;
   int MappedField;
+
+  unsigned long LastExecuteTime;
+
+  PyFRParallelSliceFilter* Filter;
 
 private:
   static int PyFRDataTypesRegistered;
