@@ -13,5 +13,6 @@ struct PyFRContourFilter
   void ClearContourValues() {}
 
   void SetContourField(int) {}
- ;
+}
+;
 #endif
