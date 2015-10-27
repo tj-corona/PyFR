@@ -40,8 +40,7 @@ void PyFRParallelSliceFilter::operator()(PyFRData* input,
   typedef std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > >
     Vec3HandleVec;
   typedef std::vector<FPType> DataVec;
-  typedef vtkm::worklet::CrinkleClipTraits<typename PyFRData::CellSet>::CellSet
-    CellSet;
+  typedef PyFRData::CellSet CellSet;
 
   const vtkm::cont::DataSet& dataSet = input->GetDataSet();
 

@@ -26,6 +26,8 @@
 #include <vtkSMSourceProxy.h>
 #include <vtkSMSessionProxyManager.h>
 #include <vtkSMStringVectorProperty.h>
+#include <vtkSMTransferFunctionManager.h>
+#include <vtkSMTransferFunctionProxy.h>
 #include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
 #include <vtkSMProxyListDomain.h>
@@ -37,6 +39,8 @@
 #include "vtkPyFRParallelSliceFilter.h"
 #include "vtkXMLPyFRDataWriter.h"
 #include "vtkXMLPyFRContourDataWriter.h"
+
+#include "PyFRData.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -147,12 +151,12 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
       unstructuredGridFileName->SetElement(0, o.str().c_str());
       }
 
-    unstructuredGridWriter->UpdatePropertyInformation();
-    unstructuredGridWriter->UpdateVTKObjects();
-    unstructuredGridWriter->UpdatePipeline();
-    controller->InitializeProxy(unstructuredGridWriter);
-    controller->RegisterPipelineProxy(unstructuredGridWriter,
-                                      "UnstructuredGridWriter");
+      unstructuredGridWriter->UpdatePropertyInformation();
+      unstructuredGridWriter->UpdateVTKObjects();
+      unstructuredGridWriter->UpdatePipeline();
+      controller->InitializeProxy(unstructuredGridWriter);
+      controller->RegisterPipelineProxy(unstructuredGridWriter,
+                                        "UnstructuredGridWriter");
     }
 
   // Add the clip filter
@@ -174,7 +178,8 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
                                    NewProxy("filters",
                                             "PyFRParallelSliceFilter")));
   controller->PreInitializeProxy(slice);
-  vtkSMPropertyHelper(slice, "Input").Set(clip, 0);
+  vtkSMPropertyHelper(slice, "Input").Set(producer, 0);
+  vtkSMPropertyHelper(slice,"ColorField").Set(1);
   slice->UpdateVTKObjects();
   controller->PostInitializeProxy(slice);
   controller->RegisterPipelineProxy(slice,"Slice");
@@ -208,6 +213,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
 
   vtkSMPropertyHelper(contour, "Input").Set(clip, 0);
   vtkSMPropertyHelper(contour,"ContourField").Set(0);
+  vtkSMPropertyHelper(contour,"ColorField").Set(0);
   // vtkSMPropertyHelper(contour,"ContourValues").Set(0,.65);
   // vtkSMPropertyHelper(contour,"ContourValues").Set(1,.7);
   vtkSMPropertyHelper(contour,"ContourValues").Set(0,1.0025);
@@ -238,7 +244,7 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   pyfrContourDataConverter->UpdateVTKObjects();
   controller->InitializeProxy(pyfrContourDataConverter);
   controller->RegisterPipelineProxy(pyfrContourDataConverter,
-                                    "ConvertToPolyData");
+                                    "ConvertContoursToPolyData");
 
   // Create a view
   vtkSmartPointer<vtkSMViewProxy> polydataViewer;
@@ -249,25 +255,41 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   controller->RegisterViewProxy(polydataViewer);
 
   // Show the results.
-    {
-    vtkSMProxy* representationBase =
-      controller->Show(vtkSMSourceProxy::SafeDownCast(pyfrSliceDataConverter),0,
-                       vtkSMViewProxy::SafeDownCast(polydataViewer));
-    vtkSMPVRepresentationProxy* representation =
-      vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
+  vtkSMProxy* sliceRepresentationBase =
+    controller->Show(vtkSMSourceProxy::SafeDownCast(pyfrSliceDataConverter),0,
+                     vtkSMViewProxy::SafeDownCast(polydataViewer));
+  this->SliceRepresentation =
+    vtkSMPVRepresentationProxy::SafeDownCast(sliceRepresentationBase);
+  this->SliceRepresentation->SetScalarColoring(
+    PyFRData::FieldName(vtkSMPropertyHelper(slice,
+                                            "ColorField").GetAsInt()).c_str(),
+    0);
+  this->SliceRepresentation->RescaleTransferFunctionToDataRange();
 
-    representation->SetScalarColoring("scalarData",0);
-    }
-
-  vtkSMProxy* representationBase = controller->
+  vtkSMProxy* contourRepresentationBase = controller->
     Show(vtkSMSourceProxy::SafeDownCast(pyfrContourDataConverter), 0,
          vtkSMViewProxy::SafeDownCast(polydataViewer));
+  this->ContourRepresentation =
+    vtkSMPVRepresentationProxy::SafeDownCast(contourRepresentationBase);
+  this->ContourRepresentation->SetScalarColoring(
+    PyFRData::FieldName(vtkSMPropertyHelper(contour,
+                                            "ColorField").GetAsInt()).c_str(),
+    0);
+  this->ContourRepresentation->RescaleTransferFunctionToDataRange();
 
-  this->Representation =
-    vtkSMPVRepresentationProxy::SafeDownCast(representationBase);
-  //this->Representation->SetRepresentationType("Surface With Edges");
-  this->Representation->SetScalarColoring("scalarData",0);
-  this->Representation->SetScalarBarVisibility(polydataViewer,true);
+  vtkNew<vtkSMTransferFunctionManager> transferFunctionManager;
+  vtkSMTransferFunctionProxy::ApplyPreset(
+    transferFunctionManager->GetColorTransferFunction(
+      PyFRData::FieldName(
+        vtkSMPropertyHelper(contour,"ColorField").GetAsInt()).c_str(),
+      vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
+    "Cool to Warm", true);
+  vtkSMTransferFunctionProxy::ApplyPreset(
+    transferFunctionManager->GetColorTransferFunction(
+      PyFRData::FieldName(
+        vtkSMPropertyHelper(slice,"ColorField").GetAsInt()).c_str(),
+      vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
+    "Black-Body Radiation", true);
 
   if (postFilterWrite)
     {
@@ -293,11 +315,11 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
       polydataFileName->SetElement(0, o.str().c_str());
       }
 
-    polydataWriter->UpdatePropertyInformation();
-    polydataWriter->UpdateVTKObjects();
-    polydataWriter->UpdatePipeline();
-    controller->InitializeProxy(polydataWriter);
-    controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
+      polydataWriter->UpdatePropertyInformation();
+      polydataWriter->UpdateVTKObjects();
+      polydataWriter->UpdatePipeline();
+      controller->InitializeProxy(polydataWriter);
+      controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
     }
 
   // Initialize the "link"
@@ -350,40 +372,40 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
 				   GetProxy("UnstructuredGridWriter"));
   if (unstructuredGridWriter)
     {
-      vtkSMStringVectorProperty* unstructuredGridFileName =
-	vtkSMStringVectorProperty::SafeDownCast(unstructuredGridWriter->
-						GetProperty("FileName"));
+    vtkSMStringVectorProperty* unstructuredGridFileName =
+      vtkSMStringVectorProperty::SafeDownCast(unstructuredGridWriter->
+                                              GetProperty("FileName"));
 
       {
-	std::ostringstream o;
-	o << this->FileName.substr(0,this->FileName.find_last_of("."));
-	o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
-	o << ".vtu";
-	unstructuredGridFileName->SetElement(0, o.str().c_str());
+      std::ostringstream o;
+      o << this->FileName.substr(0,this->FileName.find_last_of("."));
+      o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
+      o << ".vtu";
+      unstructuredGridFileName->SetElement(0, o.str().c_str());
       }
-    unstructuredGridWriter->UpdatePropertyInformation();
-    unstructuredGridWriter->UpdateVTKObjects();
-    unstructuredGridWriter->UpdatePipeline();
+      unstructuredGridWriter->UpdatePropertyInformation();
+      unstructuredGridWriter->UpdateVTKObjects();
+      unstructuredGridWriter->UpdatePipeline();
     }
   vtkSMSourceProxy* polydataWriter =
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
 				   GetProxy("polydataWriter"));
   if (polydataWriter)
     {
-      vtkSMStringVectorProperty* polydataFileName =
-	vtkSMStringVectorProperty::SafeDownCast(polydataWriter->
-						GetProperty("FileName"));
+    vtkSMStringVectorProperty* polydataFileName =
+      vtkSMStringVectorProperty::SafeDownCast(polydataWriter->
+                                              GetProperty("FileName"));
 
       {
-	std::ostringstream o;
-	o << this->FileName.substr(0,this->FileName.find_last_of("."));
-	o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
-	o << ".vtp";
-	polydataFileName->SetElement(0, o.str().c_str());
+      std::ostringstream o;
+      o << this->FileName.substr(0,this->FileName.find_last_of("."));
+      o << "_"<<std::fixed<<std::setprecision(3)<<dataDescription->GetTime();
+      o << ".vtp";
+      polydataFileName->SetElement(0, o.str().c_str());
       }
-    polydataWriter->UpdatePropertyInformation();
-    polydataWriter->UpdateVTKObjects();
-    polydataWriter->UpdatePipeline();
+      polydataWriter->UpdatePropertyInformation();
+      polydataWriter->UpdateVTKObjects();
+      polydataWriter->UpdatePipeline();
     }
 
   // stay in the loop while the simulation is paused
@@ -392,6 +414,24 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     this->InsituLink->InsituUpdate(dataDescription->GetTime(),
                                    dataDescription->GetTimeStep());
 
+    vtkSMSourceProxy* contour =
+      vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                     GetProxy("Contour"));
+    this->ContourRepresentation->SetScalarColoring(
+      PyFRData::FieldName(vtkSMPropertyHelper(contour,
+                                              "ColorField").GetAsInt()).c_str(),
+      0);
+    this->ContourRepresentation->RescaleTransferFunctionToDataRange();
+
+    vtkSMSourceProxy* slice =
+      vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                     GetProxy("Slice"));
+    this->SliceRepresentation->SetScalarColoring(
+      PyFRData::FieldName(vtkSMPropertyHelper(slice,
+                                              "ColorField").GetAsInt()).c_str(),
+      0);
+    this->SliceRepresentation->RescaleTransferFunctionToDataRange();
+
     vtkNew<vtkCollection> views;
     sessionProxyManager->GetProxies("views",views.GetPointer());
     for (int i=0;i<views->GetNumberOfItems();i++)
@@ -399,11 +439,32 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
       vtkSMViewProxy* viewProxy =
         vtkSMViewProxy::SafeDownCast(views->GetItemAsObject(i));
       vtkSMPropertyHelper(viewProxy,"ViewTime").Set(dataDescription->GetTime());
+
+      vtkNew<vtkSMTransferFunctionManager> transferFunctionManager;
+      vtkSMTransferFunctionProxy::ApplyPreset(
+        transferFunctionManager->GetColorTransferFunction(
+          PyFRData::FieldName(
+            vtkSMPropertyHelper(slice,"ColorField").GetAsInt()).c_str(),
+          vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
+        "Cool to Warm", true);
+      vtkSMTransferFunctionProxy::ApplyPreset(
+        transferFunctionManager->GetColorTransferFunction(
+          PyFRData::FieldName(
+            vtkSMPropertyHelper(contour,"ColorField").GetAsInt()).c_str(),
+          vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
+        "Black-Body Radiation", true);
+
+      enum UpdateScalarBarsMode
+      {
+        HIDE_UNUSED_SCALAR_BARS = 0x01,
+        SHOW_USED_SCALAR_BARS = 0x02
+      };
+      transferFunctionManager->UpdateScalarBars(viewProxy,HIDE_UNUSED_SCALAR_BARS | SHOW_USED_SCALAR_BARS);
+      this->ContourRepresentation->SetScalarBarVisibility(viewProxy,true);
+      this->SliceRepresentation->SetScalarBarVisibility(viewProxy,true);
       viewProxy->UpdateVTKObjects();
       viewProxy->Update();
       }
-
-    this->Representation->RescaleTransferFunctionToDataRange();
 
     this->InsituLink->InsituPostProcess(dataDescription->GetTime(),
                                         dataDescription->GetTimeStep());

@@ -39,6 +39,7 @@ private:
 
   vtkPyFRContourData* OutputData;
 
-  vtkSMPVRepresentationProxy* Representation;
+  vtkSMPVRepresentationProxy* SliceRepresentation;
+  vtkSMPVRepresentationProxy* ContourRepresentation;
 };
 #endif
