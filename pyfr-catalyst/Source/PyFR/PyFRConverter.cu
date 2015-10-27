@@ -99,12 +99,10 @@ void PyFRConverter::operator ()(const PyFRData* pyfrData,vtkUnstructuredGrid* gr
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   points->SetData(pointData);
 
-  std::string fieldName[5] = {"density","velocity_u","velocity_v","velocity_w",
-"pressure"};
   vtkSmartPointer<ArrayChoice<FPType>::type> solutionData[5];
   for (unsigned i=0;i<5;i++)
     {
-    vtkmc::Field solution = dataSet.GetField(fieldName[i]);
+    vtkmc::Field solution = dataSet.GetField(PyFRData::FieldName(i));
     PyFRData::ScalarDataArrayHandle solutionArray = solution.GetData()
       .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                          PyFRData::ScalarDataArrayHandle::StorageTag());
@@ -119,7 +117,7 @@ void PyFRConverter::operator ()(const PyFRData* pyfrData,vtkUnstructuredGrid* gr
                            0, // give VTK control of the data
                            0);// delete using "free"
     solutionData[i]->SetNumberOfComponents(1);
-    solutionData[i]->SetName(fieldName[i].c_str());
+    solutionData[i]->SetName(PyFRData::FieldName(i).c_str());
     }
 
   PyFRData::CellSet cellSet = dataSet.GetCellSet().CastTo(PyFRData::CellSet());
@@ -202,26 +200,23 @@ void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata
   polydata->SetPolys(polys);
   polydata->GetPointData()->SetNormals(normalsData);
 
-  std::string fields[5] = {"density","pressure","velocity_u","velocity_v","velocity_w"};
-  for (unsigned i=0;i<5;i++)
-    {
-    PyFRContour::ScalarDataArrayHandle scalarsOut = contour.GetScalarData(fields[i]);
-    PyFRContour::ScalarDataArrayHandle scalarsOutHost;
-    vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
-      Copy(scalarsOut,scalarsOutHost);
+  PyFRContour::ScalarDataArrayHandle scalarsOut = contour.GetScalarData();
+  PyFRContour::ScalarDataArrayHandle scalarsOutHost;
+  vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
+    Copy(scalarsOut,scalarsOutHost);
 
-    vtkSmartPointer<ArrayChoice<FPType>::type> solutionData =
-      vtkSmartPointer<ArrayChoice<FPType>::type>::New();
-    vtkIdType nSolution = scalarsOutHost.GetNumberOfValues();
-    FPType* solutionArray = scalarsOutHost.Storage().StealArray();
-    solutionData->SetArray(solutionArray, nSolution,
-                           0, // give VTK control of the data
-                           0);// delete using "free"
-    solutionData->SetNumberOfComponents(1);
-    solutionData->SetName(fields[i].c_str());
+  vtkSmartPointer<ArrayChoice<FPType>::type> solutionData =
+    vtkSmartPointer<ArrayChoice<FPType>::type>::New();
+  vtkIdType nSolution = scalarsOutHost.GetNumberOfValues();
+  FPType* solutionArray = scalarsOutHost.Storage().StealArray();
+  solutionData->SetArray(solutionArray, nSolution,
+                         0, // give VTK control of the data
+                         0);// delete using "free"
+  solutionData->SetNumberOfComponents(1);
+  solutionData->SetName(PyFRData::FieldName(contour.GetScalarDataType())
+                        .c_str());
 
-    polydata->GetPointData()->AddArray(solutionData);
-    }
+  polydata->GetPointData()->AddArray(solutionData);
 }
 
 //----------------------------------------------------------------------------

@@ -67,7 +67,15 @@ public:
 
   void Update();
 
+  static int FieldIndex(std::string name) { return PyFRData::fieldIndex[name]; }
+  static std::string FieldName(int i) { return PyFRData::fieldName[i]; }
+
 private:
+  static std::map<int,std::string> fieldName;
+  static std::map<std::string,int> fieldIndex;
+  static bool mapsPopulated;
+  static bool PopulateMaps();
+
   struct CatalystData* catalystData;
   vtkm::cont::DataSet dataSet;
 };

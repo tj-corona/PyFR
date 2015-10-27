@@ -62,6 +62,8 @@ int vtkPyFRContourFilter::RequestData(
     }
   filter.SetContourField(this->ContourField);
   filter(input->GetData(),output->GetData());
+  filter.MapFieldOntoIsosurfaces(this->MappedField,input->GetData(),
+                                 output->GetData());
 
   return 1;
 }
@@ -102,10 +104,21 @@ void vtkPyFRContourFilter::SetContourField(int i)
 }
 //----------------------------------------------------------------------------
 
+void vtkPyFRContourFilter::SetMappedField(int i)
+{
+  if (this->MappedField != i)
+    {
+    this->MappedField = i;
+    this->Modified();
+    }
+}
+//----------------------------------------------------------------------------
+
 void vtkPyFRContourFilter::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
   os << indent << "ContourField: " << this->ContourField << "\n";
+  os << indent << "MappedField: " << this->MappedField << "\n";
   os << indent << "ContourValues: ";
   for (unsigned i=0;i<this->ContourValues.size();i++)
     os << this->ContourValues[i] << "\n";

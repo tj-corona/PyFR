@@ -29,6 +29,9 @@ public:
   vtkSetMacro(NumberOfPlanes,int);
   vtkGetMacro(NumberOfPlanes,int);
 
+  vtkSetMacro(MappedField,int);
+  vtkGetMacro(MappedField,int);
+
 protected:
   vtkPyFRParallelSliceFilter();
   virtual ~vtkPyFRParallelSliceFilter();
@@ -37,6 +40,7 @@ protected:
   FPType Normal[3];
   FPType Spacing;
   int NumberOfPlanes;
+  int MappedField;
 
 private:
   static int PyFRDataTypesRegistered;

@@ -1,14 +1,11 @@
 #include "PyFRContourFilter.h"
 
-#include <vtkm/cont/cuda/DeviceAdapterCuda.h>
-
 #include "CrinkleClip.h"
-#include "IsosurfaceHexahedra.h"
 #include "PyFRData.h"
 #include "PyFRContourData.h"
 
 //----------------------------------------------------------------------------
-PyFRContourFilter::PyFRContourFilter() : ContourField("density")
+PyFRContourFilter::PyFRContourFilter() : ContourField(0)
 {
 }
 
@@ -19,22 +16,18 @@ PyFRContourFilter::~PyFRContourFilter()
 
 //----------------------------------------------------------------------------
 void PyFRContourFilter::operator()(PyFRData* input,
-                                   PyFRContourData* output) const
+                                   PyFRContourData* output)
 {
-  const vtkm::cont::DataSet& dataSet = input->GetDataSet();
-
-  typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
-
-  typedef vtkm::worklet::IsosurfaceFilterHexahedra<FPType,CudaTag>
-  IsosurfaceFilter;
-
   typedef std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > >
     Vec3HandleVec;
-  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
   typedef std::vector<FPType> DataVec;
-  typedef vtkm::worklet::CrinkleClipTraits<typename PyFRData::CellSet>::CellSet CellSet;
+  typedef vtkm::worklet::CrinkleClipTraits<typename PyFRData::CellSet>::CellSet
+    CellSet;
 
-  vtkm::cont::Field contourField = dataSet.GetField(this->ContourField);
+  const vtkm::cont::DataSet& dataSet = input->GetDataSet();
+
+  vtkm::cont::Field contourField =
+    dataSet.GetField(PyFRData::FieldName(this->ContourField));
   PyFRData::ScalarDataArrayHandle contourArray = contourField.GetData()
     .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                        PyFRData::ScalarDataArrayHandle::StorageTag());
@@ -50,59 +43,39 @@ void PyFRContourFilter::operator()(PyFRData* input,
     normalsVec.push_back(output->GetContour(i).GetNormals());
     }
 
-  IsosurfaceFilter isosurfaceFilter;
   isosurfaceFilter.Run(dataVec,
                        dataSet.GetCellSet().CastTo(CellSet()),
                        dataSet.GetCoordinateSystem(),
                        contourArray,
                        verticesVec,
                        normalsVec);
-
-  std::string fields[5] = {"density",
-                           "pressure",
-                           "velocity_u",
-                           "velocity_v",
-                           "velocity_w"};
-
-  for (unsigned i=0;i<5;i++)
-    {
-    ScalarDataHandleVec scalarDataHandleVec;
-    for (unsigned j=0;j<output->GetNumberOfContours();j++)
-      {
-      PyFRContour::ScalarDataArrayHandle scalars_out =
-        output->GetContour(j).GetScalarData(fields[i]);
-      scalarDataHandleVec.push_back(scalars_out);
-      }
-    vtkm::cont::Field projectedField = dataSet.GetField(fields[i]);
-
-    PyFRData::ScalarDataArrayHandle projectedArray = projectedField.GetData()
-      .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
-                         PyFRData::ScalarDataArrayHandle::StorageTag());
-
-    isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
-                                             scalarDataHandleVec);
-    }
 }
 
 //----------------------------------------------------------------------------
-void PyFRContourFilter::SetContourField(int i)
+void PyFRContourFilter::MapFieldOntoIsosurfaces(int field,
+                                                PyFRData* input,
+                                                PyFRContourData* output)
 {
-  switch (i)
+  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
+
+  const vtkm::cont::DataSet& dataSet = input->GetDataSet();
+
+  ScalarDataHandleVec scalarDataHandleVec;
+  for (unsigned j=0;j<output->GetNumberOfContours();j++)
     {
-    case 0:
-      this->SetContourFieldToDensity();
-      break;
-    case 1:
-      this->SetContourFieldToPressure();
-      break;
-    case 2:
-      this->SetContourFieldToVelocity_u();
-      break;
-    case 3:
-      this->SetContourFieldToVelocity_v();
-      break;
-    case 4:
-      this->SetContourFieldToVelocity_w();
-      break;
+    output->GetContour(j).SetScalarDataType(field);
+    PyFRContour::ScalarDataArrayHandle scalars_out =
+      output->GetContour(j).GetScalarData();
+    scalarDataHandleVec.push_back(scalars_out);
     }
+
+  vtkm::cont::Field projectedField =
+    dataSet.GetField(PyFRData::FieldName(field));
+
+  PyFRData::ScalarDataArrayHandle projectedArray = projectedField.GetData()
+    .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
+                       PyFRData::ScalarDataArrayHandle::StorageTag());
+
+  isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
+                                           scalarDataHandleVec);
 }

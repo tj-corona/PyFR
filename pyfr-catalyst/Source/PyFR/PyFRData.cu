@@ -19,6 +19,27 @@
 
 #include "ArrayHandleExposed.h"
 
+//------------------------------------------------------------------------------
+std::map<int,std::string> PyFRData::fieldName;
+std::map<std::string,int> PyFRData::fieldIndex;
+bool PyFRData::mapsPopulated = PyFRData::PopulateMaps();
+
+//------------------------------------------------------------------------------
+bool PyFRData::PopulateMaps()
+{
+  fieldName[0] = "density";
+  fieldName[1] = "pressure";
+  fieldName[2] = "velocity_u";
+  fieldName[3] = "velocity_v";
+  fieldName[4] = "velocity_w";
+
+  for (unsigned i=0;i<5;i++)
+    fieldIndex[fieldName[i]] = i;
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
 PyFRData::PyFRData() : catalystData(NULL)
 {
 

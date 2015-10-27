@@ -82,6 +82,8 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
     vtkPyFRData::SafeDownCast(dataDescription->
                               GetInputDescriptionByName("input")->GetGrid());
 
+  // If these flags are set to true, the data will be written to vtk files on
+  // the server side, but the pipeline cannot be cannected to a client.
   bool preFilterWrite = false;
   bool postFilterWrite = false;
 
@@ -205,6 +207,8 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
 
   vtkSMPropertyHelper(contour, "Input").Set(clip, 0);
   vtkSMPropertyHelper(contour,"ContourField").Set(0);
+  // vtkSMPropertyHelper(contour,"ContourValues").Set(0,.65);
+  // vtkSMPropertyHelper(contour,"ContourValues").Set(1,.7);
   vtkSMPropertyHelper(contour,"ContourValues").Set(0,1.0025);
   vtkSMPropertyHelper(contour,"ContourValues").Set(1,1.0045);
 

@@ -34,17 +34,14 @@ void PyFRParallelSliceFilter::SetPlane(const FPType* origin,
 
 //----------------------------------------------------------------------------
 void PyFRParallelSliceFilter::operator()(PyFRData* input,
-                                         PyFRContourData* output) const
+                                         PyFRContourData* output)
 {
-  typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
   typedef PyFRData::Vec3ArrayHandle CoordinateArrayHandle;
-  typedef vtkm::worklet::IsosurfaceFilterHexahedra<FPType,CudaTag>
-    IsosurfaceFilter;
   typedef std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > >
     Vec3HandleVec;
-  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
   typedef std::vector<FPType> DataVec;
-  typedef vtkm::worklet::CrinkleClipTraits<typename PyFRData::CellSet>::CellSet CellSet;
+  typedef vtkm::worklet::CrinkleClipTraits<typename PyFRData::CellSet>::CellSet
+    CellSet;
 
   const vtkm::cont::DataSet& dataSet = input->GetDataSet();
 
@@ -75,36 +72,39 @@ void PyFRParallelSliceFilter::operator()(PyFRData* input,
     normalsVec.push_back(output->GetContour(i).GetNormals());
     }
 
-  IsosurfaceFilter isosurfaceFilter;
   isosurfaceFilter.Run(dataVec,
                        dataSet.GetCellSet().CastTo(CellSet()),
                        dataSet.GetCoordinateSystem(),
                        dataArray,
                        verticesVec,
                        normalsVec);
+}
 
-  std::string fields[5] = {"density",
-                           "pressure",
-                           "velocity_u",
-                           "velocity_v",
-                           "velocity_w"};
+//----------------------------------------------------------------------------
+void PyFRParallelSliceFilter::MapFieldOntoSlices(int field,
+                                                 PyFRData* input,
+                                                 PyFRContourData* output)
+{
+  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
 
-  for (unsigned i=0;i<5;i++)
+  const vtkm::cont::DataSet& dataSet = input->GetDataSet();
+
+  ScalarDataHandleVec scalarDataHandleVec;
+  for (unsigned j=0;j<output->GetNumberOfContours();j++)
     {
-    ScalarDataHandleVec scalarDataHandleVec;
-    for (unsigned j=0;j<output->GetNumberOfContours();j++)
-      {
-      PyFRContour::ScalarDataArrayHandle scalars_out =
-        output->GetContour(j).GetScalarData(fields[i]);
-      scalarDataHandleVec.push_back(scalars_out);
-      }
-    vtkm::cont::Field projectedField = dataSet.GetField(fields[i]);
-
-    PyFRData::ScalarDataArrayHandle projectedArray = projectedField.GetData()
-      .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
-                         PyFRData::ScalarDataArrayHandle::StorageTag());
-
-    isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
-                                             scalarDataHandleVec);
+    output->GetContour(j).SetScalarDataType(field);
+    PyFRContour::ScalarDataArrayHandle scalars_out =
+      output->GetContour(j).GetScalarData();
+    scalarDataHandleVec.push_back(scalars_out);
     }
+
+  vtkm::cont::Field projectedField =
+    dataSet.GetField(PyFRData::FieldName(field));
+
+  PyFRData::ScalarDataArrayHandle projectedArray = projectedField.GetData()
+    .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
+                       PyFRData::ScalarDataArrayHandle::StorageTag());
+
+  isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
+                                           scalarDataHandleVec);
 }

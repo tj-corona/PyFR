@@ -55,6 +55,23 @@
 	  This property specifies the values at which to compute an isosurface.
 	</Documentation>
       </DoubleVectorProperty>
+      <IntVectorProperty
+          name="ColorField"
+          command="SetMappedField"
+          number_of_elements="1"
+          default_values="1">
+        <EnumerationDomain name="enum">
+          <Entry value="0" text="Density"/>
+          <Entry value="1" text="Pressure"/>
+          <Entry value="2" text="Velocity_u"/>
+          <Entry value="3" text="Velocity_v"/>
+          <Entry value="4" text="Velocity_w"/>
+        </EnumerationDomain>
+        <Documentation>
+          This property indicates which field will be used to color
+	  the isosurface.
+        </Documentation>
+      </IntVectorProperty>
     </SourceProxy>
     <!-- ==================================================================== -->
     <SourceProxy name="PyFRCrinkleClipFilter"
@@ -160,6 +177,23 @@
                             number_of_elements="3">
         <DoubleRangeDomain name="range" />
       </DoubleVectorProperty>
+      <IntVectorProperty
+          name="ColorField"
+          command="SetMappedField"
+          number_of_elements="1"
+          default_values="1">
+        <EnumerationDomain name="enum">
+          <Entry value="0" text="Density"/>
+          <Entry value="1" text="Pressure"/>
+          <Entry value="2" text="Velocity_u"/>
+          <Entry value="3" text="Velocity_v"/>
+          <Entry value="4" text="Velocity_w"/>
+        </EnumerationDomain>
+        <Documentation>
+          This property indicates which field will be used to color
+	  the isosurface.
+        </Documentation>
+      </IntVectorProperty>
     </SourceProxy>
     <!-- ==================================================================== -->
     <SourceProxy name="PyFRDataConverter"

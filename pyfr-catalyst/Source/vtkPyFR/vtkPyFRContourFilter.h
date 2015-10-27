@@ -21,6 +21,7 @@ public:
   void SetContourValue(int i,double value);
 
   void SetContourField(int i);
+  void SetMappedField(int i);
 
 protected:
   vtkPyFRContourFilter();
@@ -28,6 +29,7 @@ protected:
 
   std::vector<FPType> ContourValues;
   int ContourField;
+  int MappedField;
 
 private:
   static int PyFRDataTypesRegistered;

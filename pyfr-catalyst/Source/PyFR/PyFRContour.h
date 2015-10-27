@@ -16,20 +16,18 @@ public:
   PyFRContour() {}
   ~PyFRContour() {}
 
-  Vec3ArrayHandle GetVertices() const { return this->Vertices; }
-  Vec3ArrayHandle GetNormals() const { return this->Normals; }
+  Vec3ArrayHandle GetVertices()         const { return this->Vertices; }
+  Vec3ArrayHandle GetNormals()          const { return this->Normals; }
+  ScalarDataArrayHandle GetScalarData() const { return this->ScalarData; }
+  int GetScalarDataType()               const { return this->ScalarDataType; }
 
-  ScalarDataArrayHandle GetScalarData(int) const;
-  ScalarDataArrayHandle GetScalarData(std::string) const;
+  void SetScalarDataType(int i) { this->ScalarDataType = i; }
 
 private:
   Vec3ArrayHandle Vertices;
   Vec3ArrayHandle Normals;
-  ScalarDataArrayHandle Density;
-  ScalarDataArrayHandle Pressure;
-  ScalarDataArrayHandle Velocity_u;
-  ScalarDataArrayHandle Velocity_v;
-  ScalarDataArrayHandle Velocity_w;
+  ScalarDataArrayHandle ScalarData;
+  int ScalarDataType;
 };
 
 #endif

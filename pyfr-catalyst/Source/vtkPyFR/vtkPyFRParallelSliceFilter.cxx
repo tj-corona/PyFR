@@ -64,6 +64,8 @@ int vtkPyFRParallelSliceFilter::RequestData(
   filter.SetSpacing(this->Spacing);
   filter.SetNumberOfPlanes(this->NumberOfPlanes);
   filter(input->GetData(),output->GetData());
+  filter.MapFieldOntoSlices(this->MappedField,input->GetData(),
+                            output->GetData());
 
   return 1;
 }
