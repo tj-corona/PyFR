@@ -131,13 +131,17 @@ void PyFRConverter::operator ()(const PyFRData* pyfrData,vtkUnstructuredGrid* gr
   grid->Allocate(connectivity.GetNumberOfValues()/8);
   grid->SetPoints(points);
   for (unsigned i=0;i<5;i++)
+    {
     grid->GetPointData()->AddArray(solutionData[i]);
+    }
   vtkIdType counter = 0;
   while (counter < connectivity.GetNumberOfValues())
     {
     vtkSmartPointer<vtkHexahedron> hex = vtkSmartPointer<vtkHexahedron>::New();
     for (vtkIdType j=0;j<8;j++)
+      {
       hex->GetPointIds()->SetId(j,portal.Get(counter++));
+      }
     grid->InsertNextCell(hex->GetCellType(),hex->GetPointIds());
     }
 }
@@ -151,7 +155,6 @@ void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata
 
   if (contour.GetVertices().GetNumberOfValues() == 0)
     {
-//    polydata->Reset();
     return;
     }
 
@@ -192,7 +195,9 @@ void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata
   for (vtkIdType i=0;i<points->GetNumberOfPoints();i+=3)
     {
     for (vtkIdType j=0;j<3;j++)
+      {
       indices[j] = i+j;
+      }
     polys->InsertNextCell(3,indices);
     }
 
@@ -221,6 +226,11 @@ void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata
 //----------------------------------------------------------------------------
 void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyData* outPolyData) const
 {
+  if (pyfrContourData->GetNumberOfContours() == 0)
+    {
+    return;
+    }
+
   vtkSmartPointer<vtkAppendPolyData> appendFilter =
     vtkSmartPointer<vtkAppendPolyData>::New();
   appendFilter->SetOutput(outPolyData);
@@ -237,5 +247,7 @@ void PyFRConverter::operator ()(const PyFRContourData* pyfrContourData,vtkPolyDa
   appendFilter->Update();
 
   for (unsigned i=0;i<pyfrContourData->GetNumberOfContours();i++)
+    {
     polyData[i]->Delete();
+    }
 }
