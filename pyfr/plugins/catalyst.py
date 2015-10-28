@@ -46,6 +46,7 @@ class CatalystPlugin(BasePlugin):
     def __init__(self, intg, *args, **kwargs):
         super().__init__(intg, *args, **kwargs)
 
+        self.divisor = self.cfg.getint(self.cfgsect, 'divisor', 3)
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
         outputfile = self.cfg.get(self.cfgsect, 'outputfile')
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
@@ -64,8 +65,8 @@ class CatalystPlugin(BasePlugin):
         self.mesh = intg.system.mesh
 
         # Amount of subdivision to perform
-        comm = MPI.COMM_WORLD
-        self.divisor = comm.Get_size()
+#        comm = MPI.COMM_WORLD
+#        self.divisor = comm.Get_size()
 
         # Allocate a queue on the backend
         self._queue = backend.queue()

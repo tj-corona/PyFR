@@ -39,11 +39,18 @@
 #include "vtkPyFRParallelSliceFilter.h"
 #include "vtkXMLPyFRDataWriter.h"
 #include "vtkXMLPyFRContourDataWriter.h"
+#include "vtkPVPlugin.h"
 
 #include "PyFRData.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
+
+#ifdef SINGLE
+PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp32)
+#else
+PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp64)
+#endif
 
 vtkStandardNewMacro(vtkPyFRPipeline);
 
@@ -68,7 +75,11 @@ void vtkPyFRPipeline::Initialize(char* hostName, int port, char* fileName,
   vtkSMProxyManager* proxyManager = vtkSMProxyManager::GetProxyManager();
 
   // Load PyFR plugin
-  proxyManager->GetPluginManager()->LoadLocalPlugin(TOSTRING(PyFRPlugin));
+#ifdef SINGLE
+PV_PLUGIN_IMPORT(pyfr_plugin_fp32)
+#else
+PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
+#endif
 
   // Grab the active session proxy manager
   vtkSMSessionProxyManager* sessionProxyManager =

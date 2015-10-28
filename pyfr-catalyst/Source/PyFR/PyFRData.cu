@@ -9,6 +9,7 @@
 #include <stdexcept>
 
 #include <vtkm/CellShape.h>
+#include <vtkm/CellTraits.h>
 #include <vtkm/TopologyElementTag.h>
 #include <vtkm/cont/CellSetSingleType.h>
 #include <vtkm/cont/CoordinateSystem.h>
@@ -80,8 +81,9 @@ void PyFRData::Init(void* data)
   vtkm::cont::ArrayHandle<vtkm::Id> connectivity;
     {
     vtkm::cont::ArrayHandle<int32_t> tmp =
-      vtkm::cont::make_ArrayHandle(meshData->con,(meshData->nCells*
-                                                  meshData->nVerticesPerCell));
+      vtkm::cont::make_ArrayHandle(meshData->con,
+                                   (meshData->nSubdividedCells*
+                   vtkm::CellTraits<vtkm::CellShapeTagHexahedron>::NUM_POINTS));
     vtkm::cont::ArrayHandleCast<vtkm::Id,
       vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
     vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
