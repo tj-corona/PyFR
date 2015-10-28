@@ -65,7 +65,8 @@ int vtkPyFRParallelSliceFilter::RequestData(
   if (this->GetMTime() > this->LastExecuteTime)
     {
     this->LastExecuteTime = this->GetMTime();
-    Filter->SetPlane(this->Origin,this->Normal);
+    Filter->SetPlane(this->Origin[0],this->Origin[1],this->Origin[2],
+                     this->Normal[0],this->Normal[1],this->Normal[2]);
     Filter->SetSpacing(this->Spacing);
     Filter->SetNumberOfPlanes(this->NumberOfPlanes);
     Filter->operator()(input->GetData(),output->GetData());

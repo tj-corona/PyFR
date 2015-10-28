@@ -27,7 +27,7 @@ protected:
   vtkPyFRContourFilter();
   virtual ~vtkPyFRContourFilter();
 
-  std::vector<FPType> ContourValues;
+  std::vector<double> ContourValues;
   int ContourField;
   int MappedField;
 

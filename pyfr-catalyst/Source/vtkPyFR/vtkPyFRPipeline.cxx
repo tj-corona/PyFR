@@ -459,7 +459,10 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
         HIDE_UNUSED_SCALAR_BARS = 0x01,
         SHOW_USED_SCALAR_BARS = 0x02
       };
-      transferFunctionManager->UpdateScalarBars(viewProxy,HIDE_UNUSED_SCALAR_BARS | SHOW_USED_SCALAR_BARS);
+
+      transferFunctionManager->UpdateScalarBars(viewProxy,
+                                                HIDE_UNUSED_SCALAR_BARS |
+                                                SHOW_USED_SCALAR_BARS);
       this->ContourRepresentation->SetScalarBarVisibility(viewProxy,true);
       this->SliceRepresentation->SetScalarBarVisibility(viewProxy,true);
       viewProxy->UpdateVTKObjects();

@@ -69,7 +69,9 @@ int vtkPyFRCrinkleClipFilter::RequestData(
     {
     this->LastExecuteTime = this->GetMTime();
     PyFRCrinkleClipFilter filter;
-    filter(input->GetData(),output->GetData(),this->Origin,this->Normal);
+    filter.SetPlane(this->Origin[0],this->Origin[1],this->Origin[2],
+                    this->Normal[0],this->Normal[1],this->Normal[2]);
+    filter(input->GetData(),output->GetData());
     }
 
   return 1;

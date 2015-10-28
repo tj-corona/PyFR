@@ -22,14 +22,19 @@ PyFRParallelSliceFilter::~PyFRParallelSliceFilter()
 }
 
 //----------------------------------------------------------------------------
-void PyFRParallelSliceFilter::SetPlane(const FPType* origin,
-                                       const FPType* normal)
+void PyFRParallelSliceFilter::SetPlane(FPType origin_x,
+                                       FPType origin_y,
+                                       FPType origin_z,
+                                       FPType normal_x,
+                                       FPType normal_y,
+                                       FPType normal_z)
 {
-  for (unsigned i=0;i<3;i++)
-    {
-    this->Origin[i] = origin[i];
-    this->Normal[i] = normal[i];
-    }
+  this->Origin[0] = origin_x;
+  this->Origin[1] = origin_y;
+  this->Origin[2] = origin_z;
+  this->Normal[0] = normal_x;
+  this->Normal[1] = normal_y;
+  this->Normal[2] = normal_z;
 }
 
 //----------------------------------------------------------------------------

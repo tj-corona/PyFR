@@ -34,8 +34,8 @@ public:
 protected:
   unsigned long LastExecuteTime;
 
-  FPType Normal[3];
-  FPType Origin[3];
+  double Normal[3];
+  double Origin[3];
 
   vtkPyFRCrinkleClipFilter();
   virtual ~vtkPyFRCrinkleClipFilter();

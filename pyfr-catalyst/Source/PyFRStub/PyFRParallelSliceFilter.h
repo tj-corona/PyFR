@@ -8,7 +8,7 @@ class PyFRContourData;
 
 struct PyFRParallelSliceFilter
 {
-  void SetPlane(const FPType*,const FPType*) {}
+  void SetPlane(FPType,FPType,FPType,FPType,FPType,FPType) {}
   void SetSpacing(FPType) {}
   void SetNumberOfPlanes(unsigned) {}
 

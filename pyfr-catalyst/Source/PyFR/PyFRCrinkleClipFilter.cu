@@ -10,7 +10,30 @@
 #include "CrinkleClip.h"
 #include "PyFRData.h"
 
-void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,PyFRData* outputData,const FPType* origin,const FPType* normal) const
+PyFRCrinkleClipFilter::PyFRCrinkleClipFilter()
+{
+  this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.;
+  this->Normal[0] = this->Normal[1] = 0.;
+  this->Normal[2] = 1.;
+}
+
+void PyFRCrinkleClipFilter::SetPlane(FPType origin_x,
+                                     FPType origin_y,
+                                     FPType origin_z,
+                                     FPType normal_x,
+                                     FPType normal_y,
+                                     FPType normal_z)
+{
+  this->Origin[0] = origin_x;
+  this->Origin[1] = origin_y;
+  this->Origin[2] = origin_z;
+  this->Normal[0] = normal_x;
+  this->Normal[1] = normal_y;
+  this->Normal[2] = normal_z;
+}
+
+void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,
+                                        PyFRData* outputData) const
 {
   typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
   typedef vtkm::worklet::CrinkleClip<CudaTag> CrinkleClip;
@@ -18,12 +41,12 @@ void PyFRCrinkleClipFilter::operator ()(PyFRData* inputData,PyFRData* outputData
   typedef vtkm::ListTagBase<PyFRData::CellSet> CellSetTag;
   typedef vtkm::Plane ImplicitFunction;
 
-  ImplicitFunction func(vtkm::Vec<FPType,3>(origin[0],
-                                            origin[1],
-                                            origin[2]),
-                        vtkm::Vec<FPType,3>(normal[0],
-                                            normal[1],
-                                            normal[2]));
+  ImplicitFunction func(vtkm::Vec<FPType,3>(this->Origin[0],
+                                            this->Origin[1],
+                                            this->Origin[2]),
+                        vtkm::Vec<FPType,3>(this->Normal[0],
+                                            this->Normal[1],
+                                            this->Normal[2]));
 
   const vtkm::cont::DataSet& input = inputData->GetDataSet();
   vtkm::cont::DataSet& output = outputData->GetDataSet();

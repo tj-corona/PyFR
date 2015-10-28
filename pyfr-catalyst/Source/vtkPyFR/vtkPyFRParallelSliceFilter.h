@@ -38,9 +38,9 @@ protected:
   vtkPyFRParallelSliceFilter();
   virtual ~vtkPyFRParallelSliceFilter();
 
-  FPType Origin[3];
-  FPType Normal[3];
-  FPType Spacing;
+  double Origin[3];
+  double Normal[3];
+  double Spacing;
   int NumberOfPlanes;
   int MappedField;
 

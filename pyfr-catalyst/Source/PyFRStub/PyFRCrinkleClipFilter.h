@@ -5,6 +5,8 @@ class PyFRData;
 
 struct PyFRCrinkleClipFilter
 {
-  void operator ()(PyFRData*,PyFRData*,const FPType*,const FPType*) const {}
+  void SetPlane(FPType,FPType,FPType,FPType,FPType,FPType) {}
+
+  void operator ()(PyFRData*,PyFRData*) const {}
 };
 #endif

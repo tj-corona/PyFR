@@ -24,7 +24,7 @@ public:
   PyFRParallelSliceFilter();
   virtual ~PyFRParallelSliceFilter();
 
-  void SetPlane(const FPType*,const FPType*);
+  void SetPlane(FPType,FPType,FPType,FPType,FPType,FPType);
   void SetSpacing(FPType spacing) { this->Spacing = spacing; }
   void SetNumberOfPlanes(unsigned n) { this->NPlanes = n; }
 
