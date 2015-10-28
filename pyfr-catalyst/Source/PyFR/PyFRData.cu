@@ -63,8 +63,6 @@ void PyFRData::Init(void* data)
 
   typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
 
-  std::cout<<"NCells, nVerticesPerCell, NSubdivisions: "<<meshData->nCells<<" "<<meshData->nVerticesPerCell<<" "<<meshData->nSubdividedCells<<std::endl;
-
   Vec3ArrayHandle vertices;
     {
     const vtkm::Vec<FPType,3> *vecData =
