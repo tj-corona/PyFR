@@ -73,6 +73,7 @@ int vtkPyFRParallelSliceFilter::RequestData(
     }
   Filter->MapFieldOntoSlices(this->MappedField,input->GetData(),
                              output->GetData());
+  output->Modified();
 
   return 1;
 }

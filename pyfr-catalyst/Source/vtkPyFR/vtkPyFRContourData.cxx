@@ -11,20 +11,15 @@ vtkStandardNewMacro(vtkPyFRContourData);
 vtkPyFRContourData::vtkPyFRContourData()
 {
   this->data = new PyFRContourData();
+  for (unsigned i=0;i<6;i++)
+    {
+    this->Bounds[i] = 0.;
+    }
 }
 
 //----------------------------------------------------------------------------
 vtkPyFRContourData::~vtkPyFRContourData()
 {
-  // Yes, not deleting this->data results in a memory leak. This class is
-  // instantiated exactly once, though, and only destructs with the destruction
-  // of the Catalyst pipeline (i.e. at the end of the simulation). When we try
-  // to delete this->data, we end up with a cuda runtime segfault in
-  // thrust::system::cuda::detail::trivial_copy_detail::checked_cudaMemcpy. I'm
-  // not sure if this bug is due to me, vtk-m, thrust, or simultaneously using
-  // CUDA APIs from python and C++, but for the purposes of having a working
-  // demonstration, I am taking the coward's way out.
-
   this->ReleaseResources();
 }
 
@@ -42,6 +37,42 @@ void vtkPyFRContourData::ReleaseResources()
     delete this->data;
     this->data = NULL;
     }
+}
+
+//----------------------------------------------------------------------------
+void vtkPyFRContourData::GetBounds(double* bounds)
+{
+  if (this->GetMTime() > this->BoundsUpdateTime)
+    {
+    this->BoundsUpdateTime = this->GetMTime();
+    FPType b[6];
+    this->data->ComputeBounds(b);
+    for (unsigned i=0;i<6;i++)
+      {
+      this->Bounds[i] = b[i];
+      }
+    }
+  for (unsigned i=0;i<6;i++)
+    {
+    bounds[i] = this->Bounds[i];
+    }
+}
+
+//----------------------------------------------------------------------------
+bool vtkPyFRContourData::HasData() const
+{
+  for (unsigned i=0;i<this->data->GetNumberOfContours();i++)
+    {
+    if (this->HasData(i))
+      return true;
+    }
+  return false;
+}
+
+//----------------------------------------------------------------------------
+bool vtkPyFRContourData::HasData(int i) const
+{
+  return this->data->GetContourSize(i) > 0;
 }
 
 //----------------------------------------------------------------------------

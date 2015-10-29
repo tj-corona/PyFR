@@ -64,7 +64,7 @@ int vtkPyFRContourFilter::RequestData(
   filter(input->GetData(),output->GetData());
   filter.MapFieldOntoIsosurfaces(this->MappedField,input->GetData(),
                                  output->GetData());
-
+  output->Modified();
   return 1;
 }
 //----------------------------------------------------------------------------

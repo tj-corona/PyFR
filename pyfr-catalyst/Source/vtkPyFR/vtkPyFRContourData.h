@@ -17,9 +17,17 @@ public:
 
   void ReleaseResources();
 
+  void GetBounds(double*);
+
+  bool HasData() const;
+  bool HasData(int i) const;
+
 protected:
   vtkPyFRContourData();
   virtual ~vtkPyFRContourData();
+
+  double Bounds[6];
+  unsigned int BoundsUpdateTime;
 
 private:
   PyFRContourData* data;

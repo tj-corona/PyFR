@@ -17,6 +17,9 @@ public:
   unsigned GetNumberOfContours()       const { return this->Contours.size(); }
   PyFRContour& GetContour(int i)             { return this->Contours[i]; }
   const PyFRContour& GetContour(int i) const { return this->Contours[i]; }
+  unsigned GetContourSize(int) const;
+  void ComputeContourBounds(int,FPType*) const;
+  void ComputeBounds(FPType*) const;
 
 private:
   std::vector<PyFRContour> Contours;
