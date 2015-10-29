@@ -15,6 +15,8 @@ public:
   void SetData(PyFRContourData* d) { data = d; }
   PyFRContourData* GetData() const { return data; }
 
+  int GetNumberOfContours() const;
+
   void ReleaseResources();
 
   void GetBounds(double*);

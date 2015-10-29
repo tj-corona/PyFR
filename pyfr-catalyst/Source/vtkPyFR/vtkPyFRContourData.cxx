@@ -32,6 +32,17 @@ void vtkPyFRContourData::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+int vtkPyFRContourData::GetNumberOfContours() const
+{
+  if (this->data)
+    {
+    return static_cast<int>(this->data->GetNumberOfContours());
+    }
+  return 0;
+}
+
+
+//----------------------------------------------------------------------------
 void vtkPyFRContourData::ReleaseResources()
 {
   if (this->data)
