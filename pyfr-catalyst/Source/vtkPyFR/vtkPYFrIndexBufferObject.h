@@ -1,49 +1,35 @@
-#ifndef vtkPYFrVertexBufferObject_h
-#define vtkPYFrVertexBufferObject_h
+#ifndef vtkPYFrIndexBufferObject_h
+#define vtkPYFrIndexBufferObject_h
 
-#include <vtkOpenGLVertexBufferObject.h>
+#include <vtkOpenGLIndexBufferObject.h>
 #include "vtkPyFRContourData.h"
 
+#include <vector>
 
-class VTKRENDERINGOPENGL2_EXPORT vtkPYFrVertexBufferObject :
-  public vtkOpenGLVertexBufferObject
+class VTKRENDERINGOPENGL2_EXPORT vtkPYFrIndexBufferObject :
+  public vtkOpenGLIndexBufferObject
 {
 public:
-  static vtkPYFrVertexBufferObject *New();
-  vtkTypeMacro(vtkPYFrVertexBufferObject, vtkOpenGLBufferObject)
+  static vtkPYFrIndexBufferObject *New();
+  vtkTypeMacro(vtkPYFrIndexBufferObject, vtkOpenGLIndexBufferObject)
   void PrintSelf(ostream& os, vtkIndent indent);
 
-  //Create VBO's for the contour data
-  void CreateVBO(vtkPyFRContourData* data);
+  std::size_t CreateIndexBuffer(vtkPyFRContourData* data, int index);
+  std::size_t CreateTriangleLineIndexBuffer(vtkPyFRContourData* data, int index);
 
-  typedef typename PyFRContourData::Vec3ArrayHandle vec3;
-  typedef typename PyFRContourData::ScalarDataArrayHandle scalar;
-  void Vertices(const vec3& vertices);
-  void Normals(const vec3& normals);
-  void Scalars(const scalar& scalars);
-  size_t vertsize() const; ///< returns the number of vertices set
-
-  // Binds the VBO.  Call 'CreateVBO' first.  Always pair with Release.
-  bool Bind();
-  bool Release();
-  void ReleaseGraphicsResources();
-
-  // For compatibility.  Aborts if called.
-  void AppendVBO(vtkPoints *points, unsigned int numPoints,
-      vtkDataArray *normals,
-      vtkDataArray *tcoords,
-      unsigned char *colors, int colorComponents);
 
 protected:
-  vtkPYFrVertexBufferObject();
-  ~vtkPYFrVertexBufferObject();
+  vtkPYFrIndexBufferObject();
+  ~vtkPYFrIndexBufferObject();
 
 private:
-  vtkPYFrVertexBufferObject(const vtkPYFrVertexBufferObject&); // Not implemented
-  void operator=(const vtkPYFrVertexBufferObject&); // Not implemented
+  vtkPYFrIndexBufferObject(const vtkPYFrIndexBufferObject&); // Not implemented
+  void operator=(const vtkPYFrIndexBufferObject&); // Not implemented
 
-  unsigned vao;
-  unsigned vertices, normals, scalars, idx;
-  size_t nverts;
+
+  //hack to pre-compute the indexArray once, since it is just an
+  //explicit array handle counting
+  std::vector<unsigned int> IndexArray;
+
 };
 #endif

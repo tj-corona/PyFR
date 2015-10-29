@@ -397,7 +397,7 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
 
     // Build the VBO's using our new vtkPYFrVertexBufferObject
     vtkPYFrVertexBufferObject* coordsVBO = dynamic_cast<vtkPYFrVertexBufferObject*>(this->VBO);
-    coordsVBO->CreateVerticesVBO(this->ContourDatam, this->ActiveContour);
+    coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
     this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
     }
@@ -425,7 +425,7 @@ void vtkPyFRContourMapper::BuildIBO(
   trisIBO = dynamic_cast<vtkPYFrIndexBufferObject*>(this->Tris.IBO);
   triEdgesIBO = dynamic_cast<vtkPYFrIndexBufferObject*>(this->TrisEdges.IBO);
 
-  pointsIBO->CreatePointIndexBuffer(contours);
+  pointsIBO->CreateIndexBuffer(contours, this->ActiveContour);
 
   if (selector && this->PopulateSelectionSettings &&
       selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS &&
@@ -436,15 +436,16 @@ void vtkPyFRContourMapper::BuildIBO(
 
   if (representation == VTK_POINTS)
     {
-    trisIBO->CreatePointIndexBuffer(contours);
+    trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
     }
   else if (representation == VTK_WIREFRAME)
     {
-    trisIBO->CreateTriangleLineIndexBuffer(contours);
+    trisIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
     }
    else // SURFACE
     {
-    trisIBO->CreateTriangleIndexBuffer(contours);
+    //uses the same logic points, since we share no verts in common
+    trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
     }
 
   // when drawing edges also build the edge IBOs
@@ -453,7 +454,7 @@ void vtkPyFRContourMapper::BuildIBO(
     (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE);
   if (draw_surface_with_edges)
     {
-    triEdgesIBO->CreateTriangleLineIndexBuffer(contours);
+    triEdgesIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
     }
 }
 

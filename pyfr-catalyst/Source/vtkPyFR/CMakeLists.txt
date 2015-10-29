@@ -8,6 +8,7 @@ set(vtkPyFR_SRCS
   vtkPyFRData.cxx
   vtkPyFRDataAlgorithm.cxx
   vtkPyFRDataConverter.cxx
+  vtkPYFrIndexBufferObject.cxx
   vtkPyFRMapper.cxx
   vtkPyFRParallelSliceFilter.cxx
   vtkPYFrVertexBufferObject.cxx
