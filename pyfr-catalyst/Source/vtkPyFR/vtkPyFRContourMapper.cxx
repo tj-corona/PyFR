@@ -23,6 +23,9 @@ vtkPyFRContourMapper::vtkPyFRContourMapper():
   this->ActiveContour = -1;
   this->ContourData = NULL;
 
+  this->ColorVBO = vtkPYFrVertexBufferObject::New();
+  this->NormalVBO = vtkPYFrVertexBufferObject::New();
+
   //Important override the default VBO with our own custom VBO Implementation
   //Likewise the same needs
   this->VBO->Delete();
@@ -36,6 +39,25 @@ vtkPyFRContourMapper::vtkPyFRContourMapper():
   this->Points.IBO = vtkPYFrIndexBufferObject::New();
   this->Tris.IBO = vtkPYFrIndexBufferObject::New();
   this->TrisEdges.IBO = vtkPYFrIndexBufferObject::New();
+}
+
+//-----------------------------------------------------------------------------
+vtkPyFRContourMapper::~vtkPyFRContourMapper()
+{
+  this->ColorVBO->Delete();
+  this->ColorVBO = NULL;
+
+  this->NormalVBO->Delete();
+  this->NormalVBO = NULL;
+}
+
+
+//-----------------------------------------------------------------------------
+void vtkPyFRContourMapper::ReleaseGraphicsResources(vtkWindow* win)
+{
+  this->ColorVBO->ReleaseGraphicsResources();
+  this->NormalVBO->ReleaseGraphicsResources();
+  this->Superclass::ReleaseGraphicsResources(win);
 }
 
 //----------------------------------------------------------------------------
@@ -146,6 +168,9 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
 
   // Bind the OpenGL, this is shared between the different primitive/cell types.
   this->VBO->Bind();
+  this->ColorVBO->Bind();
+  this->NormalVBO->Bind();
+
   this->LastBoundBO = NULL;
 }
 
@@ -156,7 +181,7 @@ void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
   if (this->Points.IBO->IndexCount)
     {
     // Update/build/etc the shader.
-    this->UpdateShaders(this->ContourData, ren, actor);
+    this->UpdateShaders(this->Points, ren, actor);
     this->Points.IBO->Bind();
     glDrawRangeElements(GL_POINTS, 0,
                         static_cast<GLuint>(this->VBO->VertexCount - 1),
@@ -293,6 +318,8 @@ void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
     }
 
   this->VBO->Release();
+  this->ColorVBO->Release();
+  this->NormalVBO->Release();
 
   vtkProperty *prop = actor->GetProperty();
   bool surface_offset =
@@ -311,40 +338,6 @@ void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
     }
 
   this->UpdateProgress(1.0);
-}
-
-//----------------------------------------------------------------------------
-// Update the network connected to this mapper.
-void vtkPyFRContourMapper::Update(int port)
-{
-  if (this->Static)
-    {
-    return;
-    }
-
-  this->UpdateInformation();
-
-  vtkInformation* inInfo = this->GetInputInformation();
-
-  // If the estimated pipeline memory usage is larger than
-  // the memory limit, break the current piece into sub-pieces.
-  if (inInfo)
-    {
-    int currentPiece = this->NumberOfSubPieces * this->Piece;
-    vtkStreamingDemandDrivenPipeline::SetUpdateExtent(
-      inInfo,
-      currentPiece,
-      this->NumberOfSubPieces * this->NumberOfPieces,
-      this->GhostLevel);
-    }
-
-  this->vtkMapper::Update(port);
-}
-
-//----------------------------------------------------------------------------
-void vtkPyFRContourMapper::Update()
-{
-  this->Superclass::Update();
 }
 
 //----------------------------------------------------------------------------
@@ -402,8 +395,11 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
     {
     // dropping support for texture maps
 
-    // Build the VBO using our new vtkPYFrVertexBufferObject
-    dynamic_cast<vtkPYFrVertexBufferObject*>(this->VBO)->CreateVBO(this->ContourData);
+    // Build the VBO's using our new vtkPYFrVertexBufferObject
+    vtkPYFrVertexBufferObject* coordsVBO = dynamic_cast<vtkPYFrVertexBufferObject*>(this->VBO);
+    coordsVBO->CreateVerticesVBO(this->ContourDatam, this->ActiveContour);
+    this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
+    this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
     }
 
   // now create the IBOs
@@ -461,6 +457,322 @@ void vtkPyFRContourMapper::BuildIBO(
     }
 }
 
+//-------------------------------------------------------------------------
+void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
+                                                      vtkRenderer* ren, vtkActor *actor)
+{
+  // Now to update the VAO too, if necessary.
+  cellBO.Program->SetUniformi("PrimitiveIDOffset",
+    this->PrimitiveIDOffset);
+
+  if (cellBO.IBO->IndexCount && (this->VBOBuildTime > cellBO.AttributeUpdateTime ||
+      cellBO.ShaderSourceTime > cellBO.AttributeUpdateTime))
+    {
+    //stride and offset are 0, since the attribute is tightly packed in
+    //separate arrays
+    const int offset = 0;
+    const int stride = 0;
+
+    cellBO.VAO->Bind();
+    if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->VBO,
+                                    "vertexMC", this->VBO->VertexOffset,
+                                    this->VBO->Stride, VTK_FLOAT, 3, false))
+      {
+      vtkErrorMacro(<< "Error setting 'vertexMC' in shader VAO.");
+      }
+    if (this->LastLightComplexity[&cellBO] > 0)
+      {
+
+      if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->NormalVBO,
+                                      "normalMC", offset, stride, VTK_FLOAT, 3, false))
+        {
+        vtkErrorMacro(<< "Error setting 'normalMC' in shader VAO.");
+        }
+      }
+    if (!this->DrawingEdges)
+      {
+      //stride is 0, since the attribute is tightly packed in the array
+      if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->ColorVBO,
+                                      "scalarColor", offset, stride,
+                                      VTK_UNSIGNED_CHAR, 4, true))
+        {
+        vtkErrorMacro(<< "Error setting 'scalarColor' in shader VAO.");
+        }
+      }
+
+  // if depth peeling set the required uniforms
+  vtkInformation *info = actor->GetPropertyKeys();
+  if (info && info->Has(vtkDepthPeelingPass::OpaqueZTextureUnit()) &&
+      info->Has(vtkDepthPeelingPass::TranslucentZTextureUnit()))
+    {
+    int otunit = info->Get(vtkDepthPeelingPass::OpaqueZTextureUnit());
+    int ttunit = info->Get(vtkDepthPeelingPass::TranslucentZTextureUnit());
+    cellBO.Program->SetUniformi("opaqueZTexture", otunit);
+    cellBO.Program->SetUniformi("translucentZTexture", ttunit);
+
+    int *renSize = info->Get(vtkDepthPeelingPass::DestinationSize());
+    float screenSize[2];
+    screenSize[0] = renSize[0];
+    screenSize[1] = renSize[1];
+    cellBO.Program->SetUniform2f("screenSize", screenSize);
+    }
+
+
+  if (this->GetNumberOfClippingPlanes())
+    {
+    // add all the clipping planes
+    int numClipPlanes = this->GetNumberOfClippingPlanes();
+    if (numClipPlanes > 6)
+      {
+      vtkErrorMacro(<< "OpenGL has a limit of 6 clipping planes");
+      numClipPlanes = 6;
+      }
+
+    float planeEquations[6][4];
+    for (int i = 0; i < numClipPlanes; i++)
+      {
+      double planeEquation[4];
+      this->GetClippingPlaneInDataCoords(actor->GetMatrix(), i, planeEquation);
+      planeEquations[i][0] = planeEquation[0];
+      planeEquations[i][1] = planeEquation[1];
+      planeEquations[i][2] = planeEquation[2];
+      planeEquations[i][3] = planeEquation[3];
+      }
+    cellBO.Program->SetUniformi("numClipPlanes", numClipPlanes);
+    cellBO.Program->SetUniform4fv("clipPlanes", 6, planeEquations);
+    }
+
+}
+
+//----------------------------------------------------------------------------
+void vtkPyFRContourMapper::ReplaceShaderColor(
+  std::map<vtkShader::Type, vtkShader *> shaders,
+  vtkRenderer *, vtkActor *actor)
+{
+  std::string VSSource = shaders[vtkShader::Vertex]->GetSource();
+  std::string GSSource = shaders[vtkShader::Geometry]->GetSource();
+  std::string FSSource = shaders[vtkShader::Fragment]->GetSource();
+
+  // crate the material/color property declarations, and VS implementation
+  // these are always defined
+  std::string colorDec =
+    "uniform float opacityUniform; // the fragment opacity\n"
+    "uniform vec3 ambientColorUniform; // intensity weighted color\n"
+    "uniform vec3 diffuseColorUniform; // intensity weighted color\n";
+  // add some if we have a backface property
+  if (actor->GetBackfaceProperty() && !this->DrawingEdges)
+    {
+    colorDec +=
+      "uniform float opacityUniformBF; // the fragment opacity\n"
+      "uniform vec3 ambientColorUniformBF; // intensity weighted color\n"
+      "uniform vec3 diffuseColorUniformBF; // intensity weighted color\n";
+    }
+  // add more for specular
+  if (this->LastLightComplexity[this->LastBoundBO])
+    {
+    colorDec +=
+      "uniform vec3 specularColorUniform; // intensity weighted color\n"
+      "uniform float specularPowerUniform;\n";
+    if (actor->GetBackfaceProperty())
+      {
+      colorDec +=
+        "uniform vec3 specularColorUniformBF; // intensity weighted color\n"
+        "uniform float specularPowerUniformBF;\n";
+      }
+    }
+  // add scalar vertex coloring
+  if (!this->DrawingEdges)
+    {
+    colorDec += "varying vec4 vertexColorVSOutput;\n";
+    vtkShaderProgram::Substitute(VSSource,"//VTK::Color::Dec",
+                        "attribute vec4 scalarColor;\n"
+                        "varying vec4 vertexColorVSOutput;");
+    vtkShaderProgram::Substitute(VSSource,"//VTK::Color::Impl",
+                        "vertexColorVSOutput =  scalarColor;");
+    vtkShaderProgram::Substitute(GSSource,
+      "//VTK::Color::Dec",
+      "in vec4 vertexColorVSOutput[];\n"
+      "out vec4 vertexColorGSOutput;");
+    vtkShaderProgram::Substitute(GSSource,
+      "//VTK::Color::Impl",
+      "vertexColorGSOutput = vertexColorVSOutput[i];");
+    }
+  if (this->HaveCellScalars && !this->HavePickScalars && !this->DrawingEdges)
+    {
+    colorDec += "uniform samplerBuffer textureC;\n";
+    }
+
+  vtkShaderProgram::Substitute(FSSource,"//VTK::Color::Dec", colorDec);
+
+  // now handle the more complex fragment shader implementation
+  // the following are always defined variables.  We start
+  // by assiging a default value from the uniform
+  std::string colorImpl =
+    "vec3 ambientColor;\n"
+    "  vec3 diffuseColor;\n"
+    "  float opacity;\n";
+  if (this->LastLightComplexity[this->LastBoundBO])
+    {
+    colorImpl +=
+      "  vec3 specularColor;\n"
+      "  float specularPower;\n";
+    }
+  if (actor->GetBackfaceProperty())
+    {
+    if (this->LastLightComplexity[this->LastBoundBO])
+      {
+      colorImpl +=
+        "  if (int(gl_FrontFacing) == 0) {\n"
+        "    ambientColor = ambientColorUniformBF;\n"
+        "    diffuseColor = diffuseColorUniformBF;\n"
+        "    specularColor = specularColorUniformBF;\n"
+        "    specularPower = specularPowerUniformBF;\n"
+        "    opacity = opacityUniformBF; }\n"
+        "  else {\n"
+        "    ambientColor = ambientColorUniform;\n"
+        "    diffuseColor = diffuseColorUniform;\n"
+        "    specularColor = specularColorUniform;\n"
+        "    specularPower = specularPowerUniform;\n"
+        "    opacity = opacityUniform; }\n";
+      }
+    else
+      {
+      colorImpl +=
+        "  if (int(gl_FrontFacing) == 0) {\n"
+        "    ambientColor = ambientColorUniformBF;\n"
+        "    diffuseColor = diffuseColorUniformBF;\n"
+        "    opacity = opacityUniformBF; }\n"
+        "  else {\n"
+        "    ambientColor = ambientColorUniform;\n"
+        "    diffuseColor = diffuseColorUniform;\n"
+        "    opacity = opacityUniform; }\n";
+      }
+    }
+  else
+    {
+    colorImpl +=
+      "  ambientColor = ambientColorUniform;\n"
+      "  diffuseColor = diffuseColorUniform;\n"
+      "  opacity = opacityUniform;\n";
+    if (this->LastLightComplexity[this->LastBoundBO])
+      {
+      colorImpl +=
+        "  specularColor = specularColorUniform;\n"
+        "  specularPower = specularPowerUniform;\n";
+      }
+    }
+
+  // now handle scalar coloring
+  if (!this->DrawingEdges)
+    {
+    if (this->ScalarMaterialMode == VTK_MATERIALMODE_AMBIENT ||
+        (this->ScalarMaterialMode == VTK_MATERIALMODE_DEFAULT &&
+          actor->GetProperty()->GetAmbient() > actor->GetProperty()->GetDiffuse()))
+      {
+      vtkShaderProgram::Substitute(FSSource,"//VTK::Color::Impl",
+        colorImpl +
+        "  ambientColor = vertexColorVSOutput.rgb;\n"
+        "  opacity = opacity*vertexColorVSOutput.a;");
+      }
+    else if (this->ScalarMaterialMode == VTK_MATERIALMODE_DIFFUSE ||
+        (this->ScalarMaterialMode == VTK_MATERIALMODE_DEFAULT &&
+          actor->GetProperty()->GetAmbient() <= actor->GetProperty()->GetDiffuse()))
+      {
+      vtkShaderProgram::Substitute(FSSource,"//VTK::Color::Impl", colorImpl +
+        "  diffuseColor = vertexColorVSOutput.rgb;\n"
+        "  opacity = opacity*vertexColorVSOutput.a;");
+      }
+    else
+      {
+      vtkShaderProgram::Substitute(FSSource,"//VTK::Color::Impl", colorImpl +
+        "  diffuseColor = vertexColorVSOutput.rgb;\n"
+        "  ambientColor = vertexColorVSOutput.rgb;\n"
+        "  opacity = opacity*vertexColorVSOutput.a;");
+      }
+    }
+  else
+    {
+    // are we doing scalar coloring by texture?
+    if (this->InterpolateScalarsBeforeMapping &&
+        this->ColorCoordinates &&
+        !this->DrawingEdges)
+      {
+      if (this->ScalarMaterialMode == VTK_MATERIALMODE_AMBIENT ||
+          (this->ScalarMaterialMode == VTK_MATERIALMODE_DEFAULT &&
+            actor->GetProperty()->GetAmbient() > actor->GetProperty()->GetDiffuse()))
+        {
+        vtkShaderProgram::Substitute(FSSource,
+          "//VTK::Color::Impl", colorImpl +
+          "  vec4 texColor = texture2D(texture1, tcoordVCVSOutput.st);\n"
+          "  ambientColor = texColor.rgb;\n"
+          "  opacity = opacity*texColor.a;");
+        }
+      else if (this->ScalarMaterialMode == VTK_MATERIALMODE_DIFFUSE ||
+          (this->ScalarMaterialMode == VTK_MATERIALMODE_DEFAULT &&
+           actor->GetProperty()->GetAmbient() <= actor->GetProperty()->GetDiffuse()))
+        {
+        vtkShaderProgram::Substitute(FSSource,
+          "//VTK::Color::Impl", colorImpl +
+          "  vec4 texColor = texture2D(texture1, tcoordVCVSOutput.st);\n"
+          "  diffuseColor = texColor.rgb;\n"
+          "  opacity = opacity*texColor.a;");
+        }
+      else
+        {
+        vtkShaderProgram::Substitute(FSSource,
+          "//VTK::Color::Impl", colorImpl +
+          "vec4 texColor = texture2D(texture1, tcoordVCVSOutput.st);\n"
+          "  ambientColor = texColor.rgb;\n"
+          "  diffuseColor = texColor.rgb;\n"
+          "  opacity = opacity*texColor.a;");
+        }
+      }
+    else
+      {
+      if (this->HaveCellScalars && !this->DrawingEdges)
+        {
+        if (this->ScalarMaterialMode == VTK_MATERIALMODE_AMBIENT ||
+            (this->ScalarMaterialMode == VTK_MATERIALMODE_DEFAULT &&
+              actor->GetProperty()->GetAmbient() > actor->GetProperty()->GetDiffuse()))
+          {
+          vtkShaderProgram::Substitute(FSSource,
+            "//VTK::Color::Impl", colorImpl +
+            "  vec4 texColor = texelFetchBuffer(textureC, gl_PrimitiveID + PrimitiveIDOffset);\n"
+            "  ambientColor = texColor.rgb;\n"
+            "  opacity = opacity*texColor.a;"
+            );
+          }
+        else if (this->ScalarMaterialMode == VTK_MATERIALMODE_DIFFUSE ||
+            (this->ScalarMaterialMode == VTK_MATERIALMODE_DEFAULT &&
+             actor->GetProperty()->GetAmbient() <= actor->GetProperty()->GetDiffuse()))
+          {
+          vtkShaderProgram::Substitute(FSSource,
+            "//VTK::Color::Impl", colorImpl +
+           "  vec4 texColor = texelFetchBuffer(textureC, gl_PrimitiveID + PrimitiveIDOffset);\n"
+            "  diffuseColor = texColor.rgb;\n"
+            "  opacity = opacity*texColor.a;"
+            //  "  diffuseColor = vec3((gl_PrimitiveID%256)/255.0,((gl_PrimitiveID/256)%256)/255.0,1.0);\n"
+            );
+          }
+        else
+          {
+          vtkShaderProgram::Substitute(FSSource,
+            "//VTK::Color::Impl", colorImpl +
+            "vec4 texColor = texelFetchBuffer(textureC, gl_PrimitiveID + PrimitiveIDOffset);\n"
+            "  ambientColor = texColor.rgb;\n"
+            "  diffuseColor = texColor.rgb;\n"
+            "  opacity = opacity*texColor.a;"
+            );
+          }
+        }
+      vtkShaderProgram::Substitute(FSSource,"//VTK::Color::Impl", colorImpl);
+      }
+    }
+
+  shaders[vtkShader::Vertex]->SetSource(VSSource);
+  shaders[vtkShader::Geometry]->SetSource(GSSource);
+  shaders[vtkShader::Fragment]->SetSource(FSSource);
+}
 
 //----------------------------------------------------------------------------
 void vtkPyFRContourMapper::PrintSelf(ostream& os, vtkIndent indent)

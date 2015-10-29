@@ -41,6 +41,15 @@ int vtkPyFRContourData::GetNumberOfContours() const
   return 0;
 }
 
+//----------------------------------------------------------------------------
+std::size_t vtkPyFRContourData::GetSizeOfContour(int i) const
+{
+  if (this->data)
+    {
+    this->data->GetContourSize(i);
+    }
+  return 0;
+}
 
 //----------------------------------------------------------------------------
 void vtkPyFRContourData::ReleaseResources()

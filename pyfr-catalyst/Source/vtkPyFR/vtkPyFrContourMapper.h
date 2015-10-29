@@ -8,6 +8,7 @@
 class vtkPyFRContourData;
 class vtkRenderer;
 class vtkRenderWindow;
+class vtkPYFrVertexBufferObject;
 
 //We inherit from vtkOpenGLPolyDataMapper so that we can abuse all
 //the existing shader code, even though we don't expect poly data input
@@ -27,6 +28,12 @@ public:
   virtual void RenderEdges(vtkRenderer *ren, vtkActor *act);
 
   // Description:
+  // Release any graphics resources that are being consumed by this mapper.
+  // The parameter window could be used to determine which graphic
+  // resources to release.
+  void ReleaseGraphicsResources(vtkWindow *);
+
+  // Description:
   // Specify the input data to map.
   void SetInputData(vtkPyFRContourData *in);
   vtkPyFRContourData *GetInput();
@@ -35,11 +42,6 @@ public:
   // Specify the input contour to render.
   void vtkSetMacro(ActiveContour, int);
   void vtkGetMacro(ActiveContour, int);
-
-  // Description:
-  // Update that sets the update piece first.
-  void Update();
-  void Update(int port);
 
   // Description:
   // If you want only a part of the data, specify by setting the piece.
@@ -74,9 +76,27 @@ protected:
   // Build the VBO/IBO, called by UpdateBufferObjects
   virtual void BuildBufferObjects(vtkRenderer *ren, vtkActor *act);
 
+  // Description:
+  // Build the IBO, called by BuildBufferObjects
+  virtual void BuildIBO(vtkRenderer *ren, vtkActor *act, vtkPyFRContourData *contour);
+
+  // Description:
+  // Set the shader parameteres related to the mapper/input data, called by UpdateShader
+  virtual void SetMapperShaderParameters(vtkOpenGLHelper &cellBO, vtkRenderer *ren, vtkActor *act);
+
+  // Description:
+  // Perform string replacements on the shader templates, called from
+  // ReplaceShaderValues. Only need to override the color one to handle
+  // our multiple VBO's
+  virtual void ReplaceShaderColor(
+    std::map<vtkShader::Type, vtkShader *> shaders,
+    vtkRenderer *ren, vtkActor *act);
 
   vtkPyFRContourData* ContourData;
   int ActiveContour;
+
+  vtkPYFrVertexBufferObject *ColorVBO;
+  vtkPYFrVertexBufferObject *NormalVBO;
 
   virtual int FillInputPortInformation(int, vtkInformation*);
 

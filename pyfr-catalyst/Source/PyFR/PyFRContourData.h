@@ -26,4 +26,14 @@ private:
   std::vector<PyFRContour> Contours;
 };
 
+
+//Methods that can be used to fill VBO's with a given contours data efficiently
+//by using opengl interop, without having to move the data back to host
+namespace transfer
+{
+  void coords(PyFRContourData* data, int index, unsigned int glHandle);
+  void normals(PyFRContourData* data, int index, unsigned int glHandle);
+  void colors(PyFRContourData* data, int index, unsigned int glHandle);
+}
+
 #endif

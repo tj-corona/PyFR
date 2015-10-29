@@ -17,6 +17,8 @@ public:
 
   int GetNumberOfContours() const;
 
+  std::size_t GetSizeOfContour(int i) const;
+
   void ReleaseResources();
 
   void GetBounds(double*);

@@ -11,6 +11,9 @@
 #include <vtkm/cont/DeviceAdapter.h>
 #include <vtkm/cont/ArrayHandleTransform.h>
 
+#include <vtkm/cont/ArrayHandleCast.h>
+#include <vtkm/opengl/TransferToOpenGL.h>
+
 //----------------------------------------------------------------------------
 void PyFRContourData::SetNumberOfContours(unsigned nContours)
 {
@@ -87,3 +90,50 @@ void PyFRContourData::SetColorRange(FPType min,FPType max)
     (*it).GetColorTable().SetRange(min,max);
     }
 }
+
+namespace transfer
+{
+
+typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
+
+//----------------------------------------------------------------------------
+template<typename HandleType>
+void to_gl(vtkm::Float64, const HandleType& handle, unsigned int glHandle)
+{
+  //make an implicit wrapper to float32 around the float64 array
+  vtkm::cont::ArrayHandleCast<vtkm::Float32> asF32 =
+    vtkm::cont::make_ArrayHandleCast(handle, vtkm::Float32());
+
+  //transfer the array to openGL now as a float32 array
+  vtkm::opengl::TransferToOpenGL(asF32, glHandle, CudaTag());
+}
+
+//----------------------------------------------------------------------------
+template<typename HandleType>
+void to_gl(vtkm::Float32, const HandleType& handle, unsigned int glHandle)
+{
+  vtkm::opengl::TransferToOpenGL(handle, glHandle, CudaTag());
+}
+
+//----------------------------------------------------------------------------
+void coords(PyFRContourData* data, int index, unsigned int glHandle)
+{
+  to_gl(FPType(), data->Contours[index].GetVertices(), glHandle);
+}
+
+//----------------------------------------------------------------------------
+void normals(PyFRContourData* data, int index, unsigned int glHandle)
+{
+  to_gl(FPType(), data->Contours[index].GetNormals(), glHandle);
+}
+
+//----------------------------------------------------------------------------
+void colors(PyFRContourData* data, int index, unsigned int glHandle)
+{
+  //no need to worry about conversion, since this is always Vec4 of uint8's
+  vtkm::opengl::TransferToOpenGL( data->Contours[index].GetColorData(),
+                                  glHandle,
+                                  CudaTag());
+}
+
+} //namespace transfer
