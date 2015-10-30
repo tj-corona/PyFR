@@ -1,5 +1,5 @@
-#ifndef VTKPYFRDATACONTOURFILTER_H
-#define VTKPYFRDATACONTOURFILTER_H
+#ifndef vtkPyFRParallelSliceFilter_h
+#define vtkPyFRParallelSliceFilter_h
 
 #include <string>
 #include <vector>

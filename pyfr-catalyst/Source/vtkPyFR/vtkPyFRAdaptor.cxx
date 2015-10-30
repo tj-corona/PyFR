@@ -7,12 +7,16 @@
 #include <vtkCPInputDataDescription.h>
 #include <vtkCPProcessor.h>
 #include <vtkNew.h>
+#include <vtkSmartPointer.h>
+#include <vtkSMSourceProxy.h>
 
 #include "PyFRData.h"
 
 #include "vtkPyFRPipeline.h"
 #include "vtkPyFRData.h"
 #include "vtkPyFRContourData.h"
+#include "vtkPyFRContourFilter.h"
+#include "vtkPyFRParallelSliceFilter.h"
 
 namespace
 {
@@ -48,8 +52,22 @@ void CatalystFinalize(void* p)
   vtkPyFRData* data = static_cast<vtkPyFRData*>(p);
   vtkPyFRPipeline* pipeline =
     vtkPyFRPipeline::SafeDownCast(Processor->GetPipeline(0));
-  vtkPyFRContourData* contourData = pipeline->GetOutputData();
-  contourData->ReleaseResources();
+
+  { //release contour gpu memory
+  vtkObjectBase* clientSideContourBase = pipeline->GetContour()->GetClientSideObject();
+  vtkPyFRContourFilter* realContour =
+    vtkPyFRContourFilter::SafeDownCast(clientSideContourBase);
+  vtkPyFRContourData* cData = vtkPyFRContourData::SafeDownCast(realContour->GetOutput());
+  cData->ReleaseResources();
+  }
+
+  { //release slice gpu memory
+  vtkObjectBase* clientSideSliceBase = pipeline->GetSlice()->GetClientSideObject();
+  vtkPyFRParallelSliceFilter* realSlice =
+    vtkPyFRParallelSliceFilter::SafeDownCast(clientSideSliceBase);
+  vtkPyFRContourData* sData = vtkPyFRContourData::SafeDownCast(realSlice->GetOutput());
+  sData->ReleaseResources();
+  }
 
   if(Processor)
     {

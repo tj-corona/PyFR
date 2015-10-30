@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include <vtkActor.h>
 #include <vtkCollection.h>
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
@@ -12,30 +13,33 @@
 #include <vtkPVArrayInformation.h>
 #include <vtkPVLiveRenderView.h>
 #include <vtkPVTrivialProducer.h>
+#include <vtkRenderer.h>
 #include <vtkSmartPointer.h>
-#include <vtkSMIntVectorProperty.h>
 #include <vtkSMDoubleVectorProperty.h>
 #include <vtkSMInputProperty.h>
+#include <vtkSMIntVectorProperty.h>
 #include <vtkSMOutputPort.h>
 #include <vtkSMParaViewPipelineControllerWithRendering.h>
 #include <vtkSMPluginManager.h>
 #include <vtkSMPropertyHelper.h>
+#include <vtkSMProxyListDomain.h>
 #include <vtkSMProxyManager.h>
 #include <vtkSMPVRepresentationProxy.h>
+#include <vtkSMRenderViewProxy.h>
 #include <vtkSMRepresentationProxy.h>
-#include <vtkSMSourceProxy.h>
 #include <vtkSMSessionProxyManager.h>
+#include <vtkSMSourceProxy.h>
 #include <vtkSMStringVectorProperty.h>
 #include <vtkSMTransferFunctionManager.h>
 #include <vtkSMTransferFunctionProxy.h>
 #include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
-#include <vtkSMProxyListDomain.h>
+
 #include "vtkPyFRData.h"
 #include "vtkPyFRCrinkleClipFilter.h"
 #include "vtkPyFRContourData.h"
-#include "vtkPyFRContourDataConverter.h"
 #include "vtkPyFRContourFilter.h"
+#include "vtkPyFRMapper.h"
 #include "vtkPyFRParallelSliceFilter.h"
 #include "vtkXMLPyFRDataWriter.h"
 #include "vtkXMLPyFRContourDataWriter.h"
@@ -51,6 +55,31 @@ PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp32)
 #else
 PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp64)
 #endif
+
+
+void vtkAddActor(vtkPyFRMapper* mapper,
+                 vtkSMSourceProxy* filter,
+                 vtkSMViewProxy* view)
+{
+  vtkSMRenderViewProxy* rview = vtkSMRenderViewProxy::SafeDownCast(view);
+  rview->UpdateVTKObjects();
+  filter->UpdateVTKObjects();
+
+  vtkRenderer* ren = rview->GetRenderer();
+  vtkAlgorithm* algo = vtkAlgorithm::SafeDownCast(filter->GetClientSideObject());
+
+  mapper->SetInputConnection(algo->GetOutputPort());
+
+  vtkNew<vtkActor> actor;
+  actor->SetMapper(mapper);
+
+  ren->AddActor(actor.GetPointer());
+}
+
+void vtkUpdateFilter(vtkSMSourceProxy* filter, double time)
+{
+  filter->UpdatePipeline(time);
+}
 
 vtkStandardNewMacro(vtkPyFRPipeline);
 
@@ -171,91 +200,47 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
     }
 
   // Add the clip filter
-  vtkSmartPointer<vtkSMSourceProxy> clip;
-  clip.TakeReference(
+  this->Clip.TakeReference(
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
                                    NewProxy("filters",
                                             "PyFRCrinkleClipFilter")));
-  controller->PreInitializeProxy(clip);
-  vtkSMPropertyHelper(clip, "Input").Set(producer, 0);
-  clip->UpdateVTKObjects();
-  controller->PostInitializeProxy(clip);
-  controller->RegisterPipelineProxy(clip,"Clip");
+  controller->PreInitializeProxy(this->Clip);
+  vtkSMPropertyHelper(this->Clip, "Input").Set(producer, 0);
+  this->Clip->UpdateVTKObjects();
+  controller->PostInitializeProxy(this->Clip);
+  controller->RegisterPipelineProxy(this->Clip,"Clip");
 
   // Add the slice filter
-  vtkSmartPointer<vtkSMSourceProxy> slice;
-  slice.TakeReference(
+  this->Slice.TakeReference(
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
                                    NewProxy("filters",
                                             "PyFRParallelSliceFilter")));
-  controller->PreInitializeProxy(slice);
-  vtkSMPropertyHelper(slice, "Input").Set(producer, 0);
-  vtkSMPropertyHelper(slice,"ColorField").Set(1);
-  slice->UpdateVTKObjects();
-  controller->PostInitializeProxy(slice);
-  controller->RegisterPipelineProxy(slice,"Slice");
-
-  // Create a converter to convert the pyfr slice data into polydata
-  vtkSmartPointer<vtkSMSourceProxy> pyfrSliceDataConverter;
-  pyfrSliceDataConverter.TakeReference(
-    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
-                                   NewProxy("filters",
-                                            "PyFRContourDataConverter")));
-  vtkSMInputProperty* pyfrSliceDataConverterInputConnection =
-    vtkSMInputProperty::SafeDownCast(pyfrSliceDataConverter->
-                                     GetProperty("Input"));
-
-  producer->UpdateVTKObjects();
-  pyfrSliceDataConverterInputConnection->SetInputConnection(0, slice, 0);
-  pyfrSliceDataConverter->UpdatePropertyInformation();
-  pyfrSliceDataConverter->UpdateVTKObjects();
-  controller->InitializeProxy(pyfrSliceDataConverter);
-  controller->RegisterPipelineProxy(pyfrSliceDataConverter,
-                                    "ConvertSlicesToPolyData");
+  controller->PreInitializeProxy(this->Slice);
+  vtkSMPropertyHelper(this->Slice, "Input").Set(producer, 0);
+  vtkSMPropertyHelper(this->Slice,"ColorField").Set(1);
+  this->Slice->UpdateVTKObjects();
+  controller->PostInitializeProxy(this->Slice);
+  controller->RegisterPipelineProxy(this->Slice,"Slice");
 
   // Add the contour filter
-  vtkSmartPointer<vtkSMSourceProxy> contour;
-  contour.TakeReference(
+  this->Contour.TakeReference(
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
                                    NewProxy("filters",
                                             "PyFRContourFilter")));
   vtkSMInputProperty* contourInputConnection =
-    vtkSMInputProperty::SafeDownCast(contour->GetProperty("Input"));
+    vtkSMInputProperty::SafeDownCast(this->Contour->GetProperty("Input"));
 
-  vtkSMPropertyHelper(contour, "Input").Set(clip, 0);
-  vtkSMPropertyHelper(contour,"ContourField").Set(0);
-  vtkSMPropertyHelper(contour,"ColorField").Set(0);
-  // vtkSMPropertyHelper(contour,"ContourValues").Set(0,.65);
-  // vtkSMPropertyHelper(contour,"ContourValues").Set(1,.7);
-  vtkSMPropertyHelper(contour,"ContourValues").Set(0,1.0025);
-  vtkSMPropertyHelper(contour,"ContourValues").Set(1,1.0045);
+  vtkSMPropertyHelper(this->Contour, "Input").Set(this->Clip, 0);
+  vtkSMPropertyHelper(this->Contour,"ContourField").Set(0);
+  vtkSMPropertyHelper(this->Contour,"ColorField").Set(0);
+  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,.65);
+  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,.7);
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,1.0025);
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,1.0045);
 
-  contour->UpdateVTKObjects();
-  controller->InitializeProxy(contour);
-  controller->RegisterPipelineProxy(contour,"Contour");
-
-  vtkObjectBase* clientSideContourBase = contour->GetClientSideObject();
-  vtkPyFRContourFilter* realContour =
-    vtkPyFRContourFilter::SafeDownCast(clientSideContourBase);
-  this->OutputData = vtkPyFRContourData::SafeDownCast(realContour->GetOutput());
-
-  // Create a converter to convert the pyfr contour data into polydata
-  vtkSmartPointer<vtkSMSourceProxy> pyfrContourDataConverter;
-  pyfrContourDataConverter.TakeReference(
-    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
-                                   NewProxy("filters",
-                                            "PyFRContourDataConverter")));
-  vtkSMInputProperty* pyfrContourDataConverterInputConnection =
-    vtkSMInputProperty::SafeDownCast(pyfrContourDataConverter->
-                                     GetProperty("Input"));
-
-  producer->UpdateVTKObjects();
-  pyfrContourDataConverterInputConnection->SetInputConnection(0, contour, 0);
-  pyfrContourDataConverter->UpdatePropertyInformation();
-  pyfrContourDataConverter->UpdateVTKObjects();
-  controller->InitializeProxy(pyfrContourDataConverter);
-  controller->RegisterPipelineProxy(pyfrContourDataConverter,
-                                    "ConvertContoursToPolyData");
+  this->Contour->UpdateVTKObjects();
+  controller->InitializeProxy(this->Contour);
+  controller->RegisterPipelineProxy(this->Contour,"Contour");
 
   // Create a view
   vtkSmartPointer<vtkSMViewProxy> polydataViewer;
@@ -266,44 +251,30 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   controller->RegisterViewProxy(polydataViewer);
 
   // Show the results.
-  vtkSMProxy* sliceRepresentationBase =
-    controller->Show(vtkSMSourceProxy::SafeDownCast(pyfrSliceDataConverter),0,
-                     vtkSMViewProxy::SafeDownCast(polydataViewer));
-  this->SliceRepresentation =
-    vtkSMPVRepresentationProxy::SafeDownCast(sliceRepresentationBase);
-  this->SliceRepresentation->SetScalarColoring(
-    PyFRData::FieldName(vtkSMPropertyHelper(slice,
-                                            "ColorField").GetAsInt()).c_str(),
-    0);
-  this->SliceRepresentation->RescaleTransferFunctionToDataRange();
-
-  vtkSMProxy* contourRepresentationBase = controller->
-    Show(vtkSMSourceProxy::SafeDownCast(pyfrContourDataConverter), 0,
-         vtkSMViewProxy::SafeDownCast(polydataViewer));
-  this->ContourRepresentation =
-    vtkSMPVRepresentationProxy::SafeDownCast(contourRepresentationBase);
-  this->ContourRepresentation->SetScalarColoring(
-    PyFRData::FieldName(vtkSMPropertyHelper(contour,
-                                            "ColorField").GetAsInt()).c_str(),
-    0);
-  this->ContourRepresentation->RescaleTransferFunctionToDataRange();
-
-  vtkNew<vtkSMTransferFunctionManager> transferFunctionManager;
-  vtkSMTransferFunctionProxy::ApplyPreset(
-    transferFunctionManager->GetColorTransferFunction(
-      PyFRData::FieldName(
-        vtkSMPropertyHelper(contour,"ColorField").GetAsInt()).c_str(),
-      vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
-    "Cool to Warm", true);
-  vtkSMTransferFunctionProxy::ApplyPreset(
-    transferFunctionManager->GetColorTransferFunction(
-      PyFRData::FieldName(
-        vtkSMPropertyHelper(slice,"ColorField").GetAsInt()).c_str(),
-      vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
-    "Black-Body Radiation", true);
+  this->ContourMapper = vtkSmartPointer<vtkPyFRMapper>::New();
+  this->SliceMapper = vtkSmartPointer<vtkPyFRMapper>::New();
+  vtkAddActor(this->ContourMapper, this->Contour, polydataViewer);
+  vtkAddActor(this->SliceMapper, this->Slice, polydataViewer);
 
   if (postFilterWrite)
     {
+    // Create a converter to convert the pyfr contour data into polydata
+    vtkSmartPointer<vtkSMSourceProxy> pyfrContourDataConverter;
+    pyfrContourDataConverter.TakeReference(
+      vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                     NewProxy("filters",
+                                              "PyFRContourDataConverter")));
+    vtkSMInputProperty* pyfrContourDataConverterInputConnection =
+      vtkSMInputProperty::SafeDownCast(pyfrContourDataConverter->
+                                       GetProperty("Input"));
+
+    pyfrContourDataConverterInputConnection->SetInputConnection(0, this->Contour, 0);
+    pyfrContourDataConverter->UpdatePropertyInformation();
+    pyfrContourDataConverter->UpdateVTKObjects();
+    controller->InitializeProxy(pyfrContourDataConverter);
+    controller->RegisterPipelineProxy(pyfrContourDataConverter,
+                                      "ConvertContoursToPolyData");
+
     // Create the polydata writer, set the filename and then update the pipeline
     vtkSmartPointer<vtkSMWriterProxy> polydataWriter;
     polydataWriter.TakeReference(
@@ -425,23 +396,8 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
     this->InsituLink->InsituUpdate(dataDescription->GetTime(),
                                    dataDescription->GetTimeStep());
 
-    vtkSMSourceProxy* contour =
-      vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
-                                     GetProxy("Contour"));
-    this->ContourRepresentation->SetScalarColoring(
-      PyFRData::FieldName(vtkSMPropertyHelper(contour,
-                                              "ColorField").GetAsInt()).c_str(),
-      0);
-    this->ContourRepresentation->RescaleTransferFunctionToDataRange();
-
-    vtkSMSourceProxy* slice =
-      vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
-                                     GetProxy("Slice"));
-    this->SliceRepresentation->SetScalarColoring(
-      PyFRData::FieldName(vtkSMPropertyHelper(slice,
-                                              "ColorField").GetAsInt()).c_str(),
-      0);
-    this->SliceRepresentation->RescaleTransferFunctionToDataRange();
+    vtkUpdateFilter(this->Contour, dataDescription->GetTime());
+    vtkUpdateFilter(this->Slice, dataDescription->GetTime());
 
     vtkNew<vtkCollection> views;
     sessionProxyManager->GetProxies("views",views.GetPointer());
@@ -450,32 +406,6 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
       vtkSMViewProxy* viewProxy =
         vtkSMViewProxy::SafeDownCast(views->GetItemAsObject(i));
       vtkSMPropertyHelper(viewProxy,"ViewTime").Set(dataDescription->GetTime());
-
-      vtkNew<vtkSMTransferFunctionManager> transferFunctionManager;
-      vtkSMTransferFunctionProxy::ApplyPreset(
-        transferFunctionManager->GetColorTransferFunction(
-          PyFRData::FieldName(
-            vtkSMPropertyHelper(slice,"ColorField").GetAsInt()).c_str(),
-          vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
-        "Cool to Warm", true);
-      vtkSMTransferFunctionProxy::ApplyPreset(
-        transferFunctionManager->GetColorTransferFunction(
-          PyFRData::FieldName(
-            vtkSMPropertyHelper(contour,"ColorField").GetAsInt()).c_str(),
-          vtkSMProxyManager::GetProxyManager()->GetActiveSessionProxyManager()),
-        "Black-Body Radiation", true);
-
-      enum UpdateScalarBarsMode
-      {
-        HIDE_UNUSED_SCALAR_BARS = 0x01,
-        SHOW_USED_SCALAR_BARS = 0x02
-      };
-
-      transferFunctionManager->UpdateScalarBars(viewProxy,
-                                                HIDE_UNUSED_SCALAR_BARS |
-                                                SHOW_USED_SCALAR_BARS);
-      this->ContourRepresentation->SetScalarBarVisibility(viewProxy,true);
-      this->SliceRepresentation->SetScalarBarVisibility(viewProxy,true);
       viewProxy->UpdateVTKObjects();
       viewProxy->Update();
       }

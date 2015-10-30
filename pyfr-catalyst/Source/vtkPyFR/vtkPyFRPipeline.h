@@ -2,11 +2,14 @@
 #define VTKPYFRPIPELINE_H
 
 #include <vtkCPPipeline.h>
+#include <vtkSmartPointer.h>
 #include <string>
 
 class vtkCPDataDescription;
 class vtkLiveInsituLink;
 class vtkPyFRContourData;
+class vtkPyFRMapper;
+class vtkSMSourceProxy;
 class vtkSMPVRepresentationProxy;
 
 class vtkPyFRPipeline : public vtkCPPipeline
@@ -19,11 +22,12 @@ public:
   virtual void Initialize(char* hostName, int port, char* fileName,
                           vtkCPDataDescription* dataDescription);
 
-  virtual int RequestDataDescription(vtkCPDataDescription* dataDescription);
+virtual int RequestDataDescription(vtkCPDataDescription* dataDescription);
 
   virtual int CoProcess(vtkCPDataDescription* dataDescription);
 
-  vtkPyFRContourData* GetOutputData() { return this->OutputData; }
+  vtkSmartPointer<vtkSMSourceProxy> GetContour() { return this->Contour; }
+  vtkSmartPointer<vtkSMSourceProxy> GetSlice()   { return this->Slice;   }
 
 protected:
   vtkPyFRPipeline();
@@ -37,9 +41,11 @@ private:
 
   std::string FileName;
 
-  vtkPyFRContourData* OutputData;
+  vtkSmartPointer<vtkSMSourceProxy> Clip;
+  vtkSmartPointer<vtkSMSourceProxy> Contour;
+  vtkSmartPointer<vtkSMSourceProxy> Slice;
 
-  vtkSMPVRepresentationProxy* SliceRepresentation;
-  vtkSMPVRepresentationProxy* ContourRepresentation;
+  vtkSmartPointer<vtkPyFRMapper> ContourMapper;
+  vtkSmartPointer<vtkPyFRMapper> SliceMapper;
 };
 #endif
