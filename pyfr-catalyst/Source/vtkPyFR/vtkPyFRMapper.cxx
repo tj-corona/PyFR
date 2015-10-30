@@ -3,6 +3,7 @@
 #include "vtkPyFRContourMapper.h"
 
 #include "vtkExecutive.h"
+#include "vtkDemandDrivenPipeline.h"
 #include "vtkObjectFactory.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
@@ -10,6 +11,8 @@
 #include "vtkPolyData.h"
 #include "vtkRenderWindow.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+
+#include <vtkPyFRContourData.h>
 
 #include <vector>
 
@@ -63,7 +66,7 @@ void vtkPyFRMapper::BuildMappers()
 
   //Get the dataset from the input
   vtkInformation* inInfo = this->GetExecutive()->GetInputInformation(0,0);
-  vtkPyFRContourData *input = vtkCompositeDataSet::SafeDownCast(
+  vtkPyFRContourData *input = vtkPyFRContourData::SafeDownCast(
     inInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   int numContours = input->GetNumberOfContours();
@@ -92,7 +95,10 @@ void vtkPyFRMapper::BuildMappers()
 //----------------------------------------------------------------------------
 void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
 {
-  if(this->GetExecutive()->GetPipelineMTime() >
+  vtkDemandDrivenPipeline * executive =
+  vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
+
+  if(executive->GetPipelineMTime() >
       this->InternalMappersBuildTime.GetMTime())
     {
     this->BuildMappers();
@@ -151,7 +157,7 @@ void vtkPyFRMapper::ComputeBounds()
   vtkMath::UninitializeBounds(this->Bounds);
 
   vtkInformation* inInfo = this->GetExecutive()->GetInputInformation(0,0);
-  vtkPyFRContourData *input = vtkCompositeDataSet::SafeDownCast(
+  vtkPyFRContourData *input = vtkPyFRContourData::SafeDownCast(
     inInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   input->GetBounds( this->Bounds );
@@ -170,7 +176,12 @@ double *vtkPyFRMapper::GetBounds()
     {
     this->Update();
     //only compute bounds when the input data has changed
-    if( this->GetExecutive()->GetPipelineMTime() > this->BoundsMTime.GetMTime() )
+
+    vtkDemandDrivenPipeline * executive =
+    vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
+
+    if(executive->GetPipelineMTime() >
+        this->InternalMappersBuildTime.GetMTime())
       {
       this->ComputeBounds();
       }
@@ -193,4 +204,3 @@ void vtkPyFRMapper::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os,indent);
 }
-

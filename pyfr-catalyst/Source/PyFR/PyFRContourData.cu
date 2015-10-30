@@ -13,6 +13,7 @@
 
 #include <vtkm/cont/ArrayHandleCast.h>
 #include <vtkm/opengl/TransferToOpenGL.h>
+#include <vtkm/opengl/cuda/internal/TransferToOpenGL.h>
 
 //----------------------------------------------------------------------------
 void PyFRContourData::SetNumberOfContours(unsigned nContours)
@@ -98,11 +99,11 @@ typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
 
 //----------------------------------------------------------------------------
 template<typename HandleType>
-void to_gl(vtkm::Float64, const HandleType& handle, unsigned int glHandle)
+void to_gl(vtkm::Vec<vtkm::Float64,3>, const HandleType& handle, unsigned int glHandle)
 {
   //make an implicit wrapper to float32 around the float64 array
-  vtkm::cont::ArrayHandleCast<vtkm::Float32> asF32 =
-    vtkm::cont::make_ArrayHandleCast(handle, vtkm::Float32());
+  vtkm::cont::ArrayHandleCast<vtkm::Vec<vtkm::Float32,3>,HandleType> asF32 =
+    vtkm::cont::make_ArrayHandleCast(handle, vtkm::Vec<vtkm::Float32,3>());
 
   //transfer the array to openGL now as a float32 array
   vtkm::opengl::TransferToOpenGL(asF32, glHandle, CudaTag());
@@ -118,20 +119,20 @@ void to_gl(vtkm::Float32, const HandleType& handle, unsigned int glHandle)
 //----------------------------------------------------------------------------
 void coords(PyFRContourData* data, int index, unsigned int glHandle)
 {
-  to_gl(FPType(), data->Contours[index].GetVertices(), glHandle);
+  to_gl(FPType(), data->GetContour(index).GetVertices(), glHandle);
 }
 
 //----------------------------------------------------------------------------
 void normals(PyFRContourData* data, int index, unsigned int glHandle)
 {
-  to_gl(FPType(), data->Contours[index].GetNormals(), glHandle);
+  to_gl(FPType(), data->GetContour(index).GetNormals(), glHandle);
 }
 
 //----------------------------------------------------------------------------
 void colors(PyFRContourData* data, int index, unsigned int glHandle)
 {
   //no need to worry about conversion, since this is always Vec4 of uint8's
-  vtkm::opengl::TransferToOpenGL( data->Contours[index].GetColorData(),
+  vtkm::opengl::TransferToOpenGL( data->GetContour(index).GetColorData(),
                                   glHandle,
                                   CudaTag());
 }

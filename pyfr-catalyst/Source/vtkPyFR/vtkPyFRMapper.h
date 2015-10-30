@@ -8,6 +8,7 @@
 class vtkPyFRContourData;
 class vtkRenderer;
 class vtkRenderWindow;
+class vtkPyFRMapperInternals;
 
 class VTK_EXPORT vtkPyFRMapper : public vtkMapper
 {
@@ -56,7 +57,7 @@ protected:
   // These are the internal polydata mapper that do the
   // rendering. We save then so that they can keep their
   // display lists.
-  vtkCompositePolyDataMapperInternals *Internal;
+  vtkPyFRMapperInternals *Internal;
 
   // Description:
   // Time stamp for when we need to update the
@@ -67,3 +68,5 @@ private:
   vtkPyFRMapper(const vtkPyFRMapper&);  // Not implemented.
   void operator=(const vtkPyFRMapper&);  // Not implemented.
 };
+
+#endif

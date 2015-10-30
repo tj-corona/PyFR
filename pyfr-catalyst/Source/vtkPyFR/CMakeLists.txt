@@ -3,15 +3,15 @@ set(vtkPyFR_SRCS
   vtkPyFRContourDataAlgorithm.cxx
   vtkPyFRContourDataConverter.cxx
   vtkPyFRContourFilter.cxx
-  vtkPYFrContourMapper.cxx
+  vtkPyFRContourMapper.cxx
   vtkPyFRCrinkleClipFilter.cxx
   vtkPyFRData.cxx
   vtkPyFRDataAlgorithm.cxx
   vtkPyFRDataConverter.cxx
-  vtkPYFrIndexBufferObject.cxx
+  vtkPyFRIndexBufferObject.cxx
   vtkPyFRMapper.cxx
   vtkPyFRParallelSliceFilter.cxx
-  vtkPYFrVertexBufferObject.cxx
+  vtkPyFRVertexBufferObject.cxx
   vtkXMLPyFRContourDataWriter.cxx
   vtkXMLPyFRDataWriter.cxx
   )

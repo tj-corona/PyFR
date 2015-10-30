@@ -1,17 +1,17 @@
-#ifndef vtkPYFrIndexBufferObject_h
-#define vtkPYFrIndexBufferObject_h
+#ifndef vtkPyFRIndexBufferObject_h
+#define vtkPyFRIndexBufferObject_h
 
 #include <vtkOpenGLIndexBufferObject.h>
 #include "vtkPyFRContourData.h"
 
 #include <vector>
 
-class VTKRENDERINGOPENGL2_EXPORT vtkPYFrIndexBufferObject :
+class VTKRENDERINGOPENGL2_EXPORT vtkPyFRIndexBufferObject :
   public vtkOpenGLIndexBufferObject
 {
 public:
-  static vtkPYFrIndexBufferObject *New();
-  vtkTypeMacro(vtkPYFrIndexBufferObject, vtkOpenGLIndexBufferObject)
+  static vtkPyFRIndexBufferObject *New();
+  vtkTypeMacro(vtkPyFRIndexBufferObject, vtkOpenGLIndexBufferObject)
   void PrintSelf(ostream& os, vtkIndent indent);
 
   std::size_t CreateIndexBuffer(vtkPyFRContourData* data, int index);
@@ -19,12 +19,12 @@ public:
 
 
 protected:
-  vtkPYFrIndexBufferObject();
-  ~vtkPYFrIndexBufferObject();
+  vtkPyFRIndexBufferObject();
+  ~vtkPyFRIndexBufferObject();
 
 private:
-  vtkPYFrIndexBufferObject(const vtkPYFrIndexBufferObject&); // Not implemented
-  void operator=(const vtkPYFrIndexBufferObject&); // Not implemented
+  vtkPyFRIndexBufferObject(const vtkPyFRIndexBufferObject&); // Not implemented
+  void operator=(const vtkPyFRIndexBufferObject&); // Not implemented
 
 
   //hack to pre-compute the indexArray once, since it is just an

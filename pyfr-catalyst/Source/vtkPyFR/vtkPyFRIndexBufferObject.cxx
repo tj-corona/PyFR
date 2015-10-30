@@ -11,13 +11,13 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-#include "vtkPYFrIndexBufferObject.h"
+#include "vtkPyFRIndexBufferObject.h"
 #include "vtkObjectFactory.h"
 
-vtkStandardNewMacro(vtkPYFrIndexBufferObject)
+vtkStandardNewMacro(vtkPyFRIndexBufferObject)
 
 //-----------------------------------------------------------------------------
-vtkPYFrIndexBufferObject::vtkPYFrIndexBufferObject():
+vtkPyFRIndexBufferObject::vtkPyFRIndexBufferObject():
   vtkOpenGLIndexBufferObject()
 {
   this->IndexArray.reserve(2097152);
@@ -27,13 +27,13 @@ vtkPYFrIndexBufferObject::vtkPYFrIndexBufferObject():
 }
 
 //-----------------------------------------------------------------------------
-vtkPYFrIndexBufferObject::~vtkPYFrIndexBufferObject()
+vtkPyFRIndexBufferObject::~vtkPyFRIndexBufferObject()
 {
 
 }
 
 //-----------------------------------------------------------------------------
-std::size_t vtkPYFrIndexBufferObject::CreatePointIndexBuffer(vtkPyFRContourData* data,
+std::size_t vtkPyFRIndexBufferObject::CreateIndexBuffer(vtkPyFRContourData* data,
                                                              int index)
 {
   const unsigned int numPoints =
@@ -52,7 +52,7 @@ std::size_t vtkPYFrIndexBufferObject::CreatePointIndexBuffer(vtkPyFRContourData*
   //this way we can build the vector once on the cpu, and re-use sections
   //of it as needed. Currently tuned to work best when we have less than
   //670k triangles per contour
-  this->Upload(this->IndexArray[0],
+  this->Upload(&(this->IndexArray[0]),
                numPoints,
                vtkOpenGLIndexBufferObject::ElementArrayBuffer);
 
@@ -60,7 +60,7 @@ std::size_t vtkPYFrIndexBufferObject::CreatePointIndexBuffer(vtkPyFRContourData*
 }
 
 //-----------------------------------------------------------------------------
-std::size_t vtkPYFrIndexBufferObject::CreateTriangleLineIndexBuffer(vtkPyFRContourData* data,
+std::size_t vtkPyFRIndexBufferObject::CreateTriangleLineIndexBuffer(vtkPyFRContourData* data,
                                                              int index)
 {
   const unsigned int numLines =
@@ -83,7 +83,7 @@ std::size_t vtkPYFrIndexBufferObject::CreateTriangleLineIndexBuffer(vtkPyFRConto
 }
 
 //-----------------------------------------------------------------------------
-void vtkPYFrIndexBufferObject::PrintSelf(ostream& os, vtkIndent indent)
+void vtkPyFRIndexBufferObject::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }

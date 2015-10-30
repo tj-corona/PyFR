@@ -8,7 +8,8 @@
 class vtkPyFRContourData;
 class vtkRenderer;
 class vtkRenderWindow;
-class vtkPYFrVertexBufferObject;
+class vtkPyFRVertexBufferObject;
+class vtkPyFRIndexBufferObject;
 
 //We inherit from vtkOpenGLPolyDataMapper so that we can abuse all
 //the existing shader code, even though we don't expect poly data input
@@ -21,7 +22,7 @@ public:
 
   // Description:
   // Implemented by sub classes. Actual rendering is done here.
-  virtual void RenderPiece(vtkRenderer *ren, vtkActor *act) = 0;
+  virtual void RenderPiece(vtkRenderer *ren, vtkActor *act);
   virtual void RenderPieceStart(vtkRenderer *ren, vtkActor *act);
   virtual void RenderPieceDraw(vtkRenderer *ren, vtkActor *act);
   virtual void RenderPieceFinish(vtkRenderer *ren, vtkActor *act);
@@ -40,8 +41,8 @@ public:
 
   // Description:
   // Specify the input contour to render.
-  void vtkSetMacro(ActiveContour, int);
-  void vtkGetMacro(ActiveContour, int);
+  vtkSetMacro(ActiveContour, int);
+  vtkGetMacro(ActiveContour, int);
 
   // Description:
   // If you want only a part of the data, specify by setting the piece.
@@ -66,7 +67,7 @@ public:
                              vtkInformationVector*);
 protected:
   vtkPyFRContourMapper();
-  ~vtkPyFRContourMapper() {}
+  ~vtkPyFRContourMapper();
 
   // Description:
   // Does the VBO/IBO need to be rebuilt
@@ -95,8 +96,8 @@ protected:
   vtkPyFRContourData* ContourData;
   int ActiveContour;
 
-  vtkPYFrVertexBufferObject *ColorVBO;
-  vtkPYFrVertexBufferObject *NormalVBO;
+  vtkPyFRVertexBufferObject *ColorVBO;
+  vtkPyFRVertexBufferObject *NormalVBO;
 
   virtual int FillInputPortInformation(int, vtkInformation*);
 
@@ -104,3 +105,5 @@ private:
   vtkPyFRContourMapper(const vtkPyFRContourMapper&);  // Not implemented.
   void operator=(const vtkPyFRContourMapper&);  // Not implemented.
 };
+
+#endif

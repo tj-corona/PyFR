@@ -11,25 +11,27 @@
      PURPOSE.  See the above copyright notice for more information.
 
 =========================================================================*/
-#include "vtkPYFrVertexBufferObject.h"
+#include "vtkPyFRVertexBufferObject.h"
 #include "vtkObjectFactory.h"
 
-vtkStandardNewMacro(vtkPYFrVertexBufferObject)
+#include "PyFRContourData.h"
+
+vtkStandardNewMacro(vtkPyFRVertexBufferObject)
 
 //-----------------------------------------------------------------------------
-vtkPYFrVertexBufferObject::vtkPYFrVertexBufferObject():
+vtkPyFRVertexBufferObject::vtkPyFRVertexBufferObject():
   vtkOpenGLVertexBufferObject()
 {
 }
 
 //-----------------------------------------------------------------------------
-vtkPYFrVertexBufferObject::~vtkPYFrVertexBufferObject()
+vtkPyFRVertexBufferObject::~vtkPyFRVertexBufferObject()
 {
 
 }
 
 //-----------------------------------------------------------------------------
-void vtkPYFrVertexBufferObject::CreateVerticesVBO(vtkPyFRContourData* data,
+void vtkPyFRVertexBufferObject::CreateVerticesVBO(vtkPyFRContourData* data,
                                                   int index)
 {
   //Set our type to array buffer by default
@@ -53,7 +55,7 @@ void vtkPYFrVertexBufferObject::CreateVerticesVBO(vtkPyFRContourData* data,
 }
 
 //-----------------------------------------------------------------------------
-void vtkPYFrVertexBufferObject::CreateNormalsVBO(vtkPyFRContourData* data,
+void vtkPyFRVertexBufferObject::CreateNormalsVBO(vtkPyFRContourData* data,
                                                   int index)
 {
   //Set our type to array buffer by default
@@ -68,7 +70,7 @@ void vtkPYFrVertexBufferObject::CreateNormalsVBO(vtkPyFRContourData* data,
 }
 
 //-----------------------------------------------------------------------------
-void vtkPYFrVertexBufferObject::CreateColorsVBO(vtkPyFRContourData* data,
+void vtkPyFRVertexBufferObject::CreateColorsVBO(vtkPyFRContourData* data,
                                                 int index)
 {
   //Set our type to array buffer by default
@@ -82,7 +84,7 @@ void vtkPYFrVertexBufferObject::CreateColorsVBO(vtkPyFRContourData* data,
 }
 
 //-----------------------------------------------------------------------------
-void vtkPYFrVertexBufferObject::PrintSelf(ostream& os, vtkIndent indent)
+void vtkPyFRVertexBufferObject::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
 }

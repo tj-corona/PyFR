@@ -1,17 +1,50 @@
-
 #include "vtkPyFRContourMapper.h"
 
-#include "vtkPYFrIndexBufferObject.h"
-#include "vtkPYFrVertexBufferObject.h"
+#include "vtkPyFRIndexBufferObject.h"
+#include "vtkPyFRVertexBufferObject.h"
 
+#include "vtkCommand.h"
 #include "vtkExecutive.h"
+
+#include "vtkOpenGLError.h"
+
+#include "vtkDepthPeelingPass.h"
+#include "vtkHardwareSelector.h"
+#include "vtkOpenGLVertexArrayObject.h"
 #include "vtkObjectFactory.h"
+#include "vtkProperty.h"
+#include "vtkRenderer.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
 #include "vtkMath.h"
 #include "vtkPolyData.h"
 #include "vtkRenderWindow.h"
+#include "vtkShaderProgram.h"
 #include "vtkStreamingDemandDrivenPipeline.h"
+
+#include "vtkPyFRVertexBufferObject.h"
+#include "vtkPyFRIndexBufferObject.h"
+
+namespace
+{
+// helper to get the state of picking
+int getPickState(vtkRenderer *ren)
+{
+  vtkHardwareSelector* selector = ren->GetSelector();
+  if (selector)
+    {
+    return selector->GetCurrentPass();
+    }
+
+  if (ren->GetRenderWindow()->GetIsPicking())
+    {
+    return vtkHardwareSelector::ACTOR_PASS;
+    }
+
+  return vtkHardwareSelector::MIN_KNOWN_PASS - 1;
+}
+}
+
 
 //-----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkPyFRContourMapper)
@@ -23,22 +56,22 @@ vtkPyFRContourMapper::vtkPyFRContourMapper():
   this->ActiveContour = -1;
   this->ContourData = NULL;
 
-  this->ColorVBO = vtkPYFrVertexBufferObject::New();
-  this->NormalVBO = vtkPYFrVertexBufferObject::New();
+  this->ColorVBO = vtkPyFRVertexBufferObject::New();
+  this->NormalVBO = vtkPyFRVertexBufferObject::New();
 
   //Important override the default VBO with our own custom VBO Implementation
   //Likewise the same needs
   this->VBO->Delete();
-  this->VBO = vtkPYFrVertexBufferObject::New();
+  this->VBO = vtkPyFRVertexBufferObject::New();
 
   //Important we need to override the IBO with our own IBO classes
   this->Points.IBO->Delete();
   this->Tris.IBO->Delete();
   this->TrisEdges.IBO->Delete();
 
-  this->Points.IBO = vtkPYFrIndexBufferObject::New();
-  this->Tris.IBO = vtkPYFrIndexBufferObject::New();
-  this->TrisEdges.IBO = vtkPYFrIndexBufferObject::New();
+  this->Points.IBO = vtkPyFRIndexBufferObject::New();
+  this->Tris.IBO = vtkPyFRIndexBufferObject::New();
+  this->TrisEdges.IBO = vtkPyFRIndexBufferObject::New();
 }
 
 //-----------------------------------------------------------------------------
@@ -107,7 +140,7 @@ void vtkPyFRContourMapper::RenderPiece(vtkRenderer* ren, vtkActor *actor)
   this->InvokeEvent(vtkCommand::EndEvent,NULL);
 
   // if there are no points then we are done
-  if (!this->CurrentInput->HasData())
+  if (!this->ContourData->HasData())
     {
     return;
     }
@@ -395,8 +428,8 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
     {
     // dropping support for texture maps
 
-    // Build the VBO's using our new vtkPYFrVertexBufferObject
-    vtkPYFrVertexBufferObject* coordsVBO = dynamic_cast<vtkPYFrVertexBufferObject*>(this->VBO);
+    // Build the VBO's using our new vtkPyFRVertexBufferObject
+    vtkPyFRVertexBufferObject* coordsVBO = dynamic_cast<vtkPyFRVertexBufferObject*>(this->VBO);
     coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
     this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
@@ -421,11 +454,13 @@ void vtkPyFRContourMapper::BuildIBO(
 {
   int representation = act->GetProperty()->GetRepresentation();
 
-  pointsIBO = dynamic_cast<vtkPYFrIndexBufferObject*>(this->Points.IBO);
-  trisIBO = dynamic_cast<vtkPYFrIndexBufferObject*>(this->Tris.IBO);
-  triEdgesIBO = dynamic_cast<vtkPYFrIndexBufferObject*>(this->TrisEdges.IBO);
+  vtkPyFRIndexBufferObject* pointsIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Points.IBO);
+  vtkPyFRIndexBufferObject* trisIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Tris.IBO);
+  vtkPyFRIndexBufferObject* triEdgesIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->TrisEdges.IBO);
 
   pointsIBO->CreateIndexBuffer(contours, this->ActiveContour);
+
+  vtkHardwareSelector* selector = ren->GetSelector();
 
   if (selector && this->PopulateSelectionSettings &&
       selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS &&
@@ -467,7 +502,7 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
     this->PrimitiveIDOffset);
 
   if (cellBO.IBO->IndexCount && (this->VBOBuildTime > cellBO.AttributeUpdateTime ||
-      cellBO.ShaderSourceTime > cellBO.AttributeUpdateTime))
+                                 cellBO.ShaderSourceTime > cellBO.AttributeUpdateTime))
     {
     //stride and offset are 0, since the attribute is tightly packed in
     //separate arrays
@@ -485,7 +520,7 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
       {
 
       if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->NormalVBO,
-                                      "normalMC", offset, stride, VTK_FLOAT, 3, false))
+                                         "normalMC", offset, stride, VTK_FLOAT, 3, false))
         {
         vtkErrorMacro(<< "Error setting 'normalMC' in shader VAO.");
         }
@@ -494,12 +529,13 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
       {
       //stride is 0, since the attribute is tightly packed in the array
       if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->ColorVBO,
-                                      "scalarColor", offset, stride,
-                                      VTK_UNSIGNED_CHAR, 4, true))
+                                         "scalarColor", offset, stride,
+                                         VTK_UNSIGNED_CHAR, 4, true))
         {
         vtkErrorMacro(<< "Error setting 'scalarColor' in shader VAO.");
         }
       }
+    }
 
   // if depth peeling set the required uniforms
   vtkInformation *info = actor->GetPropertyKeys();
