@@ -39,7 +39,8 @@ class ColorTable
     this->Palette[2] = Color(0,255,0,255);
     this->Palette[3] = Color(0,255,255,255);
     this->Palette[4] = Color(0,0,255,255);
-    this->Min = this->Max = 1.;
+    this->Min = 0.;
+    this->Max = 1.;
     this->AssignPivots();
   }
 
@@ -125,7 +126,6 @@ VTKM_EXEC_CONT_EXPORT
 
     SignedColor::ComponentType dot = c0_to_c.Dot(c0_to_c1);
 
-    // Color::ComponentType max(-1);
     Color::ComponentType max(~0);
 
     if (vtkm::Abs(dot-1.) > 1./max)
