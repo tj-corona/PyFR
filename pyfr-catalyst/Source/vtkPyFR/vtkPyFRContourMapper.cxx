@@ -378,6 +378,8 @@ int vtkPyFRContourMapper::ProcessRequest(vtkInformation* request,
                                       vtkInformationVector** inputVector,
                                       vtkInformationVector*)
 {
+  std::cout<<__FILE__<<": "<<__LINE__<<std::endl;
+
   if(request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
     {
     vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);

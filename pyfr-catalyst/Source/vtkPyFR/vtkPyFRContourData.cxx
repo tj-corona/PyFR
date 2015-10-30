@@ -32,6 +32,18 @@ void vtkPyFRContourData::PrintSelf(ostream& os, vtkIndent indent)
 }
 
 //----------------------------------------------------------------------------
+void vtkPyFRContourData::ShallowCopy(vtkPyFRContourData* contourData)
+{
+  for (int i=0;i<6;i++)
+    {
+    this->Bounds[i] = contourData->GetBounds()[i];
+    }
+  this->ColorRange[0] = contourData->GetColorRange()[0];
+  this->ColorRange[1] = contourData->GetColorRange()[1];
+  this->data = contourData->GetData();
+}
+
+//----------------------------------------------------------------------------
 int vtkPyFRContourData::GetNumberOfContours() const
 {
   if (this->data)

@@ -56,8 +56,6 @@ int vtkPyFRMapper::FillInputPortInformation(
 //----------------------------------------------------------------------------
 void vtkPyFRMapper::BuildMappers()
 {
-
-  std::cout << "vtkPyFRMapper::BuildMappers" << std::endl;
   for(unsigned int i=0;i<this->Internal->Mappers.size();i++)
     {
     this->Internal->Mappers[i]->UnRegister(this);
@@ -76,6 +74,7 @@ void vtkPyFRMapper::BuildMappers()
       {
       vtkPyFRContourData* newcontour = vtkPyFRContourData::New();
       newcontour->ShallowCopy(input);
+      std::cout<<__FILE__<<": "<<__LINE__<<": "<<newcontour->HasData(i)<<std::endl;
 
       vtkPyFRContourMapper *cmapper = vtkPyFRContourMapper::New();
       cmapper->Register(this); //increments the ref count on cmapper

@@ -47,15 +47,11 @@
 
 #include "PyFRData.h"
 
-#define STRINGIFY(x) #x
-#define TOSTRING(x) STRINGIFY(x)
-
 #ifdef SINGLE
 PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp32)
 #else
 PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp64)
 #endif
-
 
 void vtkAddActor(vtkPyFRMapper* mapper,
                  vtkSMSourceProxy* filter,

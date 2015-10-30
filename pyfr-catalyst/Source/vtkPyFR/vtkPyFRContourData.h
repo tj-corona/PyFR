@@ -12,6 +12,8 @@ public:
   vtkTypeMacro(vtkPyFRContourData, vtkDataObject)
   virtual void PrintSelf(ostream& os, vtkIndent indent);
 
+  virtual void ShallowCopy(vtkPyFRContourData*);
+
   void SetData(PyFRContourData* d) { data = d; }
   PyFRContourData* GetData() const { return data; }
 
@@ -27,6 +29,7 @@ public:
   bool HasData() const;
   bool HasData(int i) const;
 
+  double* GetColorRange() { return this->ColorRange; }
   void SetColorRange(double*);
 
 protected:
