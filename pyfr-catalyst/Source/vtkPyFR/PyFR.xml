@@ -72,6 +72,19 @@
 	  the isosurface.
         </Documentation>
       </IntVectorProperty>
+      <DoubleVectorProperty command="SetColorRange"
+                            default_values="0.0 1.0"
+                            name="ColorRange"
+                            number_of_elements="2">
+        <BoundsDomain default_mode="mid"
+                      mode="normal"
+                      name="range">
+          <RequiredProperties>
+            <Property function="Input"
+                      name="Input" />
+          </RequiredProperties>
+        </BoundsDomain>
+      </DoubleVectorProperty>
     </SourceProxy>
     <!-- ==================================================================== -->
     <SourceProxy name="PyFRCrinkleClipFilter"
@@ -194,6 +207,19 @@
 	  the isosurface.
         </Documentation>
       </IntVectorProperty>
+      <DoubleVectorProperty command="SetColorRange"
+                            default_values="0.0 1.0"
+                            name="ColorRange"
+                            number_of_elements="2">
+        <BoundsDomain default_mode="mid"
+                      mode="normal"
+                      name="range">
+          <RequiredProperties>
+            <Property function="Input"
+                      name="Input" />
+          </RequiredProperties>
+        </BoundsDomain>
+      </DoubleVectorProperty>
     </SourceProxy>
     <!-- ==================================================================== -->
     <SourceProxy name="PyFRDataConverter"

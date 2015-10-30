@@ -69,7 +69,7 @@ protected:
   typedef std::vector<FieldHandle> FieldHandleVec;
 
 public:
-  class ClassifyCell : public vtkm::worklet::WorkletMapTopologyPointToCell
+  class ClassifyCell : public vtkm::worklet::WorkletMapPointToCell
   {
   public:
     typedef vtkm::ListTagBase<IdVec> IdVecType;
@@ -113,7 +113,7 @@ public:
   };
 
   /// \brief Compute isosurface vertices and scalars
-  class IsoSurfaceGenerate : public vtkm::worklet::WorkletMapTopologyPointToCell
+  class IsoSurfaceGenerate : public vtkm::worklet::WorkletMapPointToCell
   {
   public:
     typedef void ControlSignature(FieldInFrom<Scalar> scalars,
@@ -347,12 +347,12 @@ public:
       }
   }
 
-  template<typename Field, typename StorageTag>
-  static void MapFieldOntoIsosurfaces(const vtkm::cont::ArrayHandle<Field,StorageTag>& fieldIn,
+  template<typename ArrayHandleIn, typename ArrayHandleOut>
+  static void MapFieldOntoIsosurfaces(const ArrayHandleIn& fieldIn,
                                       const FieldHandleVec& interpolationWeights,
                                       const IdHandleVec& interpolationLowIds,
                                       const IdHandleVec& interpolationHighIds,
-                                      std::vector<vtkm::cont::ArrayHandle< Field > >& fieldOut)
+                                      std::vector<ArrayHandleOut>& fieldOut)
   {
     assert(fieldOut.size() == NumberOfIsovalues);
     for (IsovalueCount iso = 0; iso < NumberOfIsovalues; iso++)
@@ -363,17 +363,16 @@ public:
         continue;
         }
 
-    typedef vtkm::cont::ArrayHandle<Field,StorageTag> FieldHandleType;
       typedef vtkm::cont::ArrayHandlePermutation<IdHandle,
-        FieldHandleType> FieldPermutationHandleType;
+        ArrayHandleIn> FieldPermutationHandleType;
 
       FieldPermutationHandleType low(interpolationLowIds[iso],fieldIn);
       FieldPermutationHandleType high(interpolationHighIds[iso],fieldIn);
 
-      ApplyToField<Field> applyToField;
+      ApplyToField<typename ArrayHandleIn::ValueType> applyToField;
 
       typedef typename vtkm::worklet::DispatcherMapField<
-        ApplyToField<Field>,
+        ApplyToField<typename ArrayHandleIn::ValueType>,
         DeviceAdapter> ApplyToFieldDispatcher;
       ApplyToFieldDispatcher applyToFieldDispatcher(applyToField);
 
@@ -526,32 +525,29 @@ private:
     }
   };
 
-  template<typename Field,typename StorageTag,IsovalueCount NumberOfIsovalues=1>
+  template<typename ArrayHandleIn, typename ArrayHandleOut,IsovalueCount NumberOfIsovalues=1>
   class MapOntoIsocontourSetFunctor
   {
   public:
-    typedef vtkm::cont::ArrayHandle<Field,StorageTag> InFieldHandle;
-    typedef std::vector<vtkm::cont::ArrayHandle<Field> > OutFieldHandleVec;
-
-    MapOntoIsocontourSetFunctor(const InFieldHandle& fieldIn,
+    MapOntoIsocontourSetFunctor(const ArrayHandleIn& fieldIn,
                                 const FieldHandleVec& interpolationWeights,
                                 const IdHandleVec& interpolationLowIds,
                                 const IdHandleVec& interpolationHighIds,
-                                OutFieldHandleVec& fieldOut)
+                                std::vector<ArrayHandleOut>& fieldOut)
     {
       if (fieldOut.size() == NumberOfIsovalues)
         {
         ::vtkm::worklet::internal::IsosurfaceFilterHexahedra<FieldType,
           DeviceAdapter,NumberOfIsovalues> filter;
-        filter.template MapFieldOntoIsosurfaces<Field,
-          StorageTag>(fieldIn,
-                      interpolationWeights,
-                      interpolationLowIds,
-                      interpolationHighIds,
-                      fieldOut);
+        filter.template MapFieldOntoIsosurfaces<ArrayHandleIn,
+          ArrayHandleOut>(fieldIn,
+                          interpolationWeights,
+                          interpolationLowIds,
+                          interpolationHighIds,
+                          fieldOut);
         }
       else
-        MapOntoIsocontourSetFunctor<Field,StorageTag,
+        MapOntoIsocontourSetFunctor<ArrayHandleIn,ArrayHandleOut,
           NumberOfIsovalues+1>(fieldIn,
                                interpolationWeights,
                                interpolationLowIds,
@@ -560,18 +556,15 @@ private:
     }
   };
 
-  template<typename Field,typename StorageTag>
-  class MapOntoIsocontourSetFunctor<Field,StorageTag,MaxNumberOfIsovalues>
+  template<typename ArrayHandleIn, typename ArrayHandleOut>
+  class MapOntoIsocontourSetFunctor<ArrayHandleIn,ArrayHandleOut,MaxNumberOfIsovalues>
   {
   public:
-    typedef vtkm::cont::ArrayHandle<Field,StorageTag> InFieldHandle;
-    typedef std::vector<vtkm::cont::ArrayHandle<Field> > OutFieldHandleVec;
-
-    MapOntoIsocontourSetFunctor(const InFieldHandle&,
+    MapOntoIsocontourSetFunctor(const ArrayHandleIn&,
                                 const FieldHandleVec&,
                                 const IdHandleVec&,
                                 const IdHandleVec&,
-                                OutFieldHandleVec&)
+                                std::vector<ArrayHandleOut>&)
     {
       return;
     }
@@ -655,7 +648,7 @@ public:
 
   template<typename Field, typename StorageTag>
   void MapFieldOntoIsosurfaces(const vtkm::cont::ArrayHandle<Field,StorageTag>& fieldIn,
-                               std::vector<vtkm::cont::ArrayHandle< Field > >& fieldOut)
+                               std::vector<vtkm::cont::ArrayHandle< Field> >& fieldOut)
 {
   IsovalueCount nIsovalues = InterpolationWeights.size();
   // NB: Cannot call resize to increase the lengths of vectors of array
@@ -667,11 +660,24 @@ public:
     fieldOut.push_back(FieldHandle());
   fieldOut.resize(nIsovalues);
 
-  MapOntoIsocontourSetFunctor<Field,StorageTag>(fieldIn,
-                                                this->InterpolationWeights,
-                                                this->InterpolationLowIds,
-                                                this->InterpolationHighIds,
-                                                fieldOut);
+  MapOntoIsocontourSetFunctor<Field,StorageTag,
+    FieldHandle::StorageTag>(fieldIn,
+                             this->InterpolationWeights,
+                             this->InterpolationLowIds,
+                             this->InterpolationHighIds,
+                             fieldOut);
+}
+
+  template<typename ArrayHandleIn, typename ArrayHandleOut>
+  void MapFieldOntoIsosurfaces(const ArrayHandleIn& fieldIn,
+                               std::vector<ArrayHandleOut>& fieldOut)
+{
+  MapOntoIsocontourSetFunctor<ArrayHandleIn,
+                              ArrayHandleOut>(fieldIn,
+                                              this->InterpolationWeights,
+                                              this->InterpolationLowIds,
+                                              this->InterpolationHighIds,
+                                              fieldOut);
 }
 
 protected:

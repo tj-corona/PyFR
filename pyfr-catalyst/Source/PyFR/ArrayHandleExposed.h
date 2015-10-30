@@ -34,6 +34,11 @@ class ArrayHandleExposed : public ArrayHandle<T,StorageTag_>
 public:
   typedef vtkm::cont::internal::Storage<T,StorageTag_> StorageType;
 
+  VTKM_ARRAY_HANDLE_SUBCLASS(
+    ArrayHandleExposed,
+    (ArrayHandleExposed<T,StorageTag_>),
+    (ArrayHandle<T,StorageTag_>));
+
   StorageType& Storage()
   {
     this->SyncControlArray();

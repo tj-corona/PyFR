@@ -56,7 +56,7 @@ void PyFRContourFilter::MapFieldOntoIsosurfaces(int field,
                                                 PyFRData* input,
                                                 PyFRContourData* output)
 {
-  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
+  typedef std::vector<PyFRContour::ScalarDataArrayHandle> ScalarDataHandleVec;
 
   const vtkm::cont::DataSet& dataSet = input->GetDataSet();
 

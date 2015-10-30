@@ -77,3 +77,13 @@ void PyFRContourData::ComputeBounds(FPType* bounds) const
       }
     }
 }
+
+//----------------------------------------------------------------------------
+void PyFRContourData::SetColorRange(FPType min,FPType max)
+{
+  for (std::vector<PyFRContour>::iterator it=this->Contours.begin();
+  it!=this->Contours.end();++it)
+    {
+    (*it).GetColorTable().SetRange(min,max);
+    }
+}

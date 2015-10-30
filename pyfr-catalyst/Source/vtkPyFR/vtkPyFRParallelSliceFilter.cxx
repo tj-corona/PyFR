@@ -37,6 +37,8 @@ vtkPyFRParallelSliceFilter::vtkPyFRParallelSliceFilter() : Spacing(1.),
   this->Origin[0] = this->Origin[1] = this->Origin[2] = 0.;
   this->Normal[1] = this->Normal[2] = 0.;
   this->Normal[0] = 1.;
+  this->ColorRange[0] = 0.;
+  this->ColorRange[1] = 1.;
   this->Filter = new PyFRParallelSliceFilter();
 }
 
@@ -71,6 +73,7 @@ int vtkPyFRParallelSliceFilter::RequestData(
     Filter->SetNumberOfPlanes(this->NumberOfPlanes);
     Filter->operator()(input->GetData(),output->GetData());
     }
+  output->SetColorRange(this->ColorRange);
   Filter->MapFieldOntoSlices(this->MappedField,input->GetData(),
                              output->GetData());
   output->Modified();

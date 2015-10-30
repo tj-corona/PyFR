@@ -65,7 +65,7 @@ protected:
 
 public:
   template <class BinaryPredicate>
-  class ClassifyCell : public vtkm::worklet::WorkletMapTopologyPointToCell
+  class ClassifyCell : public vtkm::worklet::WorkletMapPointToCell
   {
   public:
     typedef void ControlSignature(TopologyIn topology,

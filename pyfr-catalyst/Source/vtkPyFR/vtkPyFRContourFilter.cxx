@@ -32,6 +32,8 @@ vtkStandardNewMacro(vtkPyFRContourFilter);
 //----------------------------------------------------------------------------
 vtkPyFRContourFilter::vtkPyFRContourFilter() : ContourField(0)
 {
+  this->ColorRange[0] = 0.;
+  this->ColorRange[1] = 1.;
 }
 
 //----------------------------------------------------------------------------
@@ -54,6 +56,8 @@ int vtkPyFRContourFilter::RequestData(
     inInfo->Get(vtkDataObject::DATA_OBJECT()));
   vtkPyFRContourData *output = vtkPyFRContourData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
+
+  output->SetColorRange(this->ColorRange);
 
   PyFRContourFilter filter;
   for (unsigned i=0;i<this->ContourValues.size();i++)

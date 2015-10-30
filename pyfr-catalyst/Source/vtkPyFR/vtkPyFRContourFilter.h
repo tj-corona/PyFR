@@ -23,6 +23,9 @@ public:
   void SetContourField(int i);
   void SetMappedField(int i);
 
+  vtkSetVector2Macro(ColorRange,double);
+  vtkGetVectorMacro(ColorRange,double,2);
+
 protected:
   vtkPyFRContourFilter();
   virtual ~vtkPyFRContourFilter();
@@ -30,6 +33,7 @@ protected:
   std::vector<double> ContourValues;
   int ContourField;
   int MappedField;
+  double ColorRange[2];
 
 private:
   static int PyFRDataTypesRegistered;

@@ -34,6 +34,9 @@ public:
   vtkSetMacro(MappedField,int);
   vtkGetMacro(MappedField,int);
 
+  vtkSetVector2Macro(ColorRange,double);
+  vtkGetVectorMacro(ColorRange,double,2);
+
 protected:
   vtkPyFRParallelSliceFilter();
   virtual ~vtkPyFRParallelSliceFilter();
@@ -43,6 +46,7 @@ protected:
   double Spacing;
   int NumberOfPlanes;
   int MappedField;
+  double ColorRange[2];
 
   unsigned long LastExecuteTime;
 

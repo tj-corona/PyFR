@@ -20,6 +20,7 @@ public:
   unsigned GetContourSize(int) const;
   void ComputeContourBounds(int,FPType*) const;
   void ComputeBounds(FPType*) const;
+  void SetColorRange(FPType,FPType);
 
 private:
   std::vector<PyFRContour> Contours;

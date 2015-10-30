@@ -89,7 +89,7 @@ void PyFRParallelSliceFilter::MapFieldOntoSlices(int field,
                                                  PyFRData* input,
                                                  PyFRContourData* output)
 {
-  typedef std::vector<vtkm::cont::ArrayHandle<FPType> > ScalarDataHandleVec;
+  typedef std::vector<PyFRContour::ScalarDataArrayHandle> ScalarDataHandleVec;
 
   const vtkm::cont::DataSet& dataSet = input->GetDataSet();
 
@@ -109,6 +109,8 @@ void PyFRParallelSliceFilter::MapFieldOntoSlices(int field,
     .CastToArrayHandle(PyFRData::ScalarDataArrayHandle::ValueType(),
                        PyFRData::ScalarDataArrayHandle::StorageTag());
 
-  isosurfaceFilter.MapFieldOntoIsosurfaces(projectedArray,
-                                           scalarDataHandleVec);
+  isosurfaceFilter.MapFieldOntoIsosurfaces<
+    PyFRData::ScalarDataArrayHandle,
+      PyFRContour::ScalarDataArrayHandle>(projectedArray,
+                                          scalarDataHandleVec);
 }

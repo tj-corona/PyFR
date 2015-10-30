@@ -22,12 +22,16 @@ public:
   bool HasData() const;
   bool HasData(int i) const;
 
+  void SetColorRange(double*);
+
 protected:
   vtkPyFRContourData();
   virtual ~vtkPyFRContourData();
 
   double Bounds[6];
   unsigned int BoundsUpdateTime;
+
+  double ColorRange[2];
 
 private:
   PyFRContourData* data;

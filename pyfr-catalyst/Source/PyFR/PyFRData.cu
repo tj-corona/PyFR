@@ -82,7 +82,7 @@ void PyFRData::Init(void* data)
       vtkm::cont::make_ArrayHandle(meshData->con,
                                    (meshData->nSubdividedCells*
                    vtkm::CellTraits<vtkm::CellShapeTagHexahedron>::NUM_POINTS));
-    vtkm::cont::ArrayHandleCast<vtkm::Id,
+    vtkm::cont::ArrayHandleCastForInput<vtkm::Id,
       vtkm::cont::ArrayHandle<int32_t> > cast(tmp);
     vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
       Copy(cast, connectivity);

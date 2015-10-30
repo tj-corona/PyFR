@@ -10,8 +10,6 @@
 #include <vtkm/VecVariable.h>
 #include <vtkm/VectorAnalysis.h>
 
-namespace internal {
-
 typedef vtkm::Vec<vtkm::UInt8,4> Color;
 
 // Redefine Lerp to avoid subtraction because Color has unsigned elements
@@ -66,7 +64,7 @@ class ColorTable
   }
 
 VTKM_EXEC_CONT_EXPORT
-  Color operator()(FPType value) const
+  Color operator()(const FPType& value) const
   {
     vtkm::IdComponent index = 1;
     while (index < this->NumberOfColors && this->Pivots[index] < value)
@@ -127,7 +125,8 @@ VTKM_EXEC_CONT_EXPORT
 
     SignedColor::ComponentType dot = c0_to_c.Dot(c0_to_c1);
 
-    static Color::ComponentType max(-1);
+    // Color::ComponentType max(-1);
+    Color::ComponentType max(~0);
 
     if (vtkm::Abs(dot-1.) > 1./max)
       {
@@ -148,7 +147,5 @@ VTKM_EXEC_CONT_EXPORT
   vtkm::Vec<float,MaxSize> Pivots;
   FPType Interval;
 };
-
-} // internal
 
 #endif

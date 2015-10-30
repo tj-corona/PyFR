@@ -206,7 +206,7 @@ void PyFRConverter::operator ()(const PyFRContour& contour,vtkPolyData* polydata
   polydata->GetPointData()->SetNormals(normalsData);
 
   PyFRContour::ScalarDataArrayHandle scalarsOut = contour.GetScalarData();
-  PyFRContour::ScalarDataArrayHandle scalarsOutHost;
+  vtkm::cont::ArrayHandleExposed<FPType> scalarsOutHost;
   vtkm::cont::DeviceAdapterAlgorithm<CudaTag>().
     Copy(scalarsOut,scalarsOutHost);
 
