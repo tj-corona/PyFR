@@ -56,9 +56,9 @@ public:
   // Description:
   // Return bounding box (array of six doubles) of data expressed as
   // (xmin,xmax, ymin,ymax, zmin,zmax).
-  virtual double *GetBounds();
-  virtual void GetBounds(double bounds[6])
-    { this->Superclass::GetBounds(bounds); }
+  // virtual double *GetBounds();
+  // virtual void GetBounds(double bounds[6])
+  //   { this->Superclass::GetBounds(bounds); }
 
   // Description:
   // see vtkAlgorithm for details

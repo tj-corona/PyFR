@@ -81,6 +81,22 @@ void vtkPyFRContourData::GetBounds(double* bounds)
 }
 
 //----------------------------------------------------------------------------
+double* vtkPyFRContourData::GetBounds()
+{
+  if (this->GetMTime() > this->BoundsUpdateTime)
+    {
+    this->BoundsUpdateTime = this->GetMTime();
+    FPType b[6];
+    this->data->ComputeBounds(b);
+    for (unsigned i=0;i<6;i++)
+      {
+      this->Bounds[i] = b[i];
+      }
+    }
+  return this->Bounds;
+}
+
+//----------------------------------------------------------------------------
 bool vtkPyFRContourData::HasData() const
 {
   for (unsigned i=0;i<this->data->GetNumberOfContours();i++)
