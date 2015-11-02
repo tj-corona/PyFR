@@ -22,6 +22,7 @@ class vtkPyFRMapperInternals
 {
 public:
   std::vector<vtkPyFRContourMapper*> Mappers;
+  std::vector<int> ValidContourIndices;
 };
 
 //----------------------------------------------------------------------------
@@ -56,38 +57,51 @@ int vtkPyFRMapper::FillInputPortInformation(
 //----------------------------------------------------------------------------
 void vtkPyFRMapper::BuildMappers()
 {
-  for(unsigned int i=0;i<this->Internal->Mappers.size();i++)
-    {
-    this->Internal->Mappers[i]->UnRegister(this);
-    }
-  this->Internal->Mappers.clear();
-
   //Get the dataset from the input
   vtkInformation* inInfo = this->GetExecutive()->GetInputInformation(0,0);
   vtkPyFRContourData *input = vtkPyFRContourData::SafeDownCast(
     inInfo->Get(vtkDataObject::DATA_OBJECT()));
-
   int numContours = input->GetNumberOfContours();
-  for (int i = 0; i < numContours; ++i)
+
+
+  if(numContours == this->Internal->Mappers.size())
     {
-    if (input->HasData(i))
+    for (int i = 0; i < numContours; ++i)
       {
-      vtkPyFRContourData* newcontour = vtkPyFRContourData::New();
-      newcontour->ShallowCopy(input);
+      if (input->HasData(i))
+        {
+        this->Internal->Mappers[i]->SetActiveContour(i);
+        }
+      else
+        {
+        this->Internal->Mappers[i]->SetActiveContour(-1);
+        }
+      }
+    }
+  else
+    {
+    for(unsigned int i=0;i<this->Internal->Mappers.size();i++)
+      {
+      this->Internal->Mappers[i]->UnRegister(this);
+      }
+    this->Internal->Mappers.clear();
+
+    for (int i = 0; i < numContours; ++i)
+      {
+      int index = input->HasData(i) ? i : -1;
 
       vtkPyFRContourMapper *cmapper = vtkPyFRContourMapper::New();
       cmapper->Register(this); //increments the ref count on cmapper
-      cmapper->SetActiveContour(i); //tell the mapper which contour it is supposed to render
-      cmapper->SetInputData(newcontour);
+      cmapper->SetActiveContour(index); //tell the mapper which contour it is supposed to render
+      cmapper->SetInputData(input);
       this->Internal->Mappers.push_back(cmapper);
+      this->Internal->ValidContourIndices.push_back(i);
 
-      newcontour->FastDelete();
       cmapper->FastDelete();
       }
     }
 
   this->InternalMappersBuildTime.Modified();
-
 }
 
 //----------------------------------------------------------------------------
@@ -97,7 +111,7 @@ void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
   vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
 
   if(executive->GetPipelineMTime() >
-      this->InternalMappersBuildTime.GetMTime())
+     this->InternalMappersBuildTime.GetMTime())
     {
     this->BuildMappers();
     }
@@ -111,36 +125,6 @@ void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
       {
       this->Internal->Mappers[i]->SetClippingPlanes( this->ClippingPlanes );
       }
-
-    // this->Internal->Mappers[i]->SetLookupTable(
-    //   this->GetLookupTable());
-    // this->Internal->Mappers[i]->SetScalarVisibility(
-    //   this->GetScalarVisibility());
-    // this->Internal->Mappers[i]->SetUseLookupTableScalarRange(
-    //   this->GetUseLookupTableScalarRange());
-    // this->Internal->Mappers[i]->SetScalarRange(
-    //   this->GetScalarRange());
-    // this->Internal->Mappers[i]->SetImmediateModeRendering(
-    //   this->GetImmediateModeRendering());
-    // this->Internal->Mappers[i]->SetColorMode(this->GetColorMode());
-    // this->Internal->Mappers[i]->SetInterpolateScalarsBeforeMapping(
-    //   this->GetInterpolateScalarsBeforeMapping());
-
-    // this->Internal->Mappers[i]->SetScalarMode(this->GetScalarMode());
-    // if ( this->ScalarMode == VTK_SCALAR_MODE_USE_POINT_FIELD_DATA ||
-    //      this->ScalarMode == VTK_SCALAR_MODE_USE_CELL_FIELD_DATA )
-    //   {
-    //   if ( this->ArrayAccessMode == VTK_GET_ARRAY_BY_ID )
-    //     {
-    //     this->Internal->Mappers[i]->ColorByArrayComponent(
-    //       this->ArrayId,ArrayComponent);
-    //     }
-    //   else
-    //     {
-    //     this->Internal->Mappers[i]->ColorByArrayComponent(
-    //       this->ArrayName,ArrayComponent);
-    //     }
-    //   }
 
     this->Internal->Mappers[i]->Render(ren,a);
     this->TimeToDraw += this->Internal->Mappers[i]->GetTimeToDraw();

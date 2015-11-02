@@ -30,6 +30,7 @@ private:
   //hack to pre-compute the indexArray once, since it is just an
   //explicit array handle counting
   std::vector<unsigned int> IndexArray;
+  bool UploadedIndices;
 
 };
 #endif

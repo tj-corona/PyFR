@@ -142,7 +142,7 @@ void vtkPyFRContourMapper::RenderPiece(vtkRenderer* ren, vtkActor *actor)
   this->InvokeEvent(vtkCommand::EndEvent,NULL);
 
   // if there are no points then we are done
-  if (!this->ContourData->HasData())
+  if (this->ActiveContour == -1)
     {
     return;
     }
@@ -505,6 +505,7 @@ bool vtkPyFRContourMapper::GetNeedToRebuildBufferObjects(
     {
     return true;
     }
+
   return false;
 }
 
@@ -620,11 +621,11 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
     if (this->LastLightComplexity[&cellBO] > 0)
       {
 
-      if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->NormalVBO,
-                                         "normalMC", offset, stride, VTK_FLOAT, 3, false))
-        {
-        vtkErrorMacro(<< "Error setting 'normalMC' in shader VAO.");
-        }
+      // if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->NormalVBO,
+      //                                    "normalMC", offset, stride, VTK_FLOAT, 3, false))
+      //   {
+      //   vtkErrorMacro(<< "Error setting 'normalMC' in shader VAO.");
+      //   }
       }
     if (!this->DrawingEdges)
       {

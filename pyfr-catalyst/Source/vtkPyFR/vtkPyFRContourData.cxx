@@ -22,7 +22,6 @@ vtkPyFRContourData::vtkPyFRContourData()
 //----------------------------------------------------------------------------
 vtkPyFRContourData::~vtkPyFRContourData()
 {
-  this->ReleaseResources();
 }
 
 //----------------------------------------------------------------------------

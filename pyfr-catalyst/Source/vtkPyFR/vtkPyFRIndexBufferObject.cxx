@@ -24,6 +24,7 @@ vtkPyFRIndexBufferObject::vtkPyFRIndexBufferObject():
   //fill the array with a counting value
   for(unsigned int i=0; i < 2097152; ++i)
     { this->IndexArray.push_back(i); }
+  this->UploadedIndices = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -47,14 +48,20 @@ std::size_t vtkPyFRIndexBufferObject::CreateIndexBuffer(vtkPyFRContourData* data
     this->IndexArray.reserve(numPoints);
     for(unsigned int i=start; i < numPoints; ++i)
       { this->IndexArray.push_back(i); }
+
+    this->UploadedIndices = false;
     }
 
   //this way we can build the vector once on the cpu, and re-use sections
   //of it as needed. Currently tuned to work best when we have less than
   //670k triangles per contour
-  this->Upload(&(this->IndexArray[0]),
-               numPoints,
-               vtkOpenGLIndexBufferObject::ElementArrayBuffer);
+  if(!this->UploadedIndices)
+    {
+    this->Upload(&(this->IndexArray[0]),
+                 numPoints,
+                 vtkOpenGLIndexBufferObject::ElementArrayBuffer);
+    this->UploadedIndices = true;
+    }
 
   return this->IndexCount = numPoints;
 }
