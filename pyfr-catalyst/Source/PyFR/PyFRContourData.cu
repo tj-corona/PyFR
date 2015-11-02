@@ -99,7 +99,7 @@ typedef ::vtkm::cont::DeviceAdapterTagCuda CudaTag;
 
 //----------------------------------------------------------------------------
 template<typename HandleType>
-void to_gl(vtkm::Vec<vtkm::Float64,3>, const HandleType& handle, unsigned int glHandle)
+void to_gl(vtkm::Vec<vtkm::Float64,3>, const HandleType& handle, unsigned int& glHandle)
 {
   //make an implicit wrapper to float32 around the float64 array
   vtkm::cont::ArrayHandleCast<vtkm::Vec<vtkm::Float32,3>,HandleType> asF32 =
@@ -111,25 +111,25 @@ void to_gl(vtkm::Vec<vtkm::Float64,3>, const HandleType& handle, unsigned int gl
 
 //----------------------------------------------------------------------------
 template<typename HandleType>
-void to_gl(vtkm::Float32, const HandleType& handle, unsigned int glHandle)
+void to_gl(vtkm::Float32, const HandleType& handle, unsigned int& glHandle)
 {
   vtkm::opengl::TransferToOpenGL(handle, glHandle, CudaTag());
 }
 
 //----------------------------------------------------------------------------
-void coords(PyFRContourData* data, int index, unsigned int glHandle)
+void coords(PyFRContourData* data, int index, unsigned int& glHandle)
 {
   to_gl(FPType(), data->GetContour(index).GetVertices(), glHandle);
 }
 
 //----------------------------------------------------------------------------
-void normals(PyFRContourData* data, int index, unsigned int glHandle)
+void normals(PyFRContourData* data, int index, unsigned int& glHandle)
 {
   to_gl(FPType(), data->GetContour(index).GetNormals(), glHandle);
 }
 
 //----------------------------------------------------------------------------
-void colors(PyFRContourData* data, int index, unsigned int glHandle)
+void colors(PyFRContourData* data, int index, unsigned int& glHandle)
 {
   //no need to worry about conversion, since this is always Vec4 of uint8's
   vtkm::opengl::TransferToOpenGL( data->GetContour(index).GetColorData(),

@@ -28,6 +28,9 @@ public:
   virtual void RenderPieceFinish(vtkRenderer *ren, vtkActor *act);
   virtual void RenderEdges(vtkRenderer *ren, vtkActor *act);
 
+  virtual bool GetNeedToRebuildShaders(
+    vtkOpenGLHelper &cellBO, vtkRenderer *ren, vtkActor *act);
+
   // Description:
   // Release any graphics resources that are being consumed by this mapper.
   // The parameter window could be used to determine which graphic

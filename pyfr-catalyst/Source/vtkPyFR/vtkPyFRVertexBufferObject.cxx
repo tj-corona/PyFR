@@ -51,7 +51,7 @@ void vtkPyFRVertexBufferObject::CreateVerticesVBO(vtkPyFRContourData* data,
 
   //use vtkm to transfer the cuda allocated memory over to opengl
   //without having to transfer back to main memory
-  transfer::coords(data->GetData(),index,this->GetHandle());
+  transfer::coords(data->GetData(),index,this->GetHandleRef());
 }
 
 //-----------------------------------------------------------------------------
@@ -66,7 +66,7 @@ void vtkPyFRVertexBufferObject::CreateNormalsVBO(vtkPyFRContourData* data,
 
   //use vtkm to transfer the cuda allocated memory over to opengl
   //without having to transfer back to main memory
-  transfer::normals(data->GetData(),index,this->GetHandle());
+  transfer::normals(data->GetData(),index,this->GetHandleRef());
 }
 
 //-----------------------------------------------------------------------------
@@ -80,7 +80,7 @@ void vtkPyFRVertexBufferObject::CreateColorsVBO(vtkPyFRContourData* data,
 
   //use vtkm to transfer the cuda allocated memory over to opengl
   //without having to transfer back to main memory
-  transfer::colors(data->GetData(),index,this->GetHandle());
+  transfer::colors(data->GetData(),index,this->GetHandleRef());
 }
 
 //-----------------------------------------------------------------------------

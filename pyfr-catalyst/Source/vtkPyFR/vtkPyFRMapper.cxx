@@ -74,7 +74,6 @@ void vtkPyFRMapper::BuildMappers()
       {
       vtkPyFRContourData* newcontour = vtkPyFRContourData::New();
       newcontour->ShallowCopy(input);
-      std::cout<<__FILE__<<": "<<__LINE__<<": "<<newcontour->HasData(i)<<std::endl;
 
       vtkPyFRContourMapper *cmapper = vtkPyFRContourMapper::New();
       cmapper->Register(this); //increments the ref count on cmapper
@@ -113,35 +112,35 @@ void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
       this->Internal->Mappers[i]->SetClippingPlanes( this->ClippingPlanes );
       }
 
-    this->Internal->Mappers[i]->SetLookupTable(
-      this->GetLookupTable());
-    this->Internal->Mappers[i]->SetScalarVisibility(
-      this->GetScalarVisibility());
-    this->Internal->Mappers[i]->SetUseLookupTableScalarRange(
-      this->GetUseLookupTableScalarRange());
-    this->Internal->Mappers[i]->SetScalarRange(
-      this->GetScalarRange());
-    this->Internal->Mappers[i]->SetImmediateModeRendering(
-      this->GetImmediateModeRendering());
-    this->Internal->Mappers[i]->SetColorMode(this->GetColorMode());
-    this->Internal->Mappers[i]->SetInterpolateScalarsBeforeMapping(
-      this->GetInterpolateScalarsBeforeMapping());
+    // this->Internal->Mappers[i]->SetLookupTable(
+    //   this->GetLookupTable());
+    // this->Internal->Mappers[i]->SetScalarVisibility(
+    //   this->GetScalarVisibility());
+    // this->Internal->Mappers[i]->SetUseLookupTableScalarRange(
+    //   this->GetUseLookupTableScalarRange());
+    // this->Internal->Mappers[i]->SetScalarRange(
+    //   this->GetScalarRange());
+    // this->Internal->Mappers[i]->SetImmediateModeRendering(
+    //   this->GetImmediateModeRendering());
+    // this->Internal->Mappers[i]->SetColorMode(this->GetColorMode());
+    // this->Internal->Mappers[i]->SetInterpolateScalarsBeforeMapping(
+    //   this->GetInterpolateScalarsBeforeMapping());
 
-    this->Internal->Mappers[i]->SetScalarMode(this->GetScalarMode());
-    if ( this->ScalarMode == VTK_SCALAR_MODE_USE_POINT_FIELD_DATA ||
-         this->ScalarMode == VTK_SCALAR_MODE_USE_CELL_FIELD_DATA )
-      {
-      if ( this->ArrayAccessMode == VTK_GET_ARRAY_BY_ID )
-        {
-        this->Internal->Mappers[i]->ColorByArrayComponent(
-          this->ArrayId,ArrayComponent);
-        }
-      else
-        {
-        this->Internal->Mappers[i]->ColorByArrayComponent(
-          this->ArrayName,ArrayComponent);
-        }
-      }
+    // this->Internal->Mappers[i]->SetScalarMode(this->GetScalarMode());
+    // if ( this->ScalarMode == VTK_SCALAR_MODE_USE_POINT_FIELD_DATA ||
+    //      this->ScalarMode == VTK_SCALAR_MODE_USE_CELL_FIELD_DATA )
+    //   {
+    //   if ( this->ArrayAccessMode == VTK_GET_ARRAY_BY_ID )
+    //     {
+    //     this->Internal->Mappers[i]->ColorByArrayComponent(
+    //       this->ArrayId,ArrayComponent);
+    //     }
+    //   else
+    //     {
+    //     this->Internal->Mappers[i]->ColorByArrayComponent(
+    //       this->ArrayName,ArrayComponent);
+    //     }
+    //   }
 
     this->Internal->Mappers[i]->Render(ren,a);
     this->TimeToDraw += this->Internal->Mappers[i]->GetTimeToDraw();

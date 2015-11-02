@@ -16,6 +16,8 @@
 #include "vtkRenderer.h"
 #include "vtkInformation.h"
 #include "vtkInformationVector.h"
+#include "vtkLight.h"
+#include "vtkLightCollection.h"
 #include "vtkMath.h"
 #include "vtkPolyData.h"
 #include "vtkRenderWindow.h"
@@ -373,13 +375,110 @@ void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
   this->UpdateProgress(1.0);
 }
 
+//-----------------------------------------------------------------------------
+bool vtkPyFRContourMapper::GetNeedToRebuildShaders(
+  vtkOpenGLHelper &cellBO, vtkRenderer* ren, vtkActor *actor)
+{
+  int lightComplexity = 0;
+
+  // wacky backwards compatibility with old VTK lighting
+  // soooo there are many factors that determine if a primative is lit or not.
+  // three that mix in a complex way are representation POINT, Interpolation FLAT
+  // and having normals or not.
+  bool needLighting = false;
+  // bool haveNormals = (this->CurrentInput->GetPointData()->GetNormals() != NULL);
+  bool haveNormals = true;
+  if (actor->GetProperty()->GetRepresentation() == VTK_POINTS)
+    {
+    needLighting = (actor->GetProperty()->GetInterpolation() != VTK_FLAT && haveNormals);
+    }
+  else  // wireframe or surface rep
+    {
+    bool isTrisOrStrips = (&cellBO == &this->Tris || &cellBO == &this->TriStrips);
+    needLighting = (isTrisOrStrips ||
+      (!isTrisOrStrips && actor->GetProperty()->GetInterpolation() != VTK_FLAT && haveNormals));
+    }
+
+  // do we need lighting?
+  if (actor->GetProperty()->GetLighting() && needLighting)
+    {
+    // consider the lighting complexity to determine which case applies
+    // simple headlight, Light Kit, the whole feature set of VTK
+    lightComplexity = 0;
+    int numberOfLights = 0;
+    vtkLightCollection *lc = ren->GetLights();
+    vtkLight *light;
+
+    vtkCollectionSimpleIterator sit;
+    for(lc->InitTraversal(sit);
+        (light = lc->GetNextLight(sit)); )
+      {
+      float status = light->GetSwitch();
+      if (status > 0.0)
+        {
+        numberOfLights++;
+        if (lightComplexity == 0)
+          {
+          lightComplexity = 1;
+          }
+        }
+
+      if (lightComplexity == 1
+          && (numberOfLights > 1
+            || light->GetIntensity() != 1.0
+            || light->GetLightType() != VTK_LIGHT_TYPE_HEADLIGHT))
+        {
+        lightComplexity = 2;
+        }
+      if (lightComplexity < 3
+          && (light->GetPositional()))
+        {
+        lightComplexity = 3;
+        break;
+        }
+      }
+    }
+
+  if (this->LastLightComplexity[&cellBO] != lightComplexity)
+    {
+    this->LightComplexityChanged[&cellBO].Modified();
+    this->LastLightComplexity[&cellBO] = lightComplexity;
+    }
+
+  // check for prop keys
+  vtkInformation *info = actor->GetPropertyKeys();
+  int dp = (info && info->Has(vtkDepthPeelingPass::OpaqueZTextureUnit())) ? 1 : 0;
+
+  if (this->LastDepthPeeling != dp)
+    {
+    this->DepthPeelingChanged.Modified();
+    this->LastDepthPeeling = dp;
+    }
+
+  // has something changed that would require us to recreate the shader?
+  // candidates are
+  // property modified (representation interpolation and lighting)
+  // input modified
+  // light complexity changed
+  if (cellBO.Program == 0 ||
+      cellBO.ShaderSourceTime < this->GetMTime() ||
+      cellBO.ShaderSourceTime < actor->GetMTime() ||
+      cellBO.ShaderSourceTime < this->ContourData->GetMTime() ||
+      cellBO.ShaderSourceTime < this->SelectionStateChanged ||
+      cellBO.ShaderSourceTime < this->DepthPeelingChanged ||
+      cellBO.ShaderSourceTime < this->LightComplexityChanged[&cellBO])
+    {
+    return true;
+    }
+
+  return false;
+}
+
 //----------------------------------------------------------------------------
 int vtkPyFRContourMapper::ProcessRequest(vtkInformation* request,
                                       vtkInformationVector** inputVector,
                                       vtkInformationVector*)
 {
-  std::cout<<__FILE__<<": "<<__LINE__<<std::endl;
-
   if(request->Has(vtkStreamingDemandDrivenPipeline::REQUEST_UPDATE_EXTENT()))
     {
     vtkInformation* inInfo = inputVector[0]->GetInformationObject(0);
@@ -426,7 +525,7 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
   if (this->VBOBuildTime < this->SelectionStateChanged ||
       this->VBOBuildTime < this->GetMTime() ||
       this->VBOBuildTime < act->GetMTime() ||
-      this->VBOBuildTime < this->CurrentInput->GetMTime())
+      this->VBOBuildTime < this->ContourData->GetMTime())
     {
     // dropping support for texture maps
 
@@ -440,7 +539,7 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
   // now create the IBOs
   if (
       this->VBOBuildTime < this->GetMTime() ||
-      this->VBOBuildTime < this->CurrentInput->GetMTime() ||
+      this->VBOBuildTime < this->ContourData->GetMTime() ||
       this->VBOBuildTime < act->GetProperty()->GetMTime() ||
       this->VBOBuildTime < this->SelectionStateChanged)
     {

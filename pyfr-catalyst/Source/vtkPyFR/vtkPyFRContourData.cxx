@@ -58,7 +58,7 @@ std::size_t vtkPyFRContourData::GetSizeOfContour(int i) const
 {
   if (this->data)
     {
-    this->data->GetContourSize(i);
+    return this->data->GetContourSize(i);
     }
   return 0;
 }
@@ -111,10 +111,13 @@ double* vtkPyFRContourData::GetBounds()
 //----------------------------------------------------------------------------
 bool vtkPyFRContourData::HasData() const
 {
-  for (unsigned i=0;i<this->data->GetNumberOfContours();i++)
+  if (this->data)
     {
-    if (this->HasData(i))
-      return true;
+    for (unsigned i=0;i<this->data->GetNumberOfContours();i++)
+      {
+      if (this->HasData(i))
+        return true;
+      }
     }
   return false;
 }
@@ -122,7 +125,11 @@ bool vtkPyFRContourData::HasData() const
 //----------------------------------------------------------------------------
 bool vtkPyFRContourData::HasData(int i) const
 {
-  return this->data->GetContourSize(i) > 0;
+  if (this->data)
+    {
+    return this->data->GetContourSize(i) > 0;
+    }
+  return false;
 }
 
 //----------------------------------------------------------------------------

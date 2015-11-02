@@ -12,9 +12,9 @@ struct PyFRContourData
 
 namespace transfer
 {
-  static void coords(PyFRContourData*, int, unsigned int) {}
-  static void normals(PyFRContourData*, int, unsigned int) {}
-  static void colors(PyFRContourData*, int, unsigned int) {}
+  static void coords(PyFRContourData*, int, unsigned int&) {}
+  static void normals(PyFRContourData*, int, unsigned int&) {}
+  static void colors(PyFRContourData*, int, unsigned int&) {}
 }
 
 #endif

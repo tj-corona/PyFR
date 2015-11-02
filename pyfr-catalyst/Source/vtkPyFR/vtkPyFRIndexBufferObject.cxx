@@ -56,7 +56,7 @@ std::size_t vtkPyFRIndexBufferObject::CreateIndexBuffer(vtkPyFRContourData* data
                numPoints,
                vtkOpenGLIndexBufferObject::ElementArrayBuffer);
 
-  this->IndexCount = numPoints;
+  return this->IndexCount = numPoints;
 }
 
 //-----------------------------------------------------------------------------
@@ -79,7 +79,7 @@ std::size_t vtkPyFRIndexBufferObject::CreateTriangleLineIndexBuffer(vtkPyFRConto
 
   this->Upload(lineIndexArray, vtkOpenGLIndexBufferObject::ElementArrayBuffer);
 
-  this->IndexCount = lineIndexArray.size();
+  return this->IndexCount = lineIndexArray.size();
 }
 
 //-----------------------------------------------------------------------------

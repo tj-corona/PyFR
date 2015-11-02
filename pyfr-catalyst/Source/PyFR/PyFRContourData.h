@@ -31,9 +31,9 @@ private:
 //by using opengl interop, without having to move the data back to host
 namespace transfer
 {
-  void coords(PyFRContourData* data, int index, unsigned int glHandle);
-  void normals(PyFRContourData* data, int index, unsigned int glHandle);
-  void colors(PyFRContourData* data, int index, unsigned int glHandle);
+  void coords(PyFRContourData* data, int index, unsigned int& glHandle);
+  void normals(PyFRContourData* data, int index, unsigned int& glHandle);
+  void colors(PyFRContourData* data, int index, unsigned int& glHandle);
 }
 
 #endif
