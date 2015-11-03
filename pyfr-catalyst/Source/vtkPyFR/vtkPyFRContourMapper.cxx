@@ -213,6 +213,7 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
 void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
 {
   // draw points
+  /*
   if (this->Points.IBO->IndexCount)
     {
     // Update/build/etc the shader.
@@ -226,6 +227,7 @@ void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
     this->Points.IBO->Release();
     this->PrimitiveIDOffset += (int)this->Points.IBO->IndexCount;
     }
+  */
 
   int representation = actor->GetProperty()->GetRepresentation();
 

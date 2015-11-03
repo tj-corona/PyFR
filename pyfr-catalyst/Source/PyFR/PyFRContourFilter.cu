@@ -66,6 +66,7 @@ void PyFRContourFilter::MapFieldOntoIsosurfaces(int field,
     output->GetContour(j).SetScalarDataType(field);
     PyFRContour::ScalarDataArrayHandle scalars_out =
       output->GetContour(j).GetScalarData();
+
     scalarDataHandleVec.push_back(scalars_out);
     }
 

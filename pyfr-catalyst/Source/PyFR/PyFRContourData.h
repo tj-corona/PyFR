@@ -5,12 +5,13 @@
 
 #include <vector>
 
+#include "ColorTable.h"
 #include "PyFRContour.h"
 
 class PyFRContourData
 {
 public:
-  PyFRContourData() {}
+  PyFRContourData() : Table() {}
   virtual ~PyFRContourData() {}
 
   void SetNumberOfContours(unsigned);
@@ -23,6 +24,7 @@ public:
   void SetColorRange(FPType,FPType);
 
 private:
+  ColorTable Table;
   std::vector<PyFRContour> Contours;
 };
 

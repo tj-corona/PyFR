@@ -5,10 +5,12 @@
 
 #include <cassert>
 #include <vector>
+#include <stdio.h>
 
 #include <vtkm/Types.h>
 #include <vtkm/VecVariable.h>
 #include <vtkm/VectorAnalysis.h>
+#include <vtkm/cont/ErrorControlBadType.h>
 
 typedef vtkm::Vec<vtkm::UInt8,4> Color;
 
@@ -30,41 +32,115 @@ class ColorTable
 {
   enum { MaxSize = 5 };
 
+  enum Preset
+  {
+    COOLTOWARM,
+    BLACKBODY,
+    BLUETOREDRAINBOW
+  };
+
   public:
+  VTKM_EXEC_CONT_EXPORT
   ColorTable()
   {
     this->NumberOfColors = MaxSize;
-    this->Palette[0] = Color(255,0,0,255);
-    this->Palette[1] = Color(255,255,0,255);
-    this->Palette[2] = Color(0,255,0,255);
-    this->Palette[3] = Color(0,255,255,255);
-    this->Palette[4] = Color(0,0,255,255);
+    PresetColorTable(BLUETOREDRAINBOW);
     this->Min = 0.;
     this->Max = 1.;
-    this->AssignPivots();
+  }
+
+  VTKM_EXEC_CONT_EXPORT
+  ColorTable(const ColorTable& other)
+  {
+    this->Min = other.Min;
+    this->Max = other.Max;
+    this->NumberOfColors = other.NumberOfColors;
+    for (unsigned i=0;i<MaxSize;i++)
+      {
+      this->Palette[i] = other.Palette[i];
+      this->Pivots[i] = other.Pivots[i];
+      }
+  }
+
+  VTKM_EXEC_CONT_EXPORT
+  ColorTable& operator=(const ColorTable& other)
+  {
+    if (this != &other)
+      {
+      this->Min = other.Min;
+      this->Max = other.Max;
+      this->NumberOfColors = other.NumberOfColors;
+      for (unsigned i=0;i<MaxSize;i++)
+        {
+        this->Palette[i] = other.Palette[i];
+        this->Pivots[i] = other.Pivots[i];
+        }
+      }
+    return *this;
+  }
+
+  VTKM_EXEC_CONT_EXPORT
+  void PresetColorTable(Preset i)
+  {
+    switch(i)
+      {
+      case COOLTOWARM:
+        SetNumberOfColors(3);
+        SetPaletteColor(0,Color(59,76,192,255));
+        SetPaletteColor(1,Color(220,220,220,255));
+        SetPaletteColor(2,Color(180,4,38,255));
+        break;
+      case BLACKBODY:
+        SetNumberOfColors(4);
+        SetPaletteColor(0,Color(0,0,0,255),0.);
+        SetPaletteColor(1,Color(230,0,0,255),.4);
+        SetPaletteColor(2,Color(230,230,0,255),.8);
+        SetPaletteColor(3,Color(255,255,255,255),1.);
+        break;
+      case BLUETOREDRAINBOW:
+        SetNumberOfColors(5);
+        SetPaletteColor(0,Color(0,0,255,255));
+        SetPaletteColor(1,Color(0,255,255,255));
+        SetPaletteColor(2,Color(0,255,0,255));
+        SetPaletteColor(3,Color(255,255,0,255));
+        SetPaletteColor(4,Color(255,0,0,255));
+        break;
+      }
   }
 
   void SetRange(FPType min,FPType max)
   {
+    float oldRange = this->Max - this->Min;
+    float newRange = max - min;
+    for (unsigned i=0;i<5;i++)
+      {
+      float normalizedPivot = (this->Pivots[i] - this->Min)/oldRange;
+      this->Pivots[i] = min + normalizedPivot*newRange;
+      }
     this->Min = min;
     this->Max = max;
-    this->AssignPivots();
   }
 
+  VTKM_EXEC_CONT_EXPORT
   void SetNumberOfColors(vtkm::IdComponent nColors)
   {
+    assert(nColors<=MaxSize);
     this->NumberOfColors = nColors;
-    this->AssignPivots();
   }
 
-  void SetPaletteColor(vtkm::IdComponent i,const Color& color)
+  VTKM_EXEC_CONT_EXPORT
+  void SetPaletteColor(vtkm::IdComponent i,
+                       const Color& color,
+                       float normalizedPivot=-1.)
   {
     assert(i<MaxSize);
     this->Palette[i] = color;
-    this->AssignPivots();
+    this->Pivots[i] = (normalizedPivot < 0. ?
+                      static_cast<float>(i)/(this->NumberOfColors-1.) :
+                      this->Min + normalizedPivot*(this->Max - this->Min));
   }
 
-VTKM_EXEC_CONT_EXPORT
+  VTKM_EXEC_CONT_EXPORT
   Color operator()(const FPType& value) const
   {
     vtkm::IdComponent index = 1;
@@ -73,7 +149,14 @@ VTKM_EXEC_CONT_EXPORT
       index++;
       }
 
-    float weight = (value - this->Pivots[index-1])/this->Interval;
+    if (index == this->NumberOfColors)
+      {
+      return this->Palette[index-1];
+      }
+
+    // TODO: cache the denominator
+    float weight = ((value - this->Pivots[index-1])/
+                    (this->Pivots[index] - this->Pivots[index-1]));
 
     return Lerp(this->Palette[index-1],this->Palette[index],weight);
   }
@@ -95,16 +178,6 @@ VTKM_EXEC_CONT_EXPORT
   }
 
   protected:
-VTKM_EXEC_CONT_EXPORT
-  void AssignPivots()
-  {
-    this->Interval = (this->Max-this->Min)/(this->NumberOfColors-1.);
-    for (vtkm::IdComponent i=0;i<this->NumberOfColors;i++)
-      {
-      this->Pivots[i] = this->Min + static_cast<float>(i)*this->Interval;
-      }
-  }
-
 VTKM_EXEC_CONT_EXPORT
   bool ColorIsInInterval(const Color& color,
                          vtkm::IdComponent interval,
@@ -145,7 +218,6 @@ VTKM_EXEC_CONT_EXPORT
   vtkm::IdComponent NumberOfColors;
   vtkm::Vec<Color,MaxSize> Palette;
   vtkm::Vec<float,MaxSize> Pivots;
-  FPType Interval;
 };
 
 #endif

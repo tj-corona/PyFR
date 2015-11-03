@@ -23,8 +23,9 @@ void PyFRContourData::SetNumberOfContours(unsigned nContours)
   // smart pointers to the same array instance. A specialization of
   // std::allocator<> for array handles should be created.
   for (unsigned i=this->Contours.size();i<nContours;i++)
-    this->Contours.push_back(PyFRContour());
-  this->Contours.resize(nContours);
+    this->Contours.push_back(PyFRContour(this->Table));
+  for (unsigned i=nContours;i<this->Contours.size();i++)
+    this->Contours.pop_back();
 }
 
 //----------------------------------------------------------------------------
@@ -85,10 +86,10 @@ void PyFRContourData::ComputeBounds(FPType* bounds) const
 //----------------------------------------------------------------------------
 void PyFRContourData::SetColorRange(FPType min,FPType max)
 {
-  for (std::vector<PyFRContour>::iterator it=this->Contours.begin();
-  it!=this->Contours.end();++it)
+  this->Table.SetRange(min,max);
+  for (unsigned i=0;i<this->GetNumberOfContours();i++)
     {
-    (*it).GetColorTable().SetRange(min,max);
+    this->Contours[i].ChangeColorTable(this->Table);
     }
 }
 

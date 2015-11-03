@@ -656,9 +656,9 @@ public:
   // array instance. A specialization of std::allocator<> for array handles
   // should be created.
   typedef vtkm::cont::ArrayHandle<Field> FieldHandle;
-  for (unsigned iso=fieldOut.size();iso<nIsovalues;iso++)
-    fieldOut.push_back(FieldHandle());
-  fieldOut.resize(nIsovalues);
+  // for (unsigned iso=fieldOut.size();iso<nIsovalues;iso++)
+  //   fieldOut.push_back(FieldHandle());
+  // fieldOut.resize(nIsovalues);
 
   MapOntoIsocontourSetFunctor<Field,StorageTag,
     FieldHandle::StorageTag>(fieldIn,

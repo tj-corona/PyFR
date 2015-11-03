@@ -15,19 +15,14 @@ class PyFRContour
 public:
   typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
   typedef vtkm::cont::ArrayHandleExposed<Color> ColorArrayHandle;
-  typedef vtkm::cont::ArrayHandleTransform<FPType,
-                                           ColorArrayHandle,
-                                           ColorTable,
-                                           ColorTable> ScalarDataArrayHandle;
+  typedef vtkm::cont::ArrayHandle<FPType> ScalarDataArrayHandle;
 
-  PyFRContour() : Vertices(),
-                  Normals(),
-                  ColorData(),
-                  Table(),
-                  ScalarData(this->ColorData,
-                             this->Table,
-                             this->Table),
-                  ScalarDataType(-1)
+  PyFRContour(const ColorTable& table) : Vertices(),
+                                         Normals(),
+                                         Table(),
+                                         ColorData(),
+                                         ScalarData(),
+                                         ScalarDataType(-1)
   {
   }
 
@@ -36,19 +31,21 @@ public:
   Vec3ArrayHandle GetVertices()         const { return this->Vertices; }
   Vec3ArrayHandle GetNormals()          const { return this->Normals; }
   ScalarDataArrayHandle GetScalarData() const { return this->ScalarData; }
-  ColorArrayHandle GetColorData()       const { return this->ColorData; }
+  ColorArrayHandle GetColorData();
   int GetScalarDataType()               const { return this->ScalarDataType; }
 
-  ColorTable& GetColorTable() { return this->Table; }
-  const ColorTable& GetColorTable() const { return this->Table; }
+  void ChangeColorTable(const ColorTable& table)
+  {
+    this->Table = table;
+  }
 
   void SetScalarDataType(int i) { this->ScalarDataType = i; }
 
 private:
   Vec3ArrayHandle Vertices;
   Vec3ArrayHandle Normals;
-  ColorArrayHandle ColorData;
   ColorTable Table;
+  ColorArrayHandle ColorData;
   ScalarDataArrayHandle ScalarData;
   int ScalarDataType;
 };

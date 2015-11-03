@@ -214,6 +214,8 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   controller->PreInitializeProxy(this->Slice);
   vtkSMPropertyHelper(this->Slice, "Input").Set(producer, 0);
   vtkSMPropertyHelper(this->Slice,"ColorField").Set(1);
+  double sliceColorRange[2] = {2.49,2.51};
+  vtkSMPropertyHelper(this->Slice,"ColorRange").Set(sliceColorRange,2);
   this->Slice->UpdateVTKObjects();
   controller->PostInitializeProxy(this->Slice);
   controller->RegisterPipelineProxy(this->Slice,"Slice");
@@ -226,16 +228,20 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   vtkSMInputProperty* contourInputConnection =
     vtkSMInputProperty::SafeDownCast(this->Contour->GetProperty("Input"));
 
+  controller->PreInitializeProxy(this->Contour);
   vtkSMPropertyHelper(this->Contour, "Input").Set(this->Clip, 0);
   vtkSMPropertyHelper(this->Contour,"ContourField").Set(0);
   vtkSMPropertyHelper(this->Contour,"ColorField").Set(0);
   // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,.65);
   // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,.7);
+  // vtkSMPropertyHelper(this->Contour,"ColorRange").Set(.65,.7);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,1.0025);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,1.0045);
+  double contourColorRange[2] = {1.0025,1.0045};
+  vtkSMPropertyHelper(this->Contour,"ColorRange").Set(contourColorRange,2);
 
   this->Contour->UpdateVTKObjects();
-  controller->InitializeProxy(this->Contour);
+  controller->PostInitializeProxy(this->Contour);
   controller->RegisterPipelineProxy(this->Contour,"Contour");
 
   // Create a view
