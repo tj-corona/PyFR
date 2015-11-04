@@ -203,7 +203,7 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
 
   // Bind the OpenGL, this is shared between the different primitive/cell types.
   this->VBO->Bind();
-  this->ColorVBO->Bind();
+  // this->ColorVBO->Bind();
   // this->NormalVBO->Bind();
 
   this->LastBoundBO = NULL;
@@ -278,6 +278,7 @@ void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
     this->Tris.IBO->Bind();
     GLenum mode = (representation == VTK_POINTS) ? GL_POINTS :
       (representation == VTK_WIREFRAME) ? GL_LINES : GL_TRIANGLES;
+    std::cout<<"Drawing "<<this->VBO->VertexCount<<" vertices"<<std::endl;
     glDrawRangeElements(mode, 0,
                       static_cast<GLuint>(this->VBO->VertexCount - 1),
                       static_cast<GLsizei>(this->Tris.IBO->IndexCount),
@@ -308,27 +309,27 @@ void vtkPyFRContourMapper::RenderEdges(vtkRenderer* ren, vtkActor *actor)
     return;
     }
 
-  this->DrawingEdges = true;
+  // this->DrawingEdges = true;
 
   // draw polygons
-  if (this->TrisEdges.IBO->IndexCount)
-    {
-    // First we do the triangles, update the shader, set uniforms, etc.
-    this->UpdateShaders(this->TrisEdges, ren, actor);
-    if (!this->HaveWideLines(ren,actor))
-      {
-      glLineWidth(actor->GetProperty()->GetLineWidth());
-      }
-    this->TrisEdges.IBO->Bind();
-    glDrawRangeElements(GL_LINES, 0,
-                        static_cast<GLuint>(this->VBO->VertexCount - 1),
-                        static_cast<GLsizei>(this->TrisEdges.IBO->IndexCount),
-                        GL_UNSIGNED_INT,
-                        reinterpret_cast<const GLvoid *>(NULL));
-    this->TrisEdges.IBO->Release();
-    }
+  // if (this->TrisEdges.IBO->IndexCount)
+  //   {
+  //   // First we do the triangles, update the shader, set uniforms, etc.
+  //   this->UpdateShaders(this->TrisEdges, ren, actor);
+  //   if (!this->HaveWideLines(ren,actor))
+  //     {
+  //     glLineWidth(actor->GetProperty()->GetLineWidth());
+  //     }
+  //   this->TrisEdges.IBO->Bind();
+  //   glDrawRangeElements(GL_LINES, 0,
+  //                       static_cast<GLuint>(this->VBO->VertexCount - 1),
+  //                       static_cast<GLsizei>(this->TrisEdges.IBO->IndexCount),
+  //                       GL_UNSIGNED_INT,
+  //                       reinterpret_cast<const GLvoid *>(NULL));
+  //   this->TrisEdges.IBO->Release();
+  //   }
 
-  this->DrawingEdges = false;
+  // this->DrawingEdges = false;
 }
 
 
@@ -355,7 +356,7 @@ void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
     }
 
   this->VBO->Release();
-  this->ColorVBO->Release();
+  // this->ColorVBO->Release();
   // this->NormalVBO->Release();
 
   vtkProperty *prop = actor->GetProperty();
@@ -524,7 +525,7 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
   // going to ignore the apple picking bug entirely
   this->HaveAppleBug = false;
 
-  // rebuild the VBO if the data has changed
+  // rebuild the VBO and IBO if the data has changed
   if (this->VBOBuildTime < this->SelectionStateChanged ||
       this->VBOBuildTime < this->GetMTime() ||
       this->VBOBuildTime < act->GetMTime() ||
@@ -537,15 +538,7 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
     coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
     // this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
-    }
 
-  // now create the IBOs
-  if (
-      this->VBOBuildTime < this->GetMTime() ||
-      this->VBOBuildTime < this->ContourData->GetMTime() ||
-      this->VBOBuildTime < act->GetProperty()->GetMTime() ||
-      this->VBOBuildTime < this->SelectionStateChanged)
-    {
     this->BuildIBO(ren, act, this->ContourData);
     }
 }
@@ -558,43 +551,43 @@ void vtkPyFRContourMapper::BuildIBO(
 {
   int representation = act->GetProperty()->GetRepresentation();
 
-  vtkPyFRIndexBufferObject* pointsIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Points.IBO);
+  // vtkPyFRIndexBufferObject* pointsIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Points.IBO);
   vtkPyFRIndexBufferObject* trisIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Tris.IBO);
-  vtkPyFRIndexBufferObject* triEdgesIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->TrisEdges.IBO);
+  // vtkPyFRIndexBufferObject* triEdgesIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->TrisEdges.IBO);
 
-  pointsIBO->CreateIndexBuffer(contours, this->ActiveContour);
+  // pointsIBO->CreateIndexBuffer(contours, this->ActiveContour);
 
-  vtkHardwareSelector* selector = ren->GetSelector();
+  // vtkHardwareSelector* selector = ren->GetSelector();
 
-  if (selector && this->PopulateSelectionSettings &&
-      selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS &&
-      selector->GetCurrentPass() >= vtkHardwareSelector::ID_LOW24)
-    {
-    representation = VTK_POINTS;
-    }
+  // if (selector && this->PopulateSelectionSettings &&
+  //     selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS &&
+  //     selector->GetCurrentPass() >= vtkHardwareSelector::ID_LOW24)
+  //   {
+  //   representation = VTK_POINTS;
+  //   }
 
-  if (representation == VTK_POINTS)
-    {
-    trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
-    }
-  else if (representation == VTK_WIREFRAME)
-    {
-    trisIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
-    }
-   else // SURFACE
+  // if (representation == VTK_POINTS)
+  //   {
+  //   trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
+  //   }
+  // else if (representation == VTK_WIREFRAME)
+  //   {
+  //   trisIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
+  //   }
+  //  else // SURFACE
     {
     //uses the same logic points, since we share no verts in common
     trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
     }
 
-  // when drawing edges also build the edge IBOs
-  vtkProperty *prop = act->GetProperty();
-  bool draw_surface_with_edges =
-    (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE);
-  if (draw_surface_with_edges)
-    {
-    triEdgesIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
-    }
+  // // when drawing edges also build the edge IBOs
+  // vtkProperty *prop = act->GetProperty();
+  // bool draw_surface_with_edges =
+  //   (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE);
+  // if (draw_surface_with_edges)
+  //   {
+  //   triEdgesIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
+  //   }
 }
 
 //-------------------------------------------------------------------------
@@ -663,6 +656,9 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
     {
     // add all the clipping planes
     int numClipPlanes = this->GetNumberOfClippingPlanes();
+    if (numClipPlanes != 0)
+      std::cout<<"Why are we putting clip planes into our simulation?"<<std::endl;
+
     if (numClipPlanes > 6)
       {
       vtkErrorMacro(<< "OpenGL has a limit of 6 clipping planes");

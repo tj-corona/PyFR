@@ -86,9 +86,9 @@ class ColorTable
       {
       case COOLTOWARM:
         SetNumberOfColors(3);
-        SetPaletteColor(0,Color(59,76,192,255));
-        SetPaletteColor(1,Color(220,220,220,255));
-        SetPaletteColor(2,Color(180,4,38,255));
+        SetPaletteColor(0,Color(59,76,192,255),0.);
+        SetPaletteColor(1,Color(220,220,220,255),.5);
+        SetPaletteColor(2,Color(180,4,38,255),1.);
         break;
       case BLACKBODY:
         SetNumberOfColors(4);
@@ -99,21 +99,23 @@ class ColorTable
         break;
       case BLUETOREDRAINBOW:
         SetNumberOfColors(5);
-        SetPaletteColor(0,Color(0,0,255,255));
-        SetPaletteColor(1,Color(0,255,255,255));
-        SetPaletteColor(2,Color(0,255,0,255));
-        SetPaletteColor(3,Color(255,255,0,255));
-        SetPaletteColor(4,Color(255,0,0,255));
+        SetPaletteColor(0,Color(0,0,255,255),0.);
+        SetPaletteColor(1,Color(0,255,255,255),.25);
+        SetPaletteColor(2,Color(0,255,0,255),.5);
+        SetPaletteColor(3,Color(255,255,0,255),.75);
+        SetPaletteColor(4,Color(255,0,0,255),1.);
         break;
       }
   }
 
+  VTKM_EXEC_CONT_EXPORT
   void SetRange(FPType min,FPType max)
   {
     float oldRange = this->Max - this->Min;
     float newRange = max - min;
     for (unsigned i=0;i<5;i++)
       {
+      float tmp = this->Pivots[i];
       float normalizedPivot = (this->Pivots[i] - this->Min)/oldRange;
       this->Pivots[i] = min + normalizedPivot*newRange;
       }
@@ -131,18 +133,21 @@ class ColorTable
   VTKM_EXEC_CONT_EXPORT
   void SetPaletteColor(vtkm::IdComponent i,
                        const Color& color,
-                       float normalizedPivot=-1.)
+                       float normalizedPivot)
   {
     assert(i<MaxSize);
     this->Palette[i] = color;
-    this->Pivots[i] = (normalizedPivot < 0. ?
-                      static_cast<float>(i)/(this->NumberOfColors-1.) :
-                      this->Min + normalizedPivot*(this->Max - this->Min));
+    this->Pivots[i] = this->Min + normalizedPivot*(this->Max - this->Min);
   }
 
   VTKM_EXEC_CONT_EXPORT
   Color operator()(const FPType& value) const
   {
+    if (value < this->Pivots[0])
+      {
+      return this->Palette[0];
+      }
+
     vtkm::IdComponent index = 1;
     while (index < this->NumberOfColors && this->Pivots[index] < value)
       {

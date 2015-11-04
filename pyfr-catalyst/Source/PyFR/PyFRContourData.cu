@@ -22,16 +22,29 @@ void PyFRContourData::SetNumberOfContours(unsigned nContours)
   // handles (or classes containing them)! You will end up with a vector of
   // smart pointers to the same array instance. A specialization of
   // std::allocator<> for array handles should be created.
+
+  std::cout<<__FILE__<<": "<<__LINE__<<": resizing from "<<this->Contours.size()<<" to "<<nContours<<std::endl;
+
   for (unsigned i=this->Contours.size();i<nContours;i++)
+    {
     this->Contours.push_back(PyFRContour(this->Table));
-  for (unsigned i=nContours;i<this->Contours.size();i++)
+    }
+  unsigned contourSize = this->Contours.size();
+  for (unsigned i=nContours;i<contourSize;i++)
+    {
     this->Contours.pop_back();
+    }
+
+  for (unsigned i=0;i<this->Contours.size();i++)
+    std::cout<<"  "<<GetContourSize(i)<<std::endl;
 }
 
 //----------------------------------------------------------------------------
 unsigned PyFRContourData::GetContourSize(int contour) const
 {
-  return this->GetContour(contour).GetVertices().GetNumberOfValues();
+  if(contour < this->Contours.size())
+    return this->GetContour(contour).GetVertices().GetNumberOfValues();
+  return 0;
 }
 
 //----------------------------------------------------------------------------
@@ -86,8 +99,8 @@ void PyFRContourData::ComputeBounds(FPType* bounds) const
 //----------------------------------------------------------------------------
 void PyFRContourData::SetColorPalette(int preset,FPType min,FPType max)
 {
-  this->Table.PresetColorTable(static_cast<ColorTable::Preset>(preset));
   this->Table.SetRange(min,max);
+  this->Table.PresetColorTable(static_cast<ColorTable::Preset>(preset));
   for (unsigned i=0;i<this->GetNumberOfContours();i++)
     {
     this->Contours[i].ChangeColorTable(this->Table);
@@ -121,6 +134,7 @@ void to_gl(vtkm::Float32, const HandleType& handle, unsigned int& glHandle)
 //----------------------------------------------------------------------------
 void coords(PyFRContourData* data, int index, unsigned int& glHandle)
 {
+  std::cout<<__FILE__<<": "<<__LINE__<<": "<<index<<" "<<data->GetContour(index).GetVertices().GetNumberOfValues()<<std::endl;
   to_gl(FPType(), data->GetContour(index).GetVertices(), glHandle);
 }
 

@@ -22,7 +22,6 @@ class vtkPyFRMapperInternals
 {
 public:
   std::vector<vtkPyFRContourMapper*> Mappers;
-  std::vector<int> ValidContourIndices;
 };
 
 //----------------------------------------------------------------------------
@@ -64,42 +63,32 @@ void vtkPyFRMapper::BuildMappers()
   int numContours = input->GetNumberOfContours();
 
 
-  if(numContours == this->Internal->Mappers.size())
+  for (int i=0;i<numContours;i++)
     {
-    for (int i = 0; i < numContours; ++i)
+    if (i == this->Internal->Mappers.size())
       {
-      if (input->HasData(i))
-        {
-        this->Internal->Mappers[i]->SetActiveContour(i);
-        }
-      else
-        {
-        this->Internal->Mappers[i]->SetActiveContour(-1);
-        }
-      }
-    }
-  else
-    {
-    for(unsigned int i=0;i<this->Internal->Mappers.size();i++)
-      {
-      this->Internal->Mappers[i]->UnRegister(this);
-      }
-    this->Internal->Mappers.clear();
-
-    for (int i = 0; i < numContours; ++i)
-      {
-      int index = input->HasData(i) ? i : -1;
-
       vtkPyFRContourMapper *cmapper = vtkPyFRContourMapper::New();
       cmapper->Register(this); //increments the ref count on cmapper
-      cmapper->SetActiveContour(index); //tell the mapper which contour it is supposed to render
       cmapper->SetInputData(input);
       this->Internal->Mappers.push_back(cmapper);
-      this->Internal->ValidContourIndices.push_back(i);
 
       cmapper->FastDelete();
       }
+    this->Internal->Mappers[i]->SetActiveContour(input->HasData(i) ? i : -1);
     }
+
+  for (int i=numContours;i<this->Internal->Mappers.size();i++)
+    {
+    this->Internal->Mappers[i]->SetActiveContour(-1);
+    }
+
+  unsigned nContours = 0;
+
+  for (unsigned i=0;i<this->Internal->Mappers.size();i++)
+    if (this->Internal->Mappers[i]->GetActiveContour() !=-1)
+      nContours++;
+
+  std::cout<<__FILE__<<": "<<__LINE__<<": "<<nContours<<std::endl;
 
   this->InternalMappersBuildTime.Modified();
 }

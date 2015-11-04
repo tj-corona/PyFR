@@ -52,6 +52,7 @@ void vtkPyFRVertexBufferObject::CreateVerticesVBO(vtkPyFRContourData* data,
   //use vtkm to transfer the cuda allocated memory over to opengl
   //without having to transfer back to main memory
   transfer::coords(data->GetData(),index,this->GetHandleRef());
+  std::cout<<__FILE__<<": "<<__LINE__<<": "<<index<<" "<<this->VertexCount<<std::endl;
 }
 
 //-----------------------------------------------------------------------------
