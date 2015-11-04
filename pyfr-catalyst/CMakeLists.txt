@@ -50,6 +50,8 @@ if (BuildServerLibs)
   set(fpList "float" CACHE INTERNAL "fpList")
   set(libSuffix_float fp32 CACHE INTERNAL "float suffix")
   set(libSuffix_double fp64 CACHE INTERNAL "double suffix")
+
+  add_subdirectory(Data)
 endif()
 
 add_subdirectory(Source)

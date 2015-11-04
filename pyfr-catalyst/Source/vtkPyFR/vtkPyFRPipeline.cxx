@@ -47,6 +47,9 @@
 
 #include "PyFRData.h"
 
+#define STRINGIFY(s) TOSTRING(s)
+#define TOSTRING(s) #s
+
 #ifdef SINGLE
 PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp32)
 #else
@@ -305,6 +308,9 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
       controller->InitializeProxy(polydataWriter);
       controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
     }
+
+  std::string airplane_stl = STRINGIFY(AIRPLANE_STL);
+  std::cout<<"Airplane stl: "<<airplane_stl<<std::endl;
 
   // Initialize the "link"
   this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->
