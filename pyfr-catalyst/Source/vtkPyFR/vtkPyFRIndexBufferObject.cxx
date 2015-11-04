@@ -55,7 +55,7 @@ std::size_t vtkPyFRIndexBufferObject::CreateIndexBuffer(vtkPyFRContourData* data
   //this way we can build the vector once on the cpu, and re-use sections
   //of it as needed. Currently tuned to work best when we have less than
   //670k triangles per contour
-  if(!this->UploadedIndices)
+  if( this->IndexCount != numPoints )
     {
     this->Upload(&(this->IndexArray[0]),
                  numPoints,

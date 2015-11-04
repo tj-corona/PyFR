@@ -97,7 +97,12 @@ void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
   vtkDemandDrivenPipeline * executive =
   vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
 
+if(executive->GetPipelineMTime() >
+   this->InternalMappersBuildTime.GetMTime())
+  {
   this->BuildMappers();
+  }
+
 
   this->TimeToDraw = 0;
   //Call Render() on each of the PolyDataMappers

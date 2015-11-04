@@ -256,7 +256,6 @@ void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
     this->Tris.IBO->Bind();
     GLenum mode = (representation == VTK_POINTS) ? GL_POINTS :
       (representation == VTK_WIREFRAME) ? GL_LINES : GL_TRIANGLES;
-    std::cout<<"Drawing "<<this->VBO->VertexCount<<" vertices"<<std::endl;
     glDrawRangeElements(mode, 0,
                       static_cast<GLuint>(this->VBO->VertexCount - 1),
                       static_cast<GLsizei>(this->Tris.IBO->IndexCount),
