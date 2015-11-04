@@ -35,7 +35,6 @@ void PyFRContourFilter::operator()(PyFRData* input,
   DataVec dataVec;
   Vec3HandleVec verticesVec;
   Vec3HandleVec normalsVec;
-  std::cout<<__FILE__<<": "<<__LINE__<<": Setting number of contours to "<<this->ContourValues.size()<<std::endl;
   output->SetNumberOfContours(this->ContourValues.size());
   for (unsigned i=0;i<output->GetNumberOfContours();i++)
     {
@@ -50,11 +49,6 @@ void PyFRContourFilter::operator()(PyFRData* input,
                        contourArray,
                        verticesVec,
                        normalsVec);
-
-  for (unsigned i=0;i<output->GetNumberOfContours();i++)
-    {
-    std::cout<<__FILE__<<": "<<__LINE__<<": "<<i<<" -> "<<dataVec[i]<<" "<<output->GetContour(i).GetVertices().GetNumberOfValues()<<std::endl;
-    }
 }
 
 //----------------------------------------------------------------------------

@@ -83,7 +83,6 @@ int vtkPyFRContourFilter::FillInputPortInformation(
 
 void vtkPyFRContourFilter::SetNumberOfContours(int i)
 {
-  std::cout<<"setting # of contours to "<<i<<std::endl;
   this->ContourValues.resize(i);
   this->Modified();
 }
@@ -91,7 +90,6 @@ void vtkPyFRContourFilter::SetNumberOfContours(int i)
 
 void vtkPyFRContourFilter::SetContourValue(int i,double value)
 {
-  std::cout<<"setting contour value "<<i<<" to "<<value<<std::endl;
   if (i < this->ContourValues.size() && this->ContourValues[i] != value)
     {
     this->ContourValues[i] = value;

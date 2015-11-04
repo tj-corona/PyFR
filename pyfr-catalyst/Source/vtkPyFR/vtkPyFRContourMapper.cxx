@@ -196,6 +196,8 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
   // make sure the BOs are up to date
   this->UpdateBufferObjects(ren, actor);
 
+  this->BuildIBO(ren, actor, this->ContourData);
+
   // Bind the OpenGL, this is shared between the different primitive/cell types.
   this->VBO->Bind();
   // this->ColorVBO->Bind();
@@ -257,12 +259,14 @@ void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
     GLenum mode = (representation == VTK_POINTS) ? GL_POINTS :
       (representation == VTK_WIREFRAME) ? GL_LINES : GL_TRIANGLES;
     glDrawRangeElements(mode, 0,
-                      static_cast<GLuint>(this->VBO->VertexCount - 1),
-                      static_cast<GLsizei>(this->Tris.IBO->IndexCount),
+                        static_cast<GLuint>(this->VBO->VertexCount - 1),
+                        static_cast<GLuint>(this->ContourData->
+                                            GetSizeOfContour(this->
+                                                             ActiveContour)-1),
                       GL_UNSIGNED_INT,
                       reinterpret_cast<const GLvoid *>(NULL));
     this->Tris.IBO->Release();
-    this->PrimitiveIDOffset += (int)this->Tris.IBO->IndexCount/3;
+    this->PrimitiveIDOffset += this->ContourData->GetSizeOfContour(this->ActiveContour)/3;
     }
 
   if (selector && (
@@ -395,7 +399,6 @@ bool vtkPyFRContourMapper::GetNeedToRebuildShaders(
       cellBO.ShaderSourceTime < this->DepthPeelingChanged ||
       cellBO.ShaderSourceTime < this->LightComplexityChanged[&cellBO])
     {
-    std::cout <<"rebuilding the shaders" << std::endl;
     return true;
     }
 
@@ -456,14 +459,10 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
       this->VBOBuildTime < act->GetMTime() ||
       this->VBOBuildTime < this->ContourData->GetMTime())
     {
-    // dropping support for texture maps
-
     // Build the VBO's using our new vtkPyFRVertexBufferObject
     vtkPyFRVertexBufferObject* coordsVBO = dynamic_cast<vtkPyFRVertexBufferObject*>(this->VBO);
     coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
-
-    this->BuildIBO(ren, act, this->ContourData);
     }
 }
 
@@ -546,9 +545,6 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
     {
     // add all the clipping planes
     int numClipPlanes = this->GetNumberOfClippingPlanes();
-    if (numClipPlanes != 0)
-      std::cout<<"Why are we putting clip planes into our simulation?"<<std::endl;
-
     if (numClipPlanes > 6)
       {
       vtkErrorMacro(<< "OpenGL has a limit of 6 clipping planes");

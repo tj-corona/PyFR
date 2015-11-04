@@ -23,8 +23,6 @@ void PyFRContourData::SetNumberOfContours(unsigned nContours)
   // smart pointers to the same array instance. A specialization of
   // std::allocator<> for array handles should be created.
 
-  std::cout<<__FILE__<<": "<<__LINE__<<": resizing from "<<this->Contours.size()<<" to "<<nContours<<std::endl;
-
   for (unsigned i=this->Contours.size();i<nContours;i++)
     {
     this->Contours.push_back(PyFRContour(this->Table));
@@ -34,9 +32,6 @@ void PyFRContourData::SetNumberOfContours(unsigned nContours)
     {
     this->Contours.pop_back();
     }
-
-  for (unsigned i=0;i<this->Contours.size();i++)
-    std::cout<<"  "<<GetContourSize(i)<<std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -134,7 +129,6 @@ void to_gl(vtkm::Float32, const HandleType& handle, unsigned int& glHandle)
 //----------------------------------------------------------------------------
 void coords(PyFRContourData* data, int index, unsigned int& glHandle)
 {
-  std::cout<<__FILE__<<": "<<__LINE__<<": "<<index<<" "<<data->GetContour(index).GetVertices().GetNumberOfValues()<<std::endl;
   to_gl(FPType(), data->GetContour(index).GetVertices(), glHandle);
 }
 

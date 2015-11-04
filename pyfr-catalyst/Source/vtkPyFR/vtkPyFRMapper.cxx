@@ -74,7 +74,9 @@ void vtkPyFRMapper::BuildMappers()
 
       cmapper->FastDelete();
       }
+
     this->Internal->Mappers[i]->SetActiveContour(input->HasData(i) ? i : -1);
+    this->Internal->Mappers[i]->Modified();
     }
 
   for (int i=numContours;i<this->Internal->Mappers.size();i++)
@@ -97,12 +99,11 @@ void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
   vtkDemandDrivenPipeline * executive =
   vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
 
-if(executive->GetPipelineMTime() >
-   this->InternalMappersBuildTime.GetMTime())
-  {
-  this->BuildMappers();
-  }
-
+  if(executive->GetPipelineMTime() >
+     this->InternalMappersBuildTime.GetMTime())
+    {
+    this->BuildMappers();
+    }
 
   this->TimeToDraw = 0;
   //Call Render() on each of the PolyDataMappers
