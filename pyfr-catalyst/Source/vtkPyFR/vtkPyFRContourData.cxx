@@ -15,6 +15,7 @@ vtkPyFRContourData::vtkPyFRContourData()
     {
     this->Bounds[i] = 0.;
     }
+  this->ColorPalette = 2;
   this->ColorRange[0] = 0.;
   this->ColorRange[1] = 1.;
 }
@@ -132,13 +133,16 @@ bool vtkPyFRContourData::HasData(int i) const
 }
 
 //----------------------------------------------------------------------------
-void vtkPyFRContourData::SetColorRange(double* range)
+void vtkPyFRContourData::SetColorPalette(int i,double* range)
 {
-  if (this->ColorRange[0] != range[0] || this->ColorRange[1] != range[1])
+  if (this->ColorPalette != i ||
+      this->ColorRange[0] != range[0] || this->ColorRange[1] != range[1])
     {
+    this->ColorPalette = i;
     this->ColorRange[0] = range[0];
     this->ColorRange[1] = range[1];
-    this->data->SetColorRange(this->ColorRange[0],this->ColorRange[1]);
+    this->data->SetColorPalette(this->ColorPalette,
+                                this->ColorRange[0],this->ColorRange[1]);
     this->Modified();
     }
 }

@@ -15,13 +15,17 @@ class PyFRContour
 public:
   typedef vtkm::cont::ArrayHandleExposed<vtkm::Vec<FPType,3> > Vec3ArrayHandle;
   typedef vtkm::cont::ArrayHandleExposed<Color> ColorArrayHandle;
-  typedef vtkm::cont::ArrayHandle<FPType> ScalarDataArrayHandle;
+  typedef vtkm::cont::ArrayHandleTransform<FPType,
+                                           ColorArrayHandle,
+                                           ColorTable,
+                                           ColorTable> ScalarDataArrayHandle;
 
   PyFRContour(const ColorTable& table) : Vertices(),
                                          Normals(),
-                                         Table(),
                                          ColorData(),
-                                         ScalarData(),
+                                         ScalarData(this->ColorData,
+                                                    table,
+                                                    table),
                                          ScalarDataType(-1)
   {
   }
@@ -31,12 +35,12 @@ public:
   Vec3ArrayHandle GetVertices()         const { return this->Vertices; }
   Vec3ArrayHandle GetNormals()          const { return this->Normals; }
   ScalarDataArrayHandle GetScalarData() const { return this->ScalarData; }
-  ColorArrayHandle GetColorData();
+  ColorArrayHandle GetColorData()       const { return this->ColorData; }
   int GetScalarDataType()               const { return this->ScalarDataType; }
 
   void ChangeColorTable(const ColorTable& table)
   {
-    this->Table = table;
+    this->ScalarData = ScalarDataArrayHandle(this->ColorData,table,table);
   }
 
   void SetScalarDataType(int i) { this->ScalarDataType = i; }
@@ -44,7 +48,6 @@ public:
 private:
   Vec3ArrayHandle Vertices;
   Vec3ArrayHandle Normals;
-  ColorTable Table;
   ColorArrayHandle ColorData;
   ScalarDataArrayHandle ScalarData;
   int ScalarDataType;

@@ -59,7 +59,7 @@ vtkPyFRContourMapper::vtkPyFRContourMapper():
   this->ContourData = NULL;
 
   this->ColorVBO = vtkPyFRVertexBufferObject::New();
-  this->NormalVBO = vtkPyFRVertexBufferObject::New();
+  // this->NormalVBO = vtkPyFRVertexBufferObject::New();
 
   //Important override the default VBO with our own custom VBO Implementation
   //Likewise the same needs
@@ -82,8 +82,8 @@ vtkPyFRContourMapper::~vtkPyFRContourMapper()
   this->ColorVBO->Delete();
   this->ColorVBO = NULL;
 
-  this->NormalVBO->Delete();
-  this->NormalVBO = NULL;
+  // this->NormalVBO->Delete();
+  // this->NormalVBO = NULL;
 }
 
 
@@ -91,7 +91,7 @@ vtkPyFRContourMapper::~vtkPyFRContourMapper()
 void vtkPyFRContourMapper::ReleaseGraphicsResources(vtkWindow* win)
 {
   this->ColorVBO->ReleaseGraphicsResources();
-  this->NormalVBO->ReleaseGraphicsResources();
+  // this->NormalVBO->ReleaseGraphicsResources();
   this->Superclass::ReleaseGraphicsResources(win);
 }
 
@@ -204,7 +204,7 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
   // Bind the OpenGL, this is shared between the different primitive/cell types.
   this->VBO->Bind();
   this->ColorVBO->Bind();
-  this->NormalVBO->Bind();
+  // this->NormalVBO->Bind();
 
   this->LastBoundBO = NULL;
 }
@@ -356,7 +356,7 @@ void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
 
   this->VBO->Release();
   this->ColorVBO->Release();
-  this->NormalVBO->Release();
+  // this->NormalVBO->Release();
 
   vtkProperty *prop = actor->GetProperty();
   bool surface_offset =
@@ -535,7 +535,7 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
     // Build the VBO's using our new vtkPyFRVertexBufferObject
     vtkPyFRVertexBufferObject* coordsVBO = dynamic_cast<vtkPyFRVertexBufferObject*>(this->VBO);
     coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
-    this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
+    // this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
     }
 

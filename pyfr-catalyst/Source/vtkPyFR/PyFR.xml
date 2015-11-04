@@ -72,6 +72,20 @@
 	  the isosurface.
         </Documentation>
       </IntVectorProperty>
+      <IntVectorProperty
+          name="ColorPalette"
+          command="SetColorPalette"
+          number_of_elements="1"
+          default_values="1">
+        <EnumerationDomain name="enum">
+          <Entry value="0" text="Cool to Warm"/>
+          <Entry value="1" text="Black-Body Radiation"/>
+          <Entry value="2" text="Blue to Red Rainbow"/>
+        </EnumerationDomain>
+        <Documentation>
+          This property indicates which color palette to use for isosurfaces
+        </Documentation>
+      </IntVectorProperty>
       <DoubleVectorProperty command="SetColorRange"
                             default_values="0.0 1.0"
                             name="ColorRange"
@@ -205,6 +219,20 @@
         <Documentation>
           This property indicates which field will be used to color
 	  the isosurface.
+        </Documentation>
+      </IntVectorProperty>
+      <IntVectorProperty
+          name="ColorPalette"
+          command="SetColorPalette"
+          number_of_elements="1"
+          default_values="0">
+        <EnumerationDomain name="enum">
+          <Entry value="0" text="Cool to Warm"/>
+          <Entry value="1" text="Black-Body Radiation"/>
+          <Entry value="2" text="Blue to Red Rainbow"/>
+        </EnumerationDomain>
+        <Documentation>
+          This property indicates which color palette to use for isosurfaces
         </Documentation>
       </IntVectorProperty>
       <DoubleVectorProperty command="SetColorRange"

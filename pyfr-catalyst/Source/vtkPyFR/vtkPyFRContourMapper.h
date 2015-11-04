@@ -100,7 +100,7 @@ protected:
   int ActiveContour;
 
   vtkPyFRVertexBufferObject *ColorVBO;
-  vtkPyFRVertexBufferObject *NormalVBO;
+  // vtkPyFRVertexBufferObject *NormalVBO;
 
   virtual int FillInputPortInformation(int, vtkInformation*);
 

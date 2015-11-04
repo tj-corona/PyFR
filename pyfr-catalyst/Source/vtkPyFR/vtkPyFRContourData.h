@@ -30,7 +30,7 @@ public:
   bool HasData(int i) const;
 
   double* GetColorRange() { return this->ColorRange; }
-  void SetColorRange(double*);
+  void SetColorPalette(int,double*);
 
 protected:
   vtkPyFRContourData();
@@ -39,6 +39,7 @@ protected:
   double Bounds[6];
   unsigned int BoundsUpdateTime;
 
+  int ColorPalette;
   double ColorRange[2];
 
 private:

@@ -32,6 +32,7 @@ vtkStandardNewMacro(vtkPyFRContourFilter);
 //----------------------------------------------------------------------------
 vtkPyFRContourFilter::vtkPyFRContourFilter() : ContourField(0)
 {
+  this->ColorPalette = 1;
   this->ColorRange[0] = 0.;
   this->ColorRange[1] = 1.;
 }
@@ -57,8 +58,6 @@ int vtkPyFRContourFilter::RequestData(
   vtkPyFRContourData *output = vtkPyFRContourData::SafeDownCast(
     outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
-  output->SetColorRange(this->ColorRange);
-
   PyFRContourFilter filter;
   for (unsigned i=0;i<this->ContourValues.size();i++)
     {
@@ -66,6 +65,7 @@ int vtkPyFRContourFilter::RequestData(
     }
   filter.SetContourField(this->ContourField);
   filter(input->GetData(),output->GetData());
+  output->SetColorPalette(this->ColorPalette,this->ColorRange);
   filter.MapFieldOntoIsosurfaces(this->MappedField,input->GetData(),
                                  output->GetData());
   output->Modified();

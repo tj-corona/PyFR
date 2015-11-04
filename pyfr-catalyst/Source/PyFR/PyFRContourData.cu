@@ -84,8 +84,9 @@ void PyFRContourData::ComputeBounds(FPType* bounds) const
 }
 
 //----------------------------------------------------------------------------
-void PyFRContourData::SetColorRange(FPType min,FPType max)
+void PyFRContourData::SetColorPalette(int preset,FPType min,FPType max)
 {
+  this->Table.PresetColorTable(static_cast<ColorTable::Preset>(preset));
   this->Table.SetRange(min,max);
   for (unsigned i=0;i<this->GetNumberOfContours();i++)
     {

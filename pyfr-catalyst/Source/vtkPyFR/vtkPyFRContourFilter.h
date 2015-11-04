@@ -23,6 +23,9 @@ public:
   void SetContourField(int i);
   void SetMappedField(int i);
 
+  vtkSetMacro(ColorPalette,int);
+  vtkGetMacro(ColorPalette,int);
+
   vtkSetVector2Macro(ColorRange,double);
   vtkGetVectorMacro(ColorRange,double,2);
 
@@ -33,6 +36,7 @@ protected:
   std::vector<double> ContourValues;
   int ContourField;
   int MappedField;
+  int ColorPalette;
   double ColorRange[2];
 
 private:

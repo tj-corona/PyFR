@@ -30,6 +30,7 @@ Color Lerp(const Color& color0,
 
 class ColorTable
 {
+  public:
   enum { MaxSize = 5 };
 
   enum Preset
@@ -39,7 +40,6 @@ class ColorTable
     BLUETOREDRAINBOW
   };
 
-  public:
   VTKM_EXEC_CONT_EXPORT
   ColorTable()
   {

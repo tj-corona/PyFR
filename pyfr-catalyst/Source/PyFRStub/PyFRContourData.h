@@ -7,7 +7,7 @@ struct PyFRContourData
   unsigned GetContourSize(int) const { return 0; }
   void ComputeContourBounds(int,FPType*) const {}
   void ComputeBounds(FPType*) const {}
-  void SetColorRange(FPType,FPType) {}
+  void SetColorPalette(int,FPType,FPType) {}
 };
 
 namespace transfer
