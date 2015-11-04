@@ -67,13 +67,8 @@ vtkPyFRContourMapper::vtkPyFRContourMapper():
   this->VBO = vtkPyFRVertexBufferObject::New();
 
   //Important we need to override the IBO with our own IBO classes
-  this->Points.IBO->Delete();
   this->Tris.IBO->Delete();
-  this->TrisEdges.IBO->Delete();
-
-  this->Points.IBO = vtkPyFRIndexBufferObject::New();
   this->Tris.IBO = vtkPyFRIndexBufferObject::New();
-  this->TrisEdges.IBO = vtkPyFRIndexBufferObject::New();
 }
 
 //-----------------------------------------------------------------------------
@@ -212,23 +207,6 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
 //-----------------------------------------------------------------------------
 void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
 {
-  // draw points
-  /*
-  if (this->Points.IBO->IndexCount)
-    {
-    // Update/build/etc the shader.
-    this->UpdateShaders(this->Points, ren, actor);
-    this->Points.IBO->Bind();
-    glDrawRangeElements(GL_POINTS, 0,
-                        static_cast<GLuint>(this->VBO->VertexCount - 1),
-                        static_cast<GLsizei>(this->Points.IBO->IndexCount),
-                        GL_UNSIGNED_INT,
-                        reinterpret_cast<const GLvoid *>(NULL));
-    this->Points.IBO->Release();
-    this->PrimitiveIDOffset += (int)this->Points.IBO->IndexCount;
-    }
-  */
-
   int representation = actor->GetProperty()->GetRepresentation();
 
   // render points for point picking in a special way
@@ -300,36 +278,6 @@ void vtkPyFRContourMapper::RenderPieceDraw(vtkRenderer* ren, vtkActor *actor)
 //-----------------------------------------------------------------------------
 void vtkPyFRContourMapper::RenderEdges(vtkRenderer* ren, vtkActor *actor)
 {
-  vtkProperty *prop = actor->GetProperty();
-  bool draw_surface_with_edges =
-    (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE);
-
-  if (!draw_surface_with_edges)
-    {
-    return;
-    }
-
-  // this->DrawingEdges = true;
-
-  // draw polygons
-  // if (this->TrisEdges.IBO->IndexCount)
-  //   {
-  //   // First we do the triangles, update the shader, set uniforms, etc.
-  //   this->UpdateShaders(this->TrisEdges, ren, actor);
-  //   if (!this->HaveWideLines(ren,actor))
-  //     {
-  //     glLineWidth(actor->GetProperty()->GetLineWidth());
-  //     }
-  //   this->TrisEdges.IBO->Bind();
-  //   glDrawRangeElements(GL_LINES, 0,
-  //                       static_cast<GLuint>(this->VBO->VertexCount - 1),
-  //                       static_cast<GLsizei>(this->TrisEdges.IBO->IndexCount),
-  //                       GL_UNSIGNED_INT,
-  //                       reinterpret_cast<const GLvoid *>(NULL));
-  //   this->TrisEdges.IBO->Release();
-  //   }
-
-  // this->DrawingEdges = false;
 }
 
 
@@ -337,27 +285,12 @@ void vtkPyFRContourMapper::RenderEdges(vtkRenderer* ren, vtkActor *actor)
 void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
   vtkActor *actor)
 {
-  vtkHardwareSelector* selector = ren->GetSelector();
-  if (selector && this->PopulateSelectionSettings)
-    {
-    // render points for point picking in a special way
-    if (selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS &&
-        selector->GetCurrentPass() >= vtkHardwareSelector::ID_LOW24)
-      {
-      glDepthMask(GL_TRUE);
-      glDisable(GL_POLYGON_OFFSET_FILL);
-      }
-    selector->EndRenderProp();
-    }
-
   if (this->LastBoundBO)
     {
     this->LastBoundBO->VAO->Release();
     }
 
   this->VBO->Release();
-  // this->ColorVBO->Release();
-  // this->NormalVBO->Release();
 
   vtkProperty *prop = actor->GetProperty();
   bool surface_offset =
@@ -389,18 +322,10 @@ bool vtkPyFRContourMapper::GetNeedToRebuildShaders(
   // three that mix in a complex way are representation POINT, Interpolation FLAT
   // and having normals or not.
   bool needLighting = false;
-  // bool haveNormals = (this->CurrentInput->GetPointData()->GetNormals() != NULL);
-  bool haveNormals = true;
-  if (actor->GetProperty()->GetRepresentation() == VTK_POINTS)
-    {
-    needLighting = (actor->GetProperty()->GetInterpolation() != VTK_FLAT && haveNormals);
-    }
-  else  // wireframe or surface rep
-    {
-    bool isTrisOrStrips = (&cellBO == &this->Tris || &cellBO == &this->TriStrips);
-    needLighting = (isTrisOrStrips ||
-      (!isTrisOrStrips && actor->GetProperty()->GetInterpolation() != VTK_FLAT && haveNormals));
-    }
+  bool haveNormals = false;
+  bool isTrisOrStrips = (&cellBO == &this->Tris || &cellBO == &this->TriStrips);
+  needLighting = (isTrisOrStrips ||
+    (!isTrisOrStrips && actor->GetProperty()->GetInterpolation() != VTK_FLAT && haveNormals));
 
   // do we need lighting?
   if (actor->GetProperty()->GetLighting() && needLighting)
@@ -471,6 +396,7 @@ bool vtkPyFRContourMapper::GetNeedToRebuildShaders(
       cellBO.ShaderSourceTime < this->DepthPeelingChanged ||
       cellBO.ShaderSourceTime < this->LightComplexityChanged[&cellBO])
     {
+    std::cout <<"rebuilding the shaders" << std::endl;
     return true;
     }
 
@@ -536,7 +462,6 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
     // Build the VBO's using our new vtkPyFRVertexBufferObject
     vtkPyFRVertexBufferObject* coordsVBO = dynamic_cast<vtkPyFRVertexBufferObject*>(this->VBO);
     coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
-    // this->NormalVBO->CreateNormalsVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
 
     this->BuildIBO(ren, act, this->ContourData);
@@ -549,45 +474,10 @@ void vtkPyFRContourMapper::BuildIBO(
   vtkActor *act,
   vtkPyFRContourData *contours)
 {
-  int representation = act->GetProperty()->GetRepresentation();
-
-  // vtkPyFRIndexBufferObject* pointsIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Points.IBO);
   vtkPyFRIndexBufferObject* trisIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->Tris.IBO);
-  // vtkPyFRIndexBufferObject* triEdgesIBO = dynamic_cast<vtkPyFRIndexBufferObject*>(this->TrisEdges.IBO);
+  //uses the same logic points, since we share no verts in common
+  trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
 
-  // pointsIBO->CreateIndexBuffer(contours, this->ActiveContour);
-
-  // vtkHardwareSelector* selector = ren->GetSelector();
-
-  // if (selector && this->PopulateSelectionSettings &&
-  //     selector->GetFieldAssociation() == vtkDataObject::FIELD_ASSOCIATION_POINTS &&
-  //     selector->GetCurrentPass() >= vtkHardwareSelector::ID_LOW24)
-  //   {
-  //   representation = VTK_POINTS;
-  //   }
-
-  // if (representation == VTK_POINTS)
-  //   {
-  //   trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
-  //   }
-  // else if (representation == VTK_WIREFRAME)
-  //   {
-  //   trisIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
-  //   }
-  //  else // SURFACE
-    {
-    //uses the same logic points, since we share no verts in common
-    trisIBO->CreateIndexBuffer(contours, this->ActiveContour);
-    }
-
-  // // when drawing edges also build the edge IBOs
-  // vtkProperty *prop = act->GetProperty();
-  // bool draw_surface_with_edges =
-  //   (prop->GetEdgeVisibility() && prop->GetRepresentation() == VTK_SURFACE);
-  // if (draw_surface_with_edges)
-  //   {
-  //   triEdgesIBO->CreateTriangleLineIndexBuffer(contours, this->ActiveContour);
-  //   }
 }
 
 //-------------------------------------------------------------------------
@@ -613,15 +503,16 @@ void vtkPyFRContourMapper::SetMapperShaderParameters(vtkOpenGLHelper &cellBO,
       {
       vtkErrorMacro(<< "Error setting 'vertexMC' in shader VAO.");
       }
-    if (this->LastLightComplexity[&cellBO] > 0)
-      {
 
-      // if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->NormalVBO,
-      //                                    "normalMC", offset, stride, VTK_FLOAT, 3, false))
-      //   {
-      //   vtkErrorMacro(<< "Error setting 'normalMC' in shader VAO.");
-      //   }
-      }
+    // if (this->LastLightComplexity[&cellBO] > 0)
+    //   {
+    //   if (!cellBO.VAO->AddAttributeArray(cellBO.Program, this->NormalVBO,
+    //                                      "normalMC", offset, stride, VTK_FLOAT, 3, false))
+    //     {
+    //     vtkErrorMacro(<< "Error setting 'normalMC' in shader VAO.");
+    //     }
+    //   }
+
     if (!this->DrawingEdges)
       {
       //stride is 0, since the attribute is tightly packed in the array

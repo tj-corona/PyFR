@@ -88,8 +88,6 @@ void vtkPyFRMapper::BuildMappers()
     if (this->Internal->Mappers[i]->GetActiveContour() !=-1)
       nContours++;
 
-  std::cout<<__FILE__<<": "<<__LINE__<<": "<<nContours<<std::endl;
-
   this->InternalMappersBuildTime.Modified();
 }
 
@@ -99,11 +97,7 @@ void vtkPyFRMapper::Render(vtkRenderer *ren, vtkActor *a)
   vtkDemandDrivenPipeline * executive =
   vtkDemandDrivenPipeline::SafeDownCast(this->GetExecutive());
 
-  if(executive->GetPipelineMTime() >
-     this->InternalMappersBuildTime.GetMTime())
-    {
-    this->BuildMappers();
-    }
+  this->BuildMappers();
 
   this->TimeToDraw = 0;
   //Call Render() on each of the PolyDataMappers
