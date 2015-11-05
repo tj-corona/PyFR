@@ -304,6 +304,15 @@ public:
       typename SingleId::Array numOutputTrisPerCell_single(numOutputTrisPerCell,
                                                            singleId);
 
+      if(NumOutputCells[iso] <= 0)
+        {
+        interpolationWeights[iso].Shrink(0);
+        interpolationLowIds[iso].Shrink(0);
+        interpolationHighIds[iso].Shrink(0);
+        vertices[iso].Shrink(0);
+        normals[iso].Shrink(0);
+        }
+
       IdHandle validCellIndicesArray;
       IdHandle inputCellIterationNumber;
       vtkm::cont::ArrayHandleCounting<vtkm::Id> validCellCountImplicitArray(0, 1, NumOutputCells[iso]);
