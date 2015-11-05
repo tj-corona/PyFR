@@ -46,6 +46,8 @@
 
 #include <vtkm/worklet/MarchingCubesDataTables.h>
 
+#include <cuda.h>
+
 namespace vtkm {
 namespace worklet {
 namespace internal {
@@ -293,6 +295,8 @@ public:
       DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
                                       numOutputTrisPerCell);
 
+    cudaDeviceSynchronize();
+
     // TODO: make this static?
     vtkm::cont::ArrayHandle<vtkm::Id> triangleTableArray =
       vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::triTable,256*16);
@@ -312,11 +316,15 @@ public:
                                     validCellCountImplicitArray,
                                     validCellIndicesArray);
 
+      cudaDeviceSynchronize();
+
       // Compute for each output triangle what iteration of the input cell
       // generates it
       DeviceAlgorithms::LowerBounds(validCellIndicesArray,
                                     validCellIndicesArray,
                                     inputCellIterationNumber);
+
+      cudaDeviceSynchronize();
 
       // Generate a single triangle per cell
       const vtkm::Id numTotalVertices = NumOutputCells[iso] * 3;
@@ -345,6 +353,8 @@ public:
                                   coordinateSystem.GetData(),
                                   inputCellIterationNumber,
                                   cellPermutation);
+
+      cudaDeviceSynchronize();
       }
   }
 
