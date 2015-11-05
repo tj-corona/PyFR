@@ -200,7 +200,7 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
 
   // Bind the OpenGL, this is shared between the different primitive/cell types.
   this->VBO->Bind();
-  // this->ColorVBO->Bind();
+  this->ColorVBO->Bind();
   // this->NormalVBO->Bind();
 
   this->LastBoundBO = NULL;
@@ -294,6 +294,7 @@ void vtkPyFRContourMapper::RenderPieceFinish(vtkRenderer* ren,
     }
 
   this->VBO->Release();
+  this->ColorVBO->Release();
 
   vtkProperty *prop = actor->GetProperty();
   bool surface_offset =
