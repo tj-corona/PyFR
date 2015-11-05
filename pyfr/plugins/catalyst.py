@@ -50,7 +50,8 @@ class CatalystPlugin(BasePlugin):
         self.nsteps = self.cfg.getint(self.cfgsect, 'nsteps')
         outputfile = self.cfg.get(self.cfgsect, 'outputfile')
         c_outputfile = create_string_buffer(bytes(outputfile, encoding='utf_8'))
-        hostname = self.cfg.get(self.cfgsect, 'hostname')
+#        hostname = self.cfg.get(self.cfgsect, 'hostname')
+        hostname = os.environ.get('PYFR_CLIENT_HOSTNAME', '')
         c_hostname = create_string_buffer(bytes(hostname, encoding='utf_8'))
         port = self.cfg.getint(self.cfgsect, 'port');
         prec = self.cfg.get('backend', 'precision', 'double')
