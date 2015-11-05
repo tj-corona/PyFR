@@ -10,6 +10,7 @@
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
 #include <vtkPlane.h>
+#include <vtkPolyDataMapper.h>
 #include <vtkPVArrayInformation.h>
 #include <vtkPVLiveRenderView.h>
 #include <vtkPVTrivialProducer.h>
@@ -34,6 +35,7 @@
 #include <vtkSMTransferFunctionProxy.h>
 #include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
+#include <vtkSTLReader.h>
 
 #include "vtkPyFRData.h"
 #include "vtkPyFRCrinkleClipFilter.h"
@@ -56,7 +58,8 @@ PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp32)
 PV_PLUGIN_IMPORT_INIT(pyfr_plugin_fp64)
 #endif
 
-void vtkAddActor(vtkPyFRMapper* mapper,
+template <class Mapper>
+void vtkAddActor(vtkSmartPointer<Mapper> mapper,
                  vtkSMSourceProxy* filter,
                  vtkSMViewProxy* view)
 {
@@ -235,12 +238,20 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   vtkSMPropertyHelper(this->Contour, "Input").Set(this->Clip, 0);
   vtkSMPropertyHelper(this->Contour,"ContourField").Set(0);
   vtkSMPropertyHelper(this->Contour,"ColorField").Set(0);
-  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,.65);
-  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,.7);
-  // vtkSMPropertyHelper(this->Contour,"ColorRange").Set(.65,.7);
-  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,1.0025);
-  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,1.0045);
-  double contourColorRange[2] = {1.0025,1.0045};
+
+  // Values for the PyFR demo
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,.738);
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,.7392);
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(2,.7404);
+  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(3,.7416);
+  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(4,.7428);
+  double contourColorRange[2] = {.738,.7428};
+
+  // Values for the hexahedral test
+  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,1.0025);
+  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,1.0045);
+  // double contourColorRange[2] = {1.0025,1.0045};
+
   vtkSMPropertyHelper(this->Contour,"ColorRange").Set(contourColorRange,2);
 
   this->Contour->UpdateVTKObjects();
@@ -309,8 +320,21 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
       controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
     }
 
-  std::string airplane_stl = STRINGIFY(AIRPLANE_STL);
-  std::cout<<"Airplane stl: "<<airplane_stl<<std::endl;
+  vtkSmartPointer<vtkSMSourceProxy> airplaneSTL;
+  airplaneSTL.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("internal_sources",
+                                            "stlreadercore")));
+  controller->PreInitializeProxy(airplaneSTL);
+  vtkSMPropertyHelper(airplaneSTL, "FileName").Set(STRINGIFY(AIRPLANE_STL));
+  airplaneSTL->UpdateVTKObjects();
+  controller->PostInitializeProxy(airplaneSTL);
+  controller->RegisterPipelineProxy(airplaneSTL,"Airplane");
+
+  // Create a view
+  vtkSmartPointer<vtkPolyDataMapper> airplaneMapper =
+    vtkSmartPointer<vtkPolyDataMapper>::New();
+  vtkAddActor(airplaneMapper, airplaneSTL, polydataViewer);
 
   // Initialize the "link"
   this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->

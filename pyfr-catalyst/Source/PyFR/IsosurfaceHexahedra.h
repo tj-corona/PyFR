@@ -300,11 +300,13 @@ public:
     SingleId singleId;
     for (IsovalueCount iso=0;iso<NumberOfIsovalues;iso++)
       {
+      std::cout<<"contour "<<iso<<" has "<<NumOutputCells[iso]<<" output cells"<<std::endl;
       singleId.SetIsovalue(iso);
       typename SingleId::Array numOutputTrisPerCell_single(numOutputTrisPerCell,
                                                            singleId);
 
-      IdHandle validCellIndicesArray,inputCellIterationNumber;
+      IdHandle validCellIndicesArray;
+      IdHandle inputCellIterationNumber;
       vtkm::cont::ArrayHandleCounting<vtkm::Id> validCellCountImplicitArray(0, 1, NumOutputCells[iso]);
 
       DeviceAlgorithms::UpperBounds(numOutputTrisPerCell_single,
