@@ -267,6 +267,7 @@ public:
                   IdHandleVec& interpolationHighIds)
   {
     typedef typename vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter> DeviceAlgorithms;
+    typedef typename vtkm::cont::DeviceAdapterAlgorithm<vtkm::cont::DeviceAdapterTagSerial> SerialDeviceAlgorithms;
 
     // Set up the Marching Cubes case tables
     // TODO: make this static?
@@ -288,10 +289,23 @@ public:
                                   cellSet,
                                   numOutputTrisPerCell);
 
+
+    std::vector<IdVec> local;
+    local.resize(numOutputTrisPerCell.GetNumberOfValues());
+    numOutputTrisPerCell.CopyInto(local);
+
+    //now manually compute the sum
+    IdVec sum = local[0];
+    for( std::size_t i = 1; i < local.size(); ++i)
+      {
+      sum += local[i];
+      }
+
     // Compute the number of valid input cells and those ids
     IdVec NumOutputCells =
       DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
                                       numOutputTrisPerCell);
+
 
     // TODO: make this static?
     vtkm::cont::ArrayHandle<vtkm::Id> triangleTableArray =
@@ -320,6 +334,11 @@ public:
       DeviceAlgorithms::UpperBounds(numOutputTrisPerCell_single,
                                     validCellCountImplicitArray,
                                     validCellIndicesArray);
+
+      IdHandle validCellIndicesArraySerial;
+      SerialDeviceAlgorithms::UpperBounds(numOutputTrisPerCell_single,
+                                          validCellCountImplicitArray,
+                                          validCellIndicesArraySerial);
 
       // Compute for each output triangle what iteration of the input cell
       // generates it
