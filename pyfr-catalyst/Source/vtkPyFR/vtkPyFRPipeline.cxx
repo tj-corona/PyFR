@@ -219,8 +219,8 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
                                             "PyFRParallelSliceFilter")));
   controller->PreInitializeProxy(this->Slice);
   vtkSMPropertyHelper(this->Slice, "Input").Set(producer, 0);
-  vtkSMPropertyHelper(this->Slice,"ColorField").Set(1);
-  double sliceColorRange[2] = {1.835,2.206};
+  vtkSMPropertyHelper(this->Slice,"ColorField").Set(0);
+  double sliceColorRange[2] = {0.695,0.7385};
   vtkSMPropertyHelper(this->Slice,"ColorRange").Set(sliceColorRange,2);
   this->Slice->UpdateVTKObjects();
   controller->PostInitializeProxy(this->Slice);
