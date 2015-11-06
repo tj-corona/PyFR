@@ -269,6 +269,30 @@ public:
                   IdHandleVec& interpolationLowIds,
                   IdHandleVec& interpolationHighIds)
   {
+
+
+#define IGNORE_THRUST_VERSION 0
+#if defined(THRUST_MAJOR_VERSION) && \
+           THRUST_MAJOR_VERSION == 1 && \
+           THRUST_MINOR_VERSION == 8  && THRUST_SUBMINOR_VERSION < 3 && \
+           IGNORE_THRUST_VERSION == 0
+    /**
+    * If you received an error message pointing at this section you are using
+    * a version of thrust that is known to have a bug in inclusive_scan
+    *
+    * Your options are:
+    * 1. Manually patch thrust ( https://github.com/thrust/thrust/pull/694/files ),
+    *    and set IGNORE_THRUST_VERSION to 1
+    * 2. Upgrade to thrust master, and and set IGNORE_THRUST_VERSION to 1
+    * 3. Rollback to thrust 1.7.X
+    *
+    **/
+    const bool InvalidThrustVersionDetected = true;
+    BOOST_STATIC_ASSERT( InvalidThrustVersionDetected == false);
+#endif
+
+
+
     typedef typename vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter> DeviceAlgorithms;
 
     // Set up the Marching Cubes case tables
