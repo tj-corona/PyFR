@@ -124,7 +124,7 @@
         </DataTypeDomain>
       </InputProperty>
       <DoubleVectorProperty command="SetOrigin"
-                            default_values="0.0 0.0 0.0"
+                            default_values="0.0 -0.5 0.0"
                             name="Origin"
                             number_of_elements="3">
         <BoundsDomain default_mode="mid"
@@ -137,7 +137,7 @@
         </BoundsDomain>
       </DoubleVectorProperty>
       <DoubleVectorProperty command="SetNormal"
-                            default_values="0.0 0.0 1.0"
+                            default_values="0.0 1.0 0.15"
                             name="Normal"
                             number_of_elements="3">
         <DoubleRangeDomain name="range" />
@@ -186,7 +186,7 @@
         </Documentation>
       </DoubleVectorProperty>
       <DoubleVectorProperty command="SetOrigin"
-                            default_values="0.0 0.0 0.0"
+                            default_values="10.0 0.35 0.0"
                             name="Origin"
                             number_of_elements="3">
         <BoundsDomain default_mode="mid"
@@ -199,7 +199,7 @@
         </BoundsDomain>
       </DoubleVectorProperty>
       <DoubleVectorProperty command="SetNormal"
-                            default_values="1.0 0.0 0.0"
+                            default_values="0.0 1.0 0.0"
                             name="Normal"
                             number_of_elements="3">
         <DoubleRangeDomain name="range" />
@@ -225,7 +225,7 @@
           name="ColorPalette"
           command="SetColorPalette"
           number_of_elements="1"
-          default_values="0">
+          default_values="1">
         <EnumerationDomain name="enum">
           <Entry value="0" text="Cool to Warm"/>
           <Entry value="1" text="Black-Body Radiation"/>

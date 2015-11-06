@@ -220,7 +220,7 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   controller->PreInitializeProxy(this->Slice);
   vtkSMPropertyHelper(this->Slice, "Input").Set(producer, 0);
   vtkSMPropertyHelper(this->Slice,"ColorField").Set(1);
-  double sliceColorRange[2] = {2.49,2.51};
+  double sliceColorRange[2] = {1.835,2.206};
   vtkSMPropertyHelper(this->Slice,"ColorRange").Set(sliceColorRange,2);
   this->Slice->UpdateVTKObjects();
   controller->PostInitializeProxy(this->Slice);
@@ -245,7 +245,7 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(2,.7404);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(3,.7416);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(4,.7428);
-  double contourColorRange[2] = {.738,.7428};
+  double contourColorRange[2] = {.7377,.7428};
 
   // Values for the hexahedral test
   // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,1.0025);
