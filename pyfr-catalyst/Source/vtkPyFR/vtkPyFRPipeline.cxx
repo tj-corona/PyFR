@@ -243,8 +243,8 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,.738);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,.7392);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(2,.7404);
-  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(3,.7416);
-  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(4,.7428);
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(3,.7416);
+  vtkSMPropertyHelper(this->Contour,"ContourValues").Set(4,.7428);
   double contourColorRange[2] = {.738,.7428};
 
   // Values for the hexahedral test

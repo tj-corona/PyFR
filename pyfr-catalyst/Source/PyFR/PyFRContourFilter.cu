@@ -4,8 +4,6 @@
 #include "PyFRData.h"
 #include "PyFRContourData.h"
 
-#include <cuda.h>
-
 //----------------------------------------------------------------------------
 PyFRContourFilter::PyFRContourFilter() : ContourField(0)
 {
@@ -20,15 +18,6 @@ PyFRContourFilter::~PyFRContourFilter()
 void PyFRContourFilter::operator()(PyFRData* input,
                                    PyFRContourData* output)
 {
-  std::cout << "Running cuda Memory dump " << std::endl;
-
-  std::size_t freeMem, totalMem;
-  cudaMemGetInfo(&freeMem, &totalMem);
-
-  std::cout << "Total memory of device: " << totalMem << std::endl;
-  std::cout << "Avail memory of device: " << freeMem  << std::endl;
-
-
   typedef std::vector<vtkm::cont::ArrayHandle<vtkm::Vec<FPType,3> > >
     Vec3HandleVec;
   typedef std::vector<FPType> DataVec;

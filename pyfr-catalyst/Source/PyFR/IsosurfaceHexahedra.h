@@ -46,7 +46,7 @@
 
 #include <vtkm/worklet/MarchingCubesDataTables.h>
 
-#include <cuda.h>
+#include <vtkm/exec/Assert.h>
 
 namespace vtkm {
 namespace worklet {
@@ -186,7 +186,7 @@ public:
       const vtkm::Id cellOffset = (static_cast<vtkm::Id>(cubeindex*16) +
                                    (inputIteration * 3));
 
-      for (int v = 0; v < 3; v++)
+      for (vtkm::IdComponent v = 0; v < 3; v++)
       {
         const vtkm::Id edge = this->TriTable.Get(cellOffset + v);
         const int v0   = verticesForEdge[2*edge];
@@ -269,9 +269,9 @@ public:
                   IdHandleVec& interpolationHighIds)
   {
     typedef typename vtkm::cont::DeviceAdapterAlgorithm<DeviceAdapter> DeviceAlgorithms;
+    typedef typename vtkm::cont::DeviceAdapterAlgorithm<vtkm::cont::DeviceAdapterTagSerial> SerialDeviceAlgorithms;
 
     // Set up the Marching Cubes case tables
-    // TODO: make this static?
     IdHandle vertexTableArray =
     vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::numVerticesTable,256);
 
@@ -290,20 +290,45 @@ public:
                                   cellSet,
                                   numOutputTrisPerCell);
 
+    IdVecHandle local;
+    DeviceAlgorithms::Copy(numOutputTrisPerCell,local);
+
+    typename IdVecHandle::PortalConstControl portal = local.GetPortalConstControl();
+    //now manually compute the sum
+    IdVec sum = portal.Get(0);
+    for( std::size_t i = 1; i < local.GetNumberOfValues(); ++i)
+      {
+      for (unsigned j=0;j<NumberOfIsovalues;j++)
+        sum[j] += portal.Get(i)[j];
+      }
+
     // Compute the number of valid input cells and those ids
     IdVec NumOutputCells =
-      DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
-                                      numOutputTrisPerCell);
+      // DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
+      SerialDeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
+                                            numOutputTrisPerCell);
 
-    cudaDeviceSynchronize();
+    // for (unsigned i=0;i<NumberOfIsovalues;i++)
+    //   {
+    //   std::cout<<i<<": "<<sum[i]<<" "<<NumOutputCells[i]<<std::endl;
+    //   }
 
-    // TODO: make this static?
     vtkm::cont::ArrayHandle<vtkm::Id> triangleTableArray =
       vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::triTable,256*16);
 
     SingleId singleId;
     for (IsovalueCount iso=0;iso<NumberOfIsovalues;iso++)
       {
+      if (NumOutputCells[iso] <= 0)
+        {
+        interpolationWeights[iso].Shrink(0);
+        interpolationLowIds[iso].Shrink(0);
+        interpolationHighIds[iso].Shrink(0);
+        vertices[iso].Shrink(0);
+        normals[iso].Shrink(0);
+        continue;
+        }
+
       singleId.SetIsovalue(iso);
       typename SingleId::Array numOutputTrisPerCell_single(numOutputTrisPerCell,
                                                            singleId);
@@ -316,15 +341,16 @@ public:
                                     validCellCountImplicitArray,
                                     validCellIndicesArray);
 
-      cudaDeviceSynchronize();
+      IdHandle validCellIndicesArraySerial;
+      SerialDeviceAlgorithms::UpperBounds(numOutputTrisPerCell_single,
+                                          validCellCountImplicitArray,
+                                          validCellIndicesArraySerial);
 
       // Compute for each output triangle what iteration of the input cell
       // generates it
       DeviceAlgorithms::LowerBounds(validCellIndicesArray,
                                     validCellIndicesArray,
                                     inputCellIterationNumber);
-
-      cudaDeviceSynchronize();
 
       // Generate a single triangle per cell
       const vtkm::Id numTotalVertices = NumOutputCells[iso] * 3;
@@ -339,8 +365,7 @@ public:
         interpolationHighIds[iso].PrepareForOutput(numTotalVertices,
                                                    DeviceAdapter()),
         vertices[iso].PrepareForOutput(numTotalVertices, DeviceAdapter()),
-        normals[iso].PrepareForOutput(numTotalVertices, DeviceAdapter())
-      );
+        normals[iso].PrepareForOutput(numTotalVertices, DeviceAdapter()));
 
       vtkm::cont::CellSetPermutation<vtkm::cont::ArrayHandle<vtkm::Id>,
         CellSetType> cellPermutation(validCellIndicesArray,
@@ -354,7 +379,6 @@ public:
                                   inputCellIterationNumber,
                                   cellPermutation);
 
-      cudaDeviceSynchronize();
       }
   }
 

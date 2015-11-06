@@ -44,7 +44,7 @@ if (BuildServerLibs)
   vtkm_configure_device(Cuda REQUIRED)
 
   find_package(BoostHeaders ${VTKm_REQUIRED_BOOST_VERSION} REQUIRED)
-  include_directories(${Boost_INCLUDE_DIRS})
+  include_directories(${Boost_INCLUDE_DIRS} ${CUDA_INCLUDE_DIRS})
 
 #  set(fpList "float;double" CACHE INTERNAL "fpList")
   set(fpList "float" CACHE INTERNAL "fpList")
