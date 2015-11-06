@@ -196,8 +196,6 @@ void vtkPyFRContourMapper::RenderPieceStart(vtkRenderer* ren, vtkActor *actor)
   // make sure the BOs are up to date
   this->UpdateBufferObjects(ren, actor);
 
-  this->BuildIBO(ren, actor, this->ContourData);
-
   // Bind the OpenGL, this is shared between the different primitive/cell types.
   this->VBO->Bind();
   this->ColorVBO->Bind();
@@ -464,6 +462,8 @@ void vtkPyFRContourMapper::BuildBufferObjects(vtkRenderer *ren, vtkActor *act)
     vtkPyFRVertexBufferObject* coordsVBO = dynamic_cast<vtkPyFRVertexBufferObject*>(this->VBO);
     coordsVBO->CreateVerticesVBO(this->ContourData, this->ActiveContour);
     this->ColorVBO->CreateColorsVBO(this->ContourData, this->ActiveContour);
+
+    this->BuildIBO(ren, act, this->ContourData);
     }
 }
 
