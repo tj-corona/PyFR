@@ -139,7 +139,7 @@ public:
 
     typedef typename vtkm::cont::ArrayHandle<vtkm::Vec<FieldType, 3> >::template ExecutionTypes<DeviceAdapter>::Portal VectorPortalType;
     VectorPortalType Vertices;
-    VectorPortalType Normals;
+    // VectorPortalType Normals;
 
     template<typename V>
     VTKM_CONT_EXPORT
@@ -148,15 +148,14 @@ public:
                        ScalarPortalType interpolationWeight,
                        IdPortalType interpolationLowId,
                        IdPortalType interpolationHighId,
-                       const V &vertices,
-                       const V &normals) :
+                       const V &vertices) :
       Isovalue(ivalue),
       InterpolationWeight(interpolationWeight),
       TriTable(triTablePortal),
       InterpolationLowId(interpolationLowId),
       InterpolationHighId(interpolationHighId),
-      Vertices(vertices),
-      Normals(normals)
+      Vertices(vertices)//,
+      // Normals(normals)
     {
     }
 
@@ -198,16 +197,18 @@ public:
         this->InterpolationLowId.Set(outputVertId + v, pointIds[v0]);
         this->InterpolationHighId.Set(outputVertId + v, pointIds[v1]);
       }
-      vtkm::Vec<FieldType, 3> vertex0 = this->Vertices.Get(outputVertId + 0);
-      vtkm::Vec<FieldType, 3> vertex1 = this->Vertices.Get(outputVertId + 1);
-      vtkm::Vec<FieldType, 3> vertex2 = this->Vertices.Get(outputVertId + 2);
 
-      vtkm::Vec<FieldType, 3> curNorm = vtkm::Cross(vertex1-vertex0,
-                                                    vertex2-vertex0);
-      vtkm::Normalize(curNorm);
-      this->Normals.Set(outputVertId + 0, curNorm);
-      this->Normals.Set(outputVertId + 1, curNorm);
-      this->Normals.Set(outputVertId + 2, curNorm);
+      //disabling normal calculation as it is not needed
+      // vtkm::Vec<FieldType, 3> vertex0 = this->Vertices.Get(outputVertId + 0);
+      // vtkm::Vec<FieldType, 3> vertex1 = this->Vertices.Get(outputVertId + 1);
+      // vtkm::Vec<FieldType, 3> vertex2 = this->Vertices.Get(outputVertId + 2);
+
+      // vtkm::Vec<FieldType, 3> curNorm = vtkm::Cross(vertex1-vertex0,
+      //                                               vertex2-vertex0);
+      // vtkm::Normalize(curNorm);
+      // this->Normals.Set(outputVertId + 0, curNorm);
+      // this->Normals.Set(outputVertId + 1, curNorm);
+      // this->Normals.Set(outputVertId + 2, curNorm);
     }
   };
 
@@ -318,7 +319,7 @@ public:
         interpolationLowIds[iso].Shrink(0);
         interpolationHighIds[iso].Shrink(0);
         vertices[iso].Shrink(0);
-        normals[iso].Shrink(0);
+        // normals[iso].Shrink(0);
         continue;
         }
 
@@ -352,8 +353,10 @@ public:
                                                   DeviceAdapter()),
         interpolationHighIds[iso].PrepareForOutput(numTotalVertices,
                                                    DeviceAdapter()),
-        vertices[iso].PrepareForOutput(numTotalVertices, DeviceAdapter()),
-        normals[iso].PrepareForOutput(numTotalVertices, DeviceAdapter()));
+        vertices[iso].PrepareForOutput(numTotalVertices, DeviceAdapter())// ,
+        // normals[iso].PrepareForOutput(numTotalVertices, DeviceAdapter())
+        );
+
 
       vtkm::cont::CellSetPermutation<vtkm::cont::ArrayHandle<vtkm::Id>,
         CellSetType> cellPermutation(validCellIndicesArray,

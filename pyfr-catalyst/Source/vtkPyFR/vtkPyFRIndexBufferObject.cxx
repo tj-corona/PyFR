@@ -49,7 +49,7 @@ std::size_t vtkPyFRIndexBufferObject::CreateIndexBuffer(vtkPyFRContourData* data
     for(unsigned int i=start; i < numPoints; ++i)
       { this->IndexArray.push_back(i); }
 
-    this->UploadedIndices = false;
+    // this->UploadedIndices = false;
     }
 
   //this way we can build the vector once on the cpu, and re-use sections
@@ -60,7 +60,7 @@ std::size_t vtkPyFRIndexBufferObject::CreateIndexBuffer(vtkPyFRContourData* data
     this->Upload(&(this->IndexArray[0]),
                  numPoints,
                  vtkOpenGLIndexBufferObject::ElementArrayBuffer);
-    this->UploadedIndices = true;
+    // this->UploadedIndices = true;
     }
 
   return this->IndexCount = numPoints;
