@@ -40,6 +40,7 @@
 #include <vtkXMLUnstructuredGridReader.h>
 
 #include "vtkPyFRData.h"
+#include "vtkPyFRTrivialProducer.h"
 #include "vtkPyFRCrinkleClipFilter.h"
 #include "vtkPyFRContourData.h"
 #include "vtkPyFRContourFilter.h"
@@ -144,7 +145,7 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   vtkSmartPointer<vtkSMSourceProxy> producer;
   producer.TakeReference(
     vtkSMSourceProxy::SafeDownCast(
-      sessionProxyManager->NewProxy("sources", "PVTrivialProducer")));
+      sessionProxyManager->NewProxy("sources", "PyFRTrivialProducer")));
   producer->UpdateVTKObjects();
   vtkObjectBase* clientSideObject = producer->GetClientSideObject();
   vtkPVTrivialProducer* realProducer =

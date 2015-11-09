@@ -11,6 +11,7 @@ set(vtkPyFR_SRCS
   vtkPyFRIndexBufferObject.cxx
   vtkPyFRMapper.cxx
   vtkPyFRParallelSliceFilter.cxx
+  vtkPyFRTrivialProducer.cxx
   vtkPyFRVertexBufferObject.cxx
   vtkXMLPyFRContourDataWriter.cxx
   vtkXMLPyFRDataWriter.cxx
