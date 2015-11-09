@@ -271,7 +271,7 @@ public:
   {
 
 
-#define IGNORE_THRUST_VERSION 0
+#define IGNORE_THRUST_VERSION 1
 #if defined(THRUST_MAJOR_VERSION) && \
            THRUST_MAJOR_VERSION == 1 && \
            THRUST_MINOR_VERSION == 8  && THRUST_SUBMINOR_VERSION < 3 && \
@@ -328,8 +328,10 @@ public:
 
     // Compute the number of valid input cells and those ids
     IdVec NumOutputCells =
-      DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
-                                      numOutputTrisPerCell);
+      // Quick hack to avoid Thrust bug
+      // DeviceAlgorithms::ScanInclusive(numOutputTrisPerCell,
+      //                                 numOutputTrisPerCell);
+      vtkm::cont::DeviceAdapterAlgorithm<vtkm::cont::DeviceAdaptorTagSerial>::ScanInclusive(numOutputTrisPerCell,numOutputTrisPerCell);
 
     vtkm::cont::ArrayHandle<vtkm::Id> triangleTableArray =
       vtkm::cont::make_ArrayHandle(vtkm::worklet::internal::triTable,256*16);
