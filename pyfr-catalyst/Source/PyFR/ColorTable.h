@@ -37,7 +37,9 @@ class ColorTable
   {
     COOLTOWARM,
     BLACKBODY,
-    BLUETOREDRAINBOW
+    BLUETOREDRAINBOW,
+    GRAYSCALE,
+    GREENWHITELINEAR
   };
 
   VTKM_EXEC_CONT_EXPORT
@@ -105,6 +107,17 @@ class ColorTable
         SetPaletteColor(3,Color(255,255,0,255),.75);
         SetPaletteColor(4,Color(255,0,0,255),1.);
         break;
+      case GRAYSCALE:
+        SetNumberOfColors(2);
+        SetPaletteColor(0,Color(0,0,0,255),0.);
+        SetPaletteColor(1,Color(255,255,255,255),1.);
+        break;
+      case GREENWHITELINEAR:
+        SetNumberOfColors(3);
+        SetPaletteColor(0,Color(0,0,0,255),0.);
+        SetPaletteColor(1,Color(15,138,54,255),.5);
+        SetPaletteColor(2,Color(255,255,255,255),1.);
+        break;
       }
   }
 
@@ -143,7 +156,7 @@ class ColorTable
   VTKM_EXEC_CONT_EXPORT
   Color operator()(const FPType& value) const
   {
-    if (value < this->Pivots[0] || value > this->Pivots[this->NumberOfColors])
+    if (value < this->Pivots[0] || value > this->Pivots[this->NumberOfColors-1])
       {
       return Color(0,0,0,0);
       }
