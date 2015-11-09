@@ -6,6 +6,7 @@
 #include <vtkCollection.h>
 #include <vtkCPDataDescription.h>
 #include <vtkCPInputDataDescription.h>
+#include <vtkDataSetMapper.h>
 #include <vtkLiveInsituLink.h>
 #include <vtkNew.h>
 #include <vtkObjectFactory.h>
@@ -36,6 +37,7 @@
 #include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
 #include <vtkSTLReader.h>
+#include <vtkXMLUnstructuredGridReader.h>
 
 #include "vtkPyFRData.h"
 #include "vtkPyFRCrinkleClipFilter.h"
@@ -326,15 +328,37 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
                                    NewProxy("internal_sources",
                                             "stlreadercore")));
   controller->PreInitializeProxy(airplaneSTL);
-  vtkSMPropertyHelper(airplaneSTL, "FileName").Set(STRINGIFY(AIRPLANE_STL));
+    {
+    std::ostringstream o;
+    o << STRINGIFY(DATA_DIR) << "/CRM.stl";
+    vtkSMPropertyHelper(airplaneSTL, "FileName").Set(o.str().c_str());
+    }
   airplaneSTL->UpdateVTKObjects();
   controller->PostInitializeProxy(airplaneSTL);
   controller->RegisterPipelineProxy(airplaneSTL,"Airplane");
 
+  vtkSmartPointer<vtkSMSourceProxy> nozzle;
+  nozzle.TakeReference(
+    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
+                                   NewProxy("internal_sources",
+                                            "XMLUnstructuredGridReaderCore")));
+  controller->PreInitializeProxy(nozzle);
+    {
+    std::ostringstream o;
+    o << STRINGIFY(DATA_DIR) << "/wall.vtu";
+    vtkSMPropertyHelper(nozzle, "FileName").Set(o.str().c_str());
+    }
+  nozzle->UpdateVTKObjects();
+  controller->PostInitializeProxy(nozzle);
+  controller->RegisterPipelineProxy(nozzle,"Nozzle");
+
   // Create a view
   vtkSmartPointer<vtkPolyDataMapper> airplaneMapper =
     vtkSmartPointer<vtkPolyDataMapper>::New();
+  vtkSmartPointer<vtkDataSetMapper> nozzleMapper =
+    vtkSmartPointer<vtkDataSetMapper>::New();
   vtkAddActor(airplaneMapper, airplaneSTL, polydataViewer);
+  vtkAddActor(nozzleMapper, nozzle, polydataViewer);
 
   // Initialize the "link"
   this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->

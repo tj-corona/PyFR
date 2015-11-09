@@ -29,7 +29,7 @@ if (BuildServerLibs)
     set (catalystLib "pyfr_catalyst_${libSuffix_${fpType}}")
     set( fp_cxx_flags "-DFPType=${fpType}" )
     if (${fpType} STREQUAL float)
-      set( fp_cxx_flags "${fp_cxx_flags} -DSINGLE -DAIRPLANE_STL=${CMAKE_INSTALL_PREFIX}/data/CRM.stl" )
+      set( fp_cxx_flags "${fp_cxx_flags} -DSINGLE -DDATA_DIR=${CMAKE_INSTALL_PREFIX}/data" )
     endif()
 
     add_paraview_plugin(${pluginLib} "1.0" SERVER_MANAGER_XML PyFR.xml SERVER_MANAGER_SOURCES ${vtkPyFR_SRCS})

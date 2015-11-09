@@ -1,3 +1,3 @@
 if (BuildServerLibs)
-  install(FILES CRM.stl DESTINATION ${CMAKE_INSTALL_PREFIX}/data)
+  install(FILES CRM.stl wall.vtu DESTINATION ${CMAKE_INSTALL_PREFIX}/data)
 endif()
