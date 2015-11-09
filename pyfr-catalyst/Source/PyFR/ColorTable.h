@@ -31,7 +31,7 @@ Color Lerp(const Color& color0,
 class ColorTable
 {
   public:
-  enum { MaxSize = 7 };
+  enum { MaxSize = 5 };
 
   enum Preset
   {
@@ -85,31 +85,25 @@ class ColorTable
     switch(i)
       {
       case COOLTOWARM:
-        SetNumberOfColors(5);
-        SetPaletteColor(0,Color(0,0,0,0),0.);
-        SetPaletteColor(1,Color(59,76,192,255),0.025);
-        SetPaletteColor(2,Color(220,220,220,255),.5);
-        SetPaletteColor(3,Color(180,4,38,255),0.985);
-        SetPaletteColor(4,Color(0,0,0,0),1.);
+        SetNumberOfColors(3);
+        SetPaletteColor(0,Color(59,76,192,255),0.);
+        SetPaletteColor(1,Color(220,220,220,255),.5);
+        SetPaletteColor(2,Color(180,4,38,255),1.);
         break;
       case BLACKBODY:
-        SetNumberOfColors(6);
-        SetPaletteColor(0,Color(0,0,0,0),0.);
-        SetPaletteColor(1,Color(0,0,0,255),0.025);
-        SetPaletteColor(2,Color(230,0,0,255),.4);
-        SetPaletteColor(3,Color(230,230,0,255),.8);
-        SetPaletteColor(4,Color(255,255,255,255),0.985);
-        SetPaletteColor(5,Color(0,0,0,0),1.);
+        SetNumberOfColors(4);
+        SetPaletteColor(0,Color(0,0,0,255),0.);
+        SetPaletteColor(1,Color(230,0,0,255),.4);
+        SetPaletteColor(2,Color(230,230,0,255),.8);
+        SetPaletteColor(3,Color(255,255,255,255),1.);
         break;
       case BLUETOREDRAINBOW:
-        SetNumberOfColors(7);
-        SetPaletteColor(0,Color(0,0,0,0),0.);
-        SetPaletteColor(1,Color(0,0,255,255),0.025);
-        SetPaletteColor(2,Color(0,255,255,255),.25);
-        SetPaletteColor(3,Color(0,255,0,255),.5);
-        SetPaletteColor(4,Color(255,255,0,255),.75);
-        SetPaletteColor(5,Color(255,0,0,255),0.985);
-        SetPaletteColor(6,Color(0,0,0,0),1.);
+        SetNumberOfColors(5);
+        SetPaletteColor(0,Color(0,0,255,255),0.);
+        SetPaletteColor(1,Color(0,255,255,255),.25);
+        SetPaletteColor(2,Color(0,255,0,255),.5);
+        SetPaletteColor(3,Color(255,255,0,255),.75);
+        SetPaletteColor(4,Color(255,0,0,255),1.);
         break;
       }
   }
@@ -149,9 +143,9 @@ class ColorTable
   VTKM_EXEC_CONT_EXPORT
   Color operator()(const FPType& value) const
   {
-    if (value < this->Pivots[0])
+    if (value < this->Pivots[0] || value > this->Pivots[this->NumberOfColors])
       {
-      return this->Palette[0];
+      return Color(0,0,0,0);
       }
 
     vtkm::IdComponent index = 1;
