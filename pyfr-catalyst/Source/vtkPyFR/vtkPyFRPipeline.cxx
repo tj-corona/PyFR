@@ -322,43 +322,25 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
       controller->RegisterPipelineProxy(polydataWriter,"polydataWriter");
     }
 
-  vtkSmartPointer<vtkSMSourceProxy> airplaneSTL;
-  airplaneSTL.TakeReference(
-    vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
-                                   NewProxy("internal_sources",
-                                            "stlreadercore")));
-  controller->PreInitializeProxy(airplaneSTL);
-    {
-    std::ostringstream o;
-    o << STRINGIFY(DATA_DIR) << "/CRM.stl";
-    vtkSMPropertyHelper(airplaneSTL, "FileName").Set(o.str().c_str());
-    }
-  airplaneSTL->UpdateVTKObjects();
-  controller->PostInitializeProxy(airplaneSTL);
-  controller->RegisterPipelineProxy(airplaneSTL,"Airplane");
-
-  vtkSmartPointer<vtkSMSourceProxy> nozzle;
-  nozzle.TakeReference(
+  vtkSmartPointer<vtkSMSourceProxy> airplane;
+  airplane.TakeReference(
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
                                    NewProxy("internal_sources",
                                             "XMLUnstructuredGridReaderCore")));
-  controller->PreInitializeProxy(nozzle);
+  controller->PreInitializeProxy(airplane);
     {
     std::ostringstream o;
-    o << STRINGIFY(DATA_DIR) << "/wall.vtu";
-    vtkSMPropertyHelper(nozzle, "FileName").Set(o.str().c_str());
+    o << STRINGIFY(DATA_DIR) << "/airplane.vtu";
+    vtkSMPropertyHelper(airplane, "FileName").Set(o.str().c_str());
     }
-  nozzle->UpdateVTKObjects();
-  controller->PostInitializeProxy(nozzle);
-  controller->RegisterPipelineProxy(nozzle,"Nozzle");
+  airplane->UpdateVTKObjects();
+  controller->PostInitializeProxy(airplane);
+  controller->RegisterPipelineProxy(airplane,"Airplane");
 
   // Create a view
-  vtkSmartPointer<vtkPolyDataMapper> airplaneMapper =
-    vtkSmartPointer<vtkPolyDataMapper>::New();
-  vtkSmartPointer<vtkDataSetMapper> nozzleMapper =
+  vtkSmartPointer<vtkDataSetMapper> airplaneMapper =
     vtkSmartPointer<vtkDataSetMapper>::New();
-  vtkAddActor(airplaneMapper, airplaneSTL, polydataViewer);
-  vtkAddActor(nozzleMapper, nozzle, polydataViewer);
+  vtkAddActor(airplaneMapper, airplane, polydataViewer);
 
   // Initialize the "link"
   this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->
