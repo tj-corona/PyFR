@@ -11,7 +11,6 @@ set(vtkPyFR_SRCS
   vtkPyFRIndexBufferObject.cxx
   vtkPyFRMapper.cxx
   vtkPyFRParallelSliceFilter.cxx
-  vtkPyFRTrivialProducer.cxx
   vtkPyFRVertexBufferObject.cxx
   vtkXMLPyFRContourDataWriter.cxx
   vtkXMLPyFRDataWriter.cxx
@@ -28,9 +27,9 @@ if (BuildServerLibs)
     set (pyfrLib "pyfr_${libSuffix_${fpType}}")
     set (pluginLib "pyfr_plugin_${libSuffix_${fpType}}")
     set (catalystLib "pyfr_catalyst_${libSuffix_${fpType}}")
-    set( fp_cxx_flags "-DFPType=${fpType}" )
+    set( fp_cxx_flags "-DFPType=${fpType} -DDATA_DIR=${CMAKE_INSTALL_PREFIX}/data" )
     if (${fpType} STREQUAL float)
-      set( fp_cxx_flags "${fp_cxx_flags} -DSINGLE -DDATA_DIR=${CMAKE_INSTALL_PREFIX}/data" )
+      set( fp_cxx_flags "${fp_cxx_flags} -DSINGLE" )
     endif()
 
     add_paraview_plugin(${pluginLib} "1.0" SERVER_MANAGER_XML PyFR.xml SERVER_MANAGER_SOURCES ${vtkPyFR_SRCS})
