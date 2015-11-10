@@ -1,31 +1,4 @@
 <ServerManagerConfiguration>
-  <ProxyGroup name="sources">
-    <SourceProxy class="vtkPyFRTrivialProducer"
-                 name="PyFRTrivialProducer">
-      <IntVectorProperty command="SetWholeExtent"
-                         default_values="0 -1 0 -1 0 -1"
-                         name="WholeExtent"
-                         number_of_elements="6"
-                         panel_visibility="never" >
-        <Documentation>The values of this property specify the whole extent of
-        the topologically regular grid.</Documentation>
-      </IntVectorProperty>
-      <IntVectorProperty
-          name="Preset"
-          command="SetPreset"
-          number_of_elements="1"
-          default_values="1">
-        <EnumerationDomain name="enum">
-          <Entry value="0" text="Preset 1"/>
-          <Entry value="1" text="Preset 2"/>
-        </EnumerationDomain>
-        <Documentation>
-          This property allows for setting of global preset views.
-        </Documentation>
-      </IntVectorProperty>
-    </SourceProxy>
-  </ProxyGroup>
-    <!-- ==================================================================== -->
   <ProxyGroup name="filters">
     <SourceProxy name="PyFRContourFilter"
 		 class="vtkPyFRContourFilter" label="Contour PyFR Data">
