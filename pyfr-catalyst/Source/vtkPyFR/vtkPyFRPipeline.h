@@ -11,6 +11,7 @@ class vtkPyFRContourData;
 class vtkPyFRMapper;
 class vtkSMSourceProxy;
 class vtkSMPVRepresentationProxy;
+class vtkTextActor;
 
 class vtkPyFRPipeline : public vtkCPPipeline
 {
@@ -47,5 +48,7 @@ private:
 
   vtkSmartPointer<vtkPyFRMapper> ContourMapper;
   vtkSmartPointer<vtkPyFRMapper> SliceMapper;
+
+  vtkSmartPointer<vtkTextActor> Timestamp;
 };
 #endif

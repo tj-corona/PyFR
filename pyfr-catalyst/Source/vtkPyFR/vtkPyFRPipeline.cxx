@@ -37,6 +37,10 @@
 #include <vtkSMViewProxy.h>
 #include <vtkSMWriterProxy.h>
 #include <vtkSTLReader.h>
+#include <vtkTextActor.h>
+#include <vtkTextProperty.h>
+#include <vtkTextWidget.h>
+#include <vtkTextRepresentation.h>
 #include <vtkXMLUnstructuredGridReader.h>
 
 #include "vtkPyFRData.h"
@@ -248,12 +252,6 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(3,.7416);
   vtkSMPropertyHelper(this->Contour,"ContourValues").Set(4,.7428);
   double contourColorRange[2] = {.7377,.7428};
-
-  // Values for the hexahedral test
-  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(0,1.0025);
-  // vtkSMPropertyHelper(this->Contour,"ContourValues").Set(1,1.0045);
-  // double contourColorRange[2] = {1.0025,1.0045};
-
   vtkSMPropertyHelper(this->Contour,"ColorRange").Set(contourColorRange,2);
 
   this->Contour->UpdateVTKObjects();
@@ -342,6 +340,26 @@ PV_PLUGIN_IMPORT(pyfr_plugin_fp64)
     vtkSmartPointer<vtkDataSetMapper>::New();
   vtkAddActor(airplaneMapper, airplane, polydataViewer);
 
+  // Create a timestamp
+  this->Timestamp = vtkSmartPointer<vtkTextActor>::New();
+    {
+    std::ostringstream o;
+    o << dataDescription->GetTime()<<" s";
+    // o << dataDescription->GetTimeStep();
+    this->Timestamp->SetInput(o.str().c_str());
+    }
+  this->Timestamp->GetTextProperty()->SetBackgroundColor(0.,0.,0.);
+  this->Timestamp->GetTextProperty()->SetBackgroundOpacity(1);
+
+  // Add the actors to the renderer, set the background and size
+    {
+    vtkSMRenderViewProxy* rview = vtkSMRenderViewProxy::SafeDownCast(polydataViewer);
+
+    vtkRenderer* ren = rview->GetRenderer();
+    ren->AddActor2D(this->Timestamp);
+    rview->UpdateVTKObjects();
+    }
+
   // Initialize the "link"
   this->InsituLink->InsituInitialize(vtkSMProxyManager::GetProxyManager()->
                                      GetActiveSessionProxyManager());
@@ -386,6 +404,13 @@ int vtkPyFRPipeline::CoProcess(vtkCPDataDescription* dataDescription)
   vtkPVTrivialProducer* realProducer =
     vtkPVTrivialProducer::SafeDownCast(clientSideObject);
   realProducer->SetOutput(pyfrData,dataDescription->GetTime());
+
+    {
+    std::ostringstream o;
+    o << dataDescription->GetTime()<<" s";
+    // o << dataDescription->GetTimeStep();
+    this->Timestamp->SetInput(o.str().c_str());
+    }
 
   vtkSMSourceProxy* unstructuredGridWriter =
     vtkSMSourceProxy::SafeDownCast(sessionProxyManager->
