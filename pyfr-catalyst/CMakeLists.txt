@@ -53,4 +53,8 @@ if (BuildServerLibs)
   add_subdirectory(Data)
 endif()
 
+if (BuildClientLibs)
+  add_subdirectory(Macros)
+endif()
+
 add_subdirectory(Source)
