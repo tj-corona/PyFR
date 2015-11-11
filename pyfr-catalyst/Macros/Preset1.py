@@ -23,6 +23,7 @@ contour.ColorPalette = 'Black-Body Radiation'
 contour.ColorRange = [0.7377, 0.7428]
 
 # Properties modified on clip
+clip.Origin = [0.0, 0.0, 0.0]
 clip.Normal = [0.0, 1.0, 0.0]
 
 # find source
