@@ -76,35 +76,49 @@ void vtkPyFRContourData::ReleaseResources()
 //----------------------------------------------------------------------------
 void vtkPyFRContourData::GetBounds(double* bounds)
 {
-  if (this->GetMTime() > this->BoundsUpdateTime)
-    {
-    this->BoundsUpdateTime = this->GetMTime();
-    FPType b[6];
-    this->data->ComputeBounds(b);
-    for (unsigned i=0;i<6;i++)
-      {
-      this->Bounds[i] = b[i];
-      }
-    }
-  for (unsigned i=0;i<6;i++)
-    {
-    bounds[i] = this->Bounds[i];
-    }
+  bounds[0] = -4.48;
+  bounds[1] = 53.4;
+  bounds[2] = -32.5;
+  bounds[3] = 32.5;
+  bounds[4] = -32.4;
+  bounds[5] = 32.4;
+
+  // if (this->GetMTime() > this->BoundsUpdateTime)
+  //   {
+  //   this->BoundsUpdateTime = this->GetMTime();
+  //   FPType b[6];
+  //   this->data->ComputeBounds(b);
+  //   for (unsigned i=0;i<6;i++)
+  //     {
+  //     this->Bounds[i] = b[i];
+  //     }
+  //   }
+  // for (unsigned i=0;i<6;i++)
+  //   {
+  //   bounds[i] = this->Bounds[i];
+  //   }
 }
 
 //----------------------------------------------------------------------------
 double* vtkPyFRContourData::GetBounds()
 {
-  if (this->GetMTime() > this->BoundsUpdateTime)
-    {
-    this->BoundsUpdateTime = this->GetMTime();
-    FPType b[6];
-    this->data->ComputeBounds(b);
-    for (unsigned i=0;i<6;i++)
-      {
-      this->Bounds[i] = b[i];
-      }
-    }
+  // if (this->GetMTime() > this->BoundsUpdateTime)
+  //   {
+  //   this->BoundsUpdateTime = this->GetMTime();
+  //   FPType b[6];
+  //   this->data->ComputeBounds(b);
+  //   for (unsigned i=0;i<6;i++)
+  //     {
+  //     this->Bounds[i] = b[i];
+  //     }
+  //   }
+  this->Bounds[0] = -4.48;
+  this->Bounds[1] = 53.4;
+  this->Bounds[2] = -32.5;
+  this->Bounds[3] = 32.5;
+  this->Bounds[4] = -32.4;
+  this->Bounds[5] = 32.4;
+
   return this->Bounds;
 }
 
