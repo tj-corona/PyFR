@@ -4,16 +4,16 @@ from paraview.simple import *
 paraview.simple._DisableFirstRenderCameraReset()
 
 # find source
-contour = FindSource('Contour')
+clip = FindSource('Clip')
+SetActiveSource(clip)
 
-# set active source
-SetActiveSource(contour)
+# Properties modified on clip
+clip.Origin = [0.0, 0.0, 0.0]
+clip.Normal = [0.0, 1.0, 0.0]
 
 # find source
-clip = FindSource('Clip')
-
-# set active source
-SetActiveSource(clip)
+contour = FindSource('Contour')
+SetActiveSource(contour)
 
 # Properties modified on contour
 contour.ContourField = 'Density'
@@ -22,12 +22,9 @@ contour.ColorField = 'Density'
 contour.ColorPalette = 'Black-Body Radiation'
 contour.ColorRange = [0.7377, 0.7428]
 
-# Properties modified on clip
-clip.Origin = [0.0, 0.0, 0.0]
-clip.Normal = [0.0, 1.0, 0.0]
-
 # find source
 slice = FindSource('Slice')
+SetActiveSource(slice)
 
 # Properties modified on slice
 slice.NumberOfPlanes = 5
@@ -36,9 +33,6 @@ slice.Normal = [1.0, 0.0, 0.0]
 slice.ColorField = 'Density'
 slice.ColorPalette = 'Cool to Warm'
 slice.ColorRange = [0.695, 0.7385]
-
-# set active source
-SetActiveSource(slice)
 
 # Properties modified on slice
 slice.Origin = [3.0, 0.0, 0.0]

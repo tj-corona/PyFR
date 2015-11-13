@@ -5,27 +5,15 @@ paraview.simple._DisableFirstRenderCameraReset()
 
 # find source
 clip = FindSource('Clip')
-
-# set active source
 SetActiveSource(clip)
+
+# Properties modified on clip
+clip.Origin = [0.0, 0.0, 0.0]
+clip.Normal = [0.0, -1.0, 0.0]
 
 # find source
 contour = FindSource('Contour')
-
-# set active source
 SetActiveSource(contour)
-
-# set active source
-SetActiveSource(clip)
-
-# set active source
-SetActiveSource(contour)
-
-# find source
-slice = FindSource('Slice')
-
-# set active source
-SetActiveSource(slice)
 
 # Properties modified on contour
 contour.ContourField = 'Pressure'
@@ -34,9 +22,11 @@ contour.ColorField = 'Pressure'
 contour.ColorPalette = 'Green-White Linear'
 contour.ColorRange = [1.899, 1.901]
 
-# Properties modified on clip
-clip.Origin = [0.0, 0.0, 0.0]
-clip.Normal = [0.0, -1.0, 0.0]
+
+# find source
+slice = FindSource('Slice')
+SetActiveSource(slice)
+
 
 # Properties modified on slice
 slice.NumberOfPlanes = 1
