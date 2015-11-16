@@ -156,9 +156,9 @@ class ColorTable
   VTKM_EXEC_CONT_EXPORT
   Color operator()(const FPType& value) const
   {
-    if (value < this->Pivots[0] || value > this->Pivots[this->NumberOfColors-1])
+    if (value < this->Pivots[0])
       {
-      return Color(0,0,0,0);
+       return this->Palette[0];
       }
 
     vtkm::IdComponent index = 1;
