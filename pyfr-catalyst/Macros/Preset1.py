@@ -19,7 +19,7 @@ SetActiveSource(contour)
 contour.ContourField = 'Density'
 contour.Isosurfaces = [0.738, 0.7392, 0.7404, 0.7416, 0.7428]
 contour.ColorField = 'Density'
-contour.ColorPalette = 'Black-Body Radiation'
+contour.ColorPalette = 'Cool to Warm'
 contour.ColorRange = [0.7377, 0.7428]
 
 # find source

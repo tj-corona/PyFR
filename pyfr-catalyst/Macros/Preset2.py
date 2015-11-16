@@ -9,18 +9,18 @@ SetActiveSource(clip)
 
 # Properties modified on clip
 clip.Origin = [0.0, 0.0, 0.0]
-clip.Normal = [0.0, -1.0, 0.0]
+clip.Normal = [0.0, 0.0, -1.0]
 
 # find source
 contour = FindSource('Contour')
 SetActiveSource(contour)
 
 # Properties modified on contour
-contour.ContourField = 'Pressure'
-contour.Isosurfaces = [1.899, 1.901]
-contour.ColorField = 'Pressure'
-contour.ColorPalette = 'Green-White Linear'
-contour.ColorRange = [1.899, 1.901]
+contour.ContourField = 'Density'
+contour.Isosurfaces = [0.735]
+contour.ColorField = 'Velocity_u'
+contour.ColorPalette = 'Cool to Warm'
+contour.ColorRange = [-0.25, 0.25]
 
 
 # find source
@@ -31,11 +31,11 @@ SetActiveSource(slice)
 # Properties modified on slice
 slice.NumberOfPlanes = 1
 slice.Spacing = 0.0
-slice.Origin = [0.0, 0.0, 0.0]
-slice.Normal = [0.0, 1.0, 0.0]
-slice.ColorField = 'Pressure'
-slice.ColorPalette = 'Green-White Linear'
-slice.ColorRange = [1.899, 1.901]
+slice.Origin = [0.0, 0.0, 0.002]
+slice.Normal = [0.0, 0.0, 1.0]
+slice.ColorField = 'Density'
+slice.ColorPalette = 'Cool to Warm'
+slice.ColorRange = [0.735, 0.745]
 
 #### uncomment the following to render all views
 # RenderAllViews()

@@ -17,9 +17,9 @@ SetActiveSource(contour)
 
 contour.ContourField = 'Density'
 contour.Isosurfaces = [0.7197786, 0.717, 0.7215]
-contour.ColorField = 'Velocity_w'
-contour.ColorPalette = 'Green-White Linear'
-contour.ColorRange = [-0.25, 0.25]
+contour.ColorField = 'Velocity_u'
+contour.ColorPalette = 'Cool to Warm'
+contour.ColorRange = [-0.25, 0.5]
 
 # find source
 slice = FindSource('Slice')
